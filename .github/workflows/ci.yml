@@ -24,7 +24,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: "14.0"
-      - uses: actions-rs/toolchain@v1
+      - name: Setup rust toolchain
+        run: rustup show
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo fmt
@@ -51,7 +52,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: "14.0"
-      - uses: actions-rs/toolchain@v1
+      - name: Setup rust toolchain
+        run: rustup show
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo bench
@@ -66,7 +68,8 @@ jobs:
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: "14.0"
-      - uses: actions-rs/toolchain@v1
+      - name: Setup rust toolchain
+        run: rustup show
       - name: Build
         run: cargo build -vv --release --all-features
       - name: Test
