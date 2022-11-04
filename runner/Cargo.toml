@@ -1,0 +1,13 @@
+[package]
+name = "qir-runner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.inkwell]
+git = "https://github.com/TheDan64/inkwell"
+branch = "master"
+default-features = false
+features = ["target-x86", "llvm14-0"]
+
+[dependencies.qir-backend]
+path = "../backend"

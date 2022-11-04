@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "backend",
+    "runner",
+]
+
+[profile.release]
+debug = 1
