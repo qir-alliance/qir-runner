@@ -70,6 +70,7 @@ jobs:
           version: "14.0"
       - name: Setup rust toolchain
         run: rustup show
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build -vv --release --all-features
       - name: Test
@@ -84,16 +85,98 @@ jobs:
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: "14.0"
-      - uses: Swatinem/rust-cache@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           profile: minimal
           override: true
           components: rustfmt, clippy, llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
       - name: Build Nightly
         run: cargo build -vv --release --all-features
       - name: Test Nightly
+        run: cargo test -vv --release --all-features
+
+  release:
+    name: Release
+    runs-on: ${{ matrix.config.os }}
+    env:
+      QIRLIB_DOWNLOAD_LLVM: false
+      CCACHE_DIR: ~/.ccache
+      SCCACHE_DIR: C:\sccache
+      QIRLIB_CACHE_DIR: target/llvm
+      LLVM_SYS_140_PREFIX: target/llvm
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              os: "ubuntu-20.04",
+              arch: "amd64",
+            }
+          - {
+              os: "windows-2019",
+              arch: "amd64",
+            }
+          - {
+              os: "macos-11",
+              arch: "amd64",
+            }
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup rust toolchain
+        run: rustup show
+      - name: Linux - Install build dependencies, ccache, ninja
+        run: sudo apt-get install -y ccache ninja-build
+        if: ${{ matrix.config.os == 'ubuntu-20.04' }}
+      - name: Windows - Install build dependencies, sccache, ninja
+        run: choco install --accept-license -y sccache ninja
+        if: ${{ matrix.config.os == 'windows-2019' }}
+      - name: MacOS - Install build dependencies, ccache, ninja
+        run: brew install ccache ninja
+        if: ${{ matrix.config.os == 'macos-11' }}
+      - name: Windows - Install LLVM 14.0.6
+        run: choco install llvm --version=14.0.6 --allow-downgrade
+        if: ${{ matrix.config.os == 'windows-2019' }}
+      - name: Get Timestamp
+        id: timestamp
+        run: Write-Host "::set-output name=timestamp::$([DateTime]::UtcNow.ToString('o'))"
+        shell: pwsh
+
+      - name: Create Cache Folder
+        run: New-Item -ItemType Directory -Force ${{ env.SCCACHE_DIR }} | Out-Null
+        shell: pwsh
+        if: ${{ matrix.config.os == 'windows-2019' }}
+      - name: Create Cache Folder
+        run: New-Item -ItemType Directory -Force ${{ env.CCACHE_DIR }} | Out-Null
+        shell: pwsh
+        if: ${{ matrix.config.os != 'windows-2019' }}
+
+      - name: CCACHE cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.CCACHE_DIR }}
+          key: ${{ matrix.config.os }}-${{ matrix.config.target }}-ccache-${{ steps.timestamp.outputs.timestamp }}
+          restore-keys: |
+              ${{ matrix.config.os }}-${{ matrix.config.target }}-ccache-
+        if: ${{ matrix.config.os != 'windows-2019' }}
+      - name: SCCACHE cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.SCCACHE_DIR }}
+          key: ${{ matrix.config.os }}-sccache-${{ steps.timestamp.outputs.timestamp }}
+          restore-keys: |
+              ${{ matrix.config.os }}-sccache-
+        if: ${{ matrix.config.os == 'windows-2019' }}
+
+      - name: Install LLVM
+        run: cargo install --path llvm-build -vv
+
+      - name: Build
+        run: cargo build -vv --release --all-features
+      - name: Test
         run: cargo test -vv --release --all-features
 
   docs:
