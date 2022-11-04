@@ -106,6 +106,8 @@ jobs:
           name: docs
           path: target/doc
 
+      - name: Index Page Redirection
+        run: echo '<meta http-equiv="refresh" content="0; url=qir_runner">' > target/doc/index.html
       - name: Publish Docs to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@4.1.7
         with:
