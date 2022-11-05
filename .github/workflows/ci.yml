@@ -171,6 +171,9 @@ jobs:
               ${{ matrix.config.os }}-sccache-
         if: ${{ matrix.config.os == 'windows-2019' }}
 
+      - name: Configure long paths
+        run: git config --global core.longpaths true
+
       - name: Install LLVM
         run: |
           . ${{ github.workspace }}/llvm-build/vcvars.ps1
