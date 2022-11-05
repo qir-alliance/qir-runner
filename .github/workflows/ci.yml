@@ -104,8 +104,8 @@ jobs:
       QIRLIB_DOWNLOAD_LLVM: false
       CCACHE_DIR: ~/.ccache
       SCCACHE_DIR: C:\sccache
-      QIRLIB_CACHE_DIR: target/llvm
-      LLVM_SYS_140_PREFIX: target/llvm
+      QIRLIB_CACHE_DIR: ${{ env.GITHUB_WORKSPACE }}/target/llvm
+      LLVM_SYS_140_PREFIX: ${{ env.GITHUB_WORKSPACE }}/target/llvm
     strategy:
       fail-fast: false
       matrix:
