@@ -172,7 +172,10 @@ jobs:
         if: ${{ matrix.config.os == 'windows-2019' }}
 
       - name: Install LLVM
-        run: cargo install --path llvm-build -vv
+        run: |
+          . ${{ github.workspace }}/llvm-build/vcvars.ps1
+          cargo install --path llvm-build -vv
+        shell: pwsh
 
       - name: Build
         run: cargo build -vv --release --all-features
