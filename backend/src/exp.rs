@@ -237,7 +237,7 @@ impl QuantumSim {
                     SparseState::default(),
                     |mut accum, (index, value)| {
                         if ctls.iter().all(|c| index.bit(*c as u64))
-                            && (&index & &yz_mask).count_ones() & 1 > 0
+                            && (&index & &yz_mask).count_ones() & 1 != 0
                         {
                             accum.insert(index, value * id_coeff);
                         }
@@ -266,9 +266,9 @@ impl QuantumSim {
                             accum.insert(
                                 index.clone(),
                                 val * if (index & &yz_mask).count_ones() & 1 == 0 {
-                                    id_coeff
-                                } else {
                                     pauli_coeff
+                                } else {
+                                    id_coeff
                                 },
                             );
                         } else {
@@ -372,7 +372,7 @@ mod tests {
 
         // If the rotations were performed correctly, the check qubit `paired` should
         // always be back in the ground state, and the whole state vector should be
-        // back to a signle, zero state.
+        // back to a single, zero state.
         assert!(!sim.joint_measure(&[paired]));
         assert_eq!(sim.state.len(), 1);
     }

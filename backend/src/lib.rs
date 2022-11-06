@@ -552,7 +552,7 @@ pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_vo
 #[no_mangle]
 pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool {
     SIM_STATE.with(|sim_state| {
-        let res = &mut (*sim_state.borrow_mut()).res;
+        let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
         if res.len() < res_id + 1 {
             res.resize(res_id + 1, false);
@@ -692,7 +692,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
 #[no_mangle]
 pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
-        let res = &mut (*sim_state.borrow_mut()).res;
+        let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
         let b = if res.is_empty() {
             // No static measurements have been used, so default to dynamic handling.
