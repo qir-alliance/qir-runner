@@ -24,5 +24,5 @@ fn run_file_errors_on_invalid_ext() {
 fn run_file_errors_on_missing_file() {
     let result = run_file("/some/bad/path.ll", None);
     assert!(result.is_err());
-    assert_eq!("No such file or directory", result.unwrap_err());
+    assert_eq!("no such file or directory", result.unwrap_err().to_lowercase());
 }
