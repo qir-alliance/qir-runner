@@ -1,6 +1,6 @@
 # QIR Runner
 
-This project implements a basic QIR Runner prototype for testing. This includes a git dependency on the `qir_stdlib` for classical library support, and a `qir_backend` with sparse quantum state simulation.
+This project implements a basic QIR Runner prototype. This includes a git dependency on the `qir_stdlib` for classical library support, and a `backend` with sparse quantum state simulation.
 
 ## Implemented APIs
 

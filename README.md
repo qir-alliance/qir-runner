@@ -1,14 +1,36 @@
-# Project
+# QIR Runner
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+QIR-Runner is a set of tools for executing [Quantum
+Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec) programs to assist with QIR development and validation. It consists of the following components:
 
-As the maintainer of this project, please make a few updates:
+- [**backend**](backend):
+ This package implements a sparse quantum state simulator
+- [**runner**](runner):
+  This package provides an API or CLI tool to execute QIR.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Documentation
+
+API documentation is available at [https://microsoft.github.io/qir-runner](microsoft.github.io/qir-runner).
+
+## Feedback
+
+If you have feedback about the content in this repository, please let us know by
+filing a [new issue](https://github.com/microsoft/qir-runner/issues/new)!
+
+## Contributing
+
+There are many ways in which you can contribute to `qir-runner`, whether by
+contributing a feature or by engaging in discussions; we value contributions in
+all shapes and sizes! We refer to [this document](CONTRIBUTING.md) for
+guidelines and ideas for how you can get involved.
+
+Contributing a pull request to this repo requires to agree to a [Contributor
+License Agreement
+(CLA)](https://en.wikipedia.org/wiki/Contributor_License_Agreement) declaring
+that you have the right to, and actually do, grant us the rights to use your
+contribution. A CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately. Simply follow the
+instructions provided by the bot. You will only need to do this once.
 
 ## Contributing
 
