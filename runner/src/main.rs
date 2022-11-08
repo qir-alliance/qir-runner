@@ -5,8 +5,6 @@
 
 use std::env;
 
-mod lib;
-
 fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
     if args.len() == 1 {
@@ -21,6 +19,6 @@ fn main() -> Result<(), String> {
         } else {
             None
         };
-        lib::run_file(path, name)
+        qir_runner::run_file(path, name)
     }
 }
