@@ -22,11 +22,9 @@ runs:
       id: llvm-cache
       uses: actions/cache@v3
       with:
-        path: |
-          ${{ inputs.directory }}
+        path: ${{ inputs.directory }}
         key: llvm-${{ inputs.version }}-${{ inputs.arch }}-${{ inputs.os }}
-        restore-keys: |
-          llvm-${{ inputs.version }}-${{ inputs.arch }}-${{ inputs.os }}
+        restore-keys: llvm-${{ inputs.version }}-${{ inputs.arch }}-${{ inputs.os }}
 
     - name: Linux - Install build dependencies, ninja
       run: sudo apt-get install -y ninja-build
@@ -48,7 +46,7 @@ runs:
     - name: Configure long paths
       run: git config --global core.longpaths true
       shell: pwsh
-      if: steps.cache-llvm.outputs.cache-hit != 'true'
+      if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
 
     - name: Configure LLVM Environment
       run: |
@@ -62,4 +60,4 @@ runs:
         $env:QIRLIB_DOWNLOAD_LLVM = "false"
         cargo install --path llvm-build -vv
       shell: pwsh
-      if: steps.cache-llvm.outputs.cache-hit != 'true'
+      if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}
