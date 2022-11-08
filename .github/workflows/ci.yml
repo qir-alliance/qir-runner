@@ -100,12 +100,6 @@ jobs:
   release:
     name: Release
     runs-on: ${{ matrix.config.os }}
-    env:
-      QIRLIB_DOWNLOAD_LLVM: false
-      CCACHE_DIR: ~/.ccache
-      SCCACHE_DIR: C:\sccache
-      QIRLIB_CACHE_DIR: ${{ github.workspace }}/target/llvm
-      LLVM_SYS_140_PREFIX: ${{ github.workspace }}/target/llvm
     strategy:
       fail-fast: false
       matrix:
@@ -126,60 +120,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Setup rust toolchain
         run: rustup show
-      - name: Linux - Install build dependencies, ccache, ninja
-        run: sudo apt-get install -y ccache ninja-build
-        if: ${{ matrix.config.os == 'ubuntu-20.04' }}
-      - name: Windows - Install build dependencies, sccache, ninja
-        run: choco install --accept-license -y sccache ninja
-        if: ${{ matrix.config.os == 'windows-2019' }}
-      - name: MacOS - Install build dependencies, ccache, ninja
-        run: brew install ccache ninja
-        if: ${{ matrix.config.os == 'macos-11' }}
-      - name: Windows - Install LLVM 14.0.6
-        run: choco install llvm --version=14.0.6 --allow-downgrade
-        if: ${{ matrix.config.os == 'windows-2019' }}
-      - name: Get Timestamp
-        id: timestamp
-        run: Write-Host "::set-output name=timestamp::$([DateTime]::UtcNow.ToString('o'))"
-        shell: pwsh
-
-      - name: Create Cache Folder
-        run: New-Item -ItemType Directory -Force ${{ env.SCCACHE_DIR }} | Out-Null
-        shell: pwsh
-        if: ${{ matrix.config.os == 'windows-2019' }}
-      - name: Create Cache Folder
-        run: New-Item -ItemType Directory -Force ${{ env.CCACHE_DIR }} | Out-Null
-        shell: pwsh
-        if: ${{ matrix.config.os != 'windows-2019' }}
-
-      - name: CCACHE cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ env.CCACHE_DIR }}
-          key: ${{ matrix.config.os }}-${{ matrix.config.target }}-ccache-${{ steps.timestamp.outputs.timestamp }}
-          restore-keys: |
-              ${{ matrix.config.os }}-${{ matrix.config.target }}-ccache-
-        if: ${{ matrix.config.os != 'windows-2019' }}
-      - name: SCCACHE cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ env.SCCACHE_DIR }}
-          key: ${{ matrix.config.os }}-sccache-${{ steps.timestamp.outputs.timestamp }}
-          restore-keys: |
-              ${{ matrix.config.os }}-sccache-
-        if: ${{ matrix.config.os == 'windows-2019' }}
-
-      - name: Configure long paths
-        run: git config --global core.longpaths true
-
       - name: Install LLVM
-        run: |
-          . ${{ github.workspace }}/llvm-build/vcvars.ps1
-          cargo install --path llvm-build -vv
-        shell: pwsh
-
+        uses: ./.github/actions/install-llvm
+        with:
+          version: "14"
+          os: ${{ matrix.config.os }}
+          directory: ${{ github.workspace }}/target/llvm
+          arch: ${{ matrix.config.arch }}
       - name: Build
         run: cargo build -vv --release --all-features
       - name: Test
