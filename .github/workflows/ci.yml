@@ -184,6 +184,14 @@ jobs:
         run: cargo build -vv --release --all-features
       - name: Test
         run: cargo test -vv --release --all-features
+      - name: Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.config.os }}-artifacts
+          path: |
+            target/release/qir-runner*
+            qir_runner/NOTICE.txt
+            LICENSE
 
   docs:
     runs-on: "ubuntu-20.04"
