@@ -1,0 +1,161 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  pull_request:
+    branches:
+      - main
+      - release/*
+      - feature/*
+
+env:
+  RUSTFLAGS: -Dwarnings
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  fmt:
+    name: Code Style
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "14.0"
+      - name: Setup rust toolchain
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo fmt
+        run: cargo fmt -v --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy -vv --all-targets --all-features
+
+      - name: cargo doc
+        run: cargo doc -vv --all --no-deps
+
+      - name: Publish Docs as Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: docs
+          path: target/doc
+
+  benches:
+    name: Benches
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "14.0"
+      - name: Setup rust toolchain
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cargo bench
+        run: cargo bench --workspace
+
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "14.0"
+      - name: Setup rust toolchain
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build -vv --release --all-features
+      - name: Test
+        run: cargo test -vv --release --all-features
+
+  nightly:
+    name: Build Nightly
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "14.0"
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+          components: rustfmt, clippy, llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - name: Build Nightly
+        run: cargo build -vv --release --all-features
+      - name: Test Nightly
+        run: cargo test -vv --release --all-features
+
+  release:
+    name: Release
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              os: "ubuntu-20.04",
+              arch: "amd64",
+            }
+          - {
+              os: "windows-2019",
+              arch: "amd64",
+            }
+          - {
+              os: "macos-11",
+              arch: "amd64",
+            }
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup rust toolchain
+        run: rustup show
+      - name: Install LLVM
+        uses: ./.github/actions/install-llvm
+        with:
+          version: "14"
+          os: ${{ matrix.config.os }}
+          directory: ${{ github.workspace }}/target/llvm
+          arch: ${{ matrix.config.arch }}
+      - name: Build
+        run: cargo build -vv --release --all-features
+      - name: Test
+        run: cargo test -vv --release --all-features
+      - name: Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
+          path: |
+            target/release/qir-runner
+            target/release/qir-runner.exe
+            runner/NOTICE.txt
+            LICENSE
+
+  docs:
+    runs-on: "ubuntu-20.04"
+    needs: fmt
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: docs
+          path: target/doc
+
+      - name: Index Page Redirection
+        run: echo '<meta http-equiv="refresh" content="0; url=qir_runner">' > target/doc/index.html
+      - name: Publish Docs to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@4.1.7
+        with:
+          branch: gh-pages
+          folder: target/doc
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'

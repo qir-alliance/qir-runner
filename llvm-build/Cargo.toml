@@ -1,0 +1,12 @@
+[workspace]
+
+[package]
+name = "llvm-build"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies.qirlib]
+git = "https://github.com/qir-alliance/pyqir"
+branch = "main"
+default-features = false
+features = ["llvm14-0-no-llvm-linking", "build-llvm"]
