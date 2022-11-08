@@ -74,9 +74,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
 
     bind_functions(module, &execution_engine);
 
-    unsafe {
-        run_entry_point(&execution_engine, entry_point)
-    }
+    unsafe { run_entry_point(&execution_engine, entry_point) }
 }
 
 fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
