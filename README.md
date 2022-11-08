@@ -10,7 +10,7 @@ Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec) pro
 
 ## Documentation
 
-API documentation is available at [https://microsoft.github.io/qir-runner](microsoft.github.io/qir-runner).
+API documentation is available at [https://microsoft.github.io/qir-runner](https://microsoft.github.io/qir-runner).
 
 ## Feedback
 
