@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(unused)]
 
 pub use qir_backend::{
     arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
@@ -21,26 +22,39 @@ use inkwell::{
 };
 use std::{ffi::OsStr, path::Path};
 
+/// # Errors
+///
+/// Will return `Err` if
+/// - `filename` does not exist or the user does not have permission to read it.
+/// - `filename` does not contain a valid bitcode module
+/// - `filename` does not have either a .ll or .bc as an extension
+/// - `entry_point` is not found in the QIR
+/// - Entry point has parameters or a non-void return type.
 pub fn run_file(path: impl AsRef<Path>, entry_point: Option<&str>) -> Result<(), String> {
     let context = Context::create();
-
     let module = load_file(path, &context)?;
-    run_module(module, entry_point)
+    run_module(&module, entry_point)
 }
 
+/// # Errors
+///
+/// Will return `Err` if
+/// - `bytes` does not contain a valid bitcode module
+/// - `entry_point` is not found in the QIR
+/// - Entry point has parameters or a non-void return type.
 pub fn run_bitcode(bytes: &[u8], entry_point: Option<&str>) -> Result<(), String> {
     let context = Context::create();
     let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
     let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
-    run_module(module, entry_point)
+    run_module(&module, entry_point)
 }
 
-fn run_module(module: Module, entry_point: Option<&str>) -> Result<(), String> {
+fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> {
     module
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;
 
-    run_basic_passes_on(&module);
+    run_basic_passes_on(module);
 
     Target::initialize_native(&InitializationConfig::default())?;
     let default_triple = TargetMachine::get_default_triple();
@@ -52,19 +66,17 @@ fn run_module(module: Module, entry_point: Option<&str>) -> Result<(), String> {
         return Err("Target doesn't have a target machine.".to_owned());
     }
 
-    let entry_point = choose_entry_point(module_functions(&module), entry_point)?;
+    let entry_point = choose_entry_point(module_functions(module), entry_point)?;
     inkwell::support::load_library_permanently("");
     let execution_engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .map_err(|e| e.to_string())?;
 
-    bind_functions(&module, &execution_engine);
+    bind_functions(module, &execution_engine);
 
     unsafe {
-        run_entry_point(&execution_engine, entry_point)?;
+        run_entry_point(&execution_engine, entry_point)
     }
-
-    Ok(())
 }
 
 fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
