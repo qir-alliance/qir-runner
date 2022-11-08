@@ -14,6 +14,30 @@ fn test_choi_jamiolkowski_isomorphism() -> Result<(), String> {
 }
 
 #[test]
+fn test_full_qir_simple() -> Result<(), String> {
+    let bitcode = include_bytes!("resources/full-qir.bc");
+    run_bitcode(bitcode, Some("QIR_App_Test__Simple"))
+}
+
+#[test]
+fn test_full_qir_other() -> Result<(), String> {
+    let bitcode = include_bytes!("resources/full-qir.bc");
+    run_bitcode(bitcode, Some("QIR_App_Test__Other"))
+}
+
+#[test]
+fn test_qir_testing() -> Result<(), String> {
+    let bitcode = include_bytes!("resources/qir-testing.bc");
+    run_bitcode(bitcode, None)
+}
+
+#[test]
+fn test_shor() -> Result<(), String> {
+    let bitcode = include_bytes!("resources/shor.bc");
+    run_bitcode(bitcode, None)
+}
+
+#[test]
 fn run_file_errors_on_invalid_ext() {
     let result = run_file("/some/bad/path", None);
     assert!(result.is_err());
