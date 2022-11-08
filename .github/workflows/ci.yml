@@ -134,10 +134,11 @@ jobs:
       - name: Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.config.os }}-artifacts
+          name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: |
-            target/release/qir-runner*
-            qir_runner/NOTICE.txt
+            target/**/qir-runner
+            target/**/qir-runner.exe
+            runner/**/NOTICE.txt
             LICENSE
 
   docs:
