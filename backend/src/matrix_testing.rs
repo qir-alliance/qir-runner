@@ -8,10 +8,9 @@ use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
 use rustc_hash::FxHashMap;
-use std::ops::ControlFlow;
 
 use crate::nearly_zero::NearlyZero;
-use crate::simulator::QuantumSim;
+use crate::simulator::{FlushLevel, QuantumSim};
 
 impl QuantumSim {
     /// Applies the given unitary to the given targets, extending the unitary to accomodate controls if any.
@@ -53,25 +52,9 @@ impl QuantumSim {
             // Extend the provided unitary by inserting it into an identity matrix.
             unitary = controlled(&unitary, ctrls.len().try_into().unwrap());
         }
+        Self::check_for_duplicates(&targets);
 
-        let mut sorted_targets = targets.clone();
-        sorted_targets.sort_unstable();
-        if let ControlFlow::Break(Some(duplicate)) =
-            sorted_targets.iter().try_fold(None, |last, current| {
-                last.map_or_else(
-                    || ControlFlow::Continue(Some(current)),
-                    |last| {
-                        if last == current {
-                            ControlFlow::Break(Some(current))
-                        } else {
-                            ControlFlow::Continue(Some(current))
-                        }
-                    },
-                )
-            })
-        {
-            panic!("Duplicate qubit id '{}' found in application.", duplicate);
-        }
+        self.flush_queue(&targets, FlushLevel::HRxRy);
 
         targets
             .iter()
@@ -427,6 +410,11 @@ mod tests {
 
         // We know the operations are equal if the control is left in the zero state.
         assert!(sim.joint_probability(&[ctl]).is_nearly_zero());
+
+        // Sparse state vector should have one entry for |0⟩.
+        // Dump the state first to force a flush of any queued operations.
+        sim.dump();
+        assert_eq!(sim.state.len(), 1);
     }
 
     #[test]
