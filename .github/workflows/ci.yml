@@ -136,9 +136,9 @@ jobs:
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: |
-            target/release/qir-runner
-            target/release/qir-runner.exe
-            runner/NOTICE.txt
+            target/release/**/qir-runner
+            target/release/**/qir-runner.exe
+            runner/**/NOTICE.txt
             LICENSE
 
   docs:
