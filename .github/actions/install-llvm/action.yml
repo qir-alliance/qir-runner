@@ -58,6 +58,6 @@ runs:
       run: |
         . ${{ github.workspace }}/llvm-build/vcvars.ps1
         $env:QIRLIB_DOWNLOAD_LLVM = "false"
-        cargo install --path llvm-build -vv
+        cargo install --path llvm-build -vv --features llvm${{ inputs.version }}-0
       shell: pwsh
       if: ${{ steps.cache-llvm.outputs.cache-hit != 'true' }}

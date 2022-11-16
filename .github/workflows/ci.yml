@@ -32,7 +32,7 @@ jobs:
         run: cargo fmt -v --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -vv --all-targets --all-features
+        run: cargo clippy -vv --all-targets --features llvm14-0
 
       - name: cargo doc
         run: cargo doc -vv --all --no-deps
@@ -72,9 +72,9 @@ jobs:
         run: rustup show
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release  --features llvm14-0
       - name: Test
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release  --features llvm14-0
 
   nightly:
     name: Build Nightly
@@ -93,9 +93,9 @@ jobs:
           components: rustfmt, clippy, llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
       - name: Build Nightly
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release --features llvm14-0
       - name: Test Nightly
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release --features llvm14-0
 
   release:
     name: Release
@@ -128,9 +128,9 @@ jobs:
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
       - name: Build
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release --features llvm14-0
       - name: Test
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release --features llvm14-0
       - name: Artifacts
         uses: actions/upload-artifact@v3
         with:
