@@ -12,7 +12,7 @@ get involved.
 Have a question? This repository is a great place to ask questions about using
 QIR from Rust. Your question will serve as resource to others
 searching for help. Please file an issue to ask your question
-[here](https://github.com/microsoft/qir-runner/issues/new).
+[here](https://github.com/qir-alliance/qir-runner/issues/new).
 
 Or maybe you have figured out how that hard-to-understand concept works? Share
 your knowledge! If you are interested in contributing to the documentation
@@ -24,11 +24,11 @@ respective repository to improve the materials.
 Have you identified an issue or modification that would benefit the community?
 We want to hear about it! If you have feedback about the content in this
 repository, please let us know by filing a [new
-issue](https://github.com/microsoft/qir-runner/issues/new)!
+issue](https://github.com/qir-alliance/qir-runner/issues/new)!
 
 As for any active effort, there are always many ways in which we hope to evolve
 and improve the specification and tools. We encourage you to look at the list of
-currently [open issues](https://github.com/microsoft/qir-runner/issues) to share
+currently [open issues](https://github.com/qir-alliance/qir-runner/issues) to share
 your ideas and expertise.
 
 ## Contributing Code
@@ -63,8 +63,8 @@ it requires more documentation or unit tests to better make use of it.
 
 If you are looking for a place to get started with contributing code, search for
 example for the
-[good-first-issue](https://github.com/microsoft/qir-runner/labels/good%20first%20issue)
-or [help-wanted](https://github.com/microsoft/qir-runner/labels/help%20wanted)
+[good-first-issue](https://github.com/qir-alliance/qir-runner/labels/good%20first%20issue)
+or [help-wanted](https://github.com/qir-alliance/qir-runner/labels/help%20wanted)
 labels. Also, look for issues that have already been discussed in more detail,
 and check if you can help someone who has already started working on it.
 
