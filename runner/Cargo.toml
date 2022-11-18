@@ -8,7 +8,14 @@ license = "MIT"
 git = "https://github.com/TheDan64/inkwell"
 branch = "master"
 default-features = false
-features = ["target-x86", "llvm14-0"]
+features = []
 
 [dependencies.qir-backend]
 path = "../backend"
+
+[features]
+default = []
+llvm11-0 = ["inkwell/llvm11-0"]
+llvm12-0 = ["inkwell/llvm12-0"]
+llvm13-0 = ["inkwell/llvm13-0"]
+llvm14-0 = ["inkwell/llvm14-0"]

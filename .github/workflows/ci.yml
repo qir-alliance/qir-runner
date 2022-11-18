@@ -13,6 +13,7 @@ on:
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: 0
+  LLVM_FEATURE: llvm14-0
 
 jobs:
   fmt:
@@ -32,10 +33,10 @@ jobs:
         run: cargo fmt -v --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -vv --all-targets --all-features
+        run: cargo clippy -vv --all-targets --features ${{ env.LLVM_FEATURE }}
 
       - name: cargo doc
-        run: cargo doc -vv --all --no-deps
+        run: cargo doc -vv --all --no-deps --features ${{ env.LLVM_FEATURE }}
 
       - name: Publish Docs as Artifacts
         uses: actions/upload-artifact@v2
@@ -57,7 +58,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo bench
-        run: cargo bench --workspace
+        run: cargo bench --workspace --features ${{ env.LLVM_FEATURE }}
 
   build:
     name: Build
@@ -72,9 +73,9 @@ jobs:
         run: rustup show
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
 
   nightly:
     name: Build Nightly
@@ -93,9 +94,9 @@ jobs:
           components: rustfmt, clippy, llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
       - name: Build Nightly
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test Nightly
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
 
   release:
     name: Release
@@ -128,17 +129,17 @@ jobs:
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
       - name: Build
-        run: cargo build -vv --release --all-features
+        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test
-        run: cargo test -vv --release --all-features
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: |
-            target/release/qir-runner
-            target/release/qir-runner.exe
-            runner/NOTICE.txt
+            target/release/*qir-runner
+            target/release/*qir-runner.exe
+            runner/*NOTICE.txt
             LICENSE
 
   docs:
