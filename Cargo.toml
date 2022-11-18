@@ -2,6 +2,7 @@
 members = [
     "backend",
     "runner",
+    "stdlib",
 ]
 
 [profile.release]

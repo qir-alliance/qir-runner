@@ -6,7 +6,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-qir-stdlib = { git = "https://github.com/microsoft/qsharp-runtime" }
+qir-stdlib = { path = "../stdlib" }
 rand = "0.8.5"
 rustc-hash = "1.1.0"
 num-complex = "0.4"
