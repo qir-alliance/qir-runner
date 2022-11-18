@@ -7,7 +7,8 @@ Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec) pro
  This package implements a sparse quantum state simulator
 - [**runner**](runner):
   This package provides an API or CLI tool to execute QIR.
-
+- [**stdlib**](stdlib)
+  This package implements the QIR standard runtime library
 ## Documentation
 
 API documentation is available at [https://qir-alliance.github.io/qir-runner](https://qir-alliance.github.io/qir-runner).
