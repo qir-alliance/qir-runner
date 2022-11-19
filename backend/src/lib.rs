@@ -717,16 +717,38 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
                 .expect("Result with given id missing after expansion.")
         };
 
-        print!("OUTPUT\tRESULT\t{}", if b { "1" } else { "0" });
-        if tag.is_null() {
-            println!();
-        } else {
-            unsafe {
-                let tag_string = strings::to_string(tag);
-                println!("\t{}", tag_string);
-            }
-        }
+        let val: i64 = if b { 1 } else { 0 };
+        output("RESULT", &val, tag, &mut std::io::stdout()).expect("Failed to write result output");
     });
+}
+
+#[cfg(windows)]
+const LINE_ENDING: &'static [u8] = b"\r\n";
+#[cfg(not(windows))]
+const LINE_ENDING: &'static [u8] = b"\n";
+
+fn output(
+    ty: &str,
+    val: &dyn std::fmt::Display,
+    tag: *mut c_char,
+    output: &mut impl std::io::Write,
+) -> std::io::Result<()> {
+    output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
+    if !tag.is_null() {
+        output.write(b"\t")?;
+        unsafe {
+            extern "C" {
+                /// Provided by libc or compiler_builtins.
+                fn strlen(s: *const c_char) -> usize;
+            }
+            let len = strlen(tag);
+            let ptr = tag as *const u8;
+            let bytes = std::slice::from_raw_parts(ptr, len as usize + 1);
+            output.write(bytes)?;
+        }
+    }
+    output.write(LINE_ENDING)?;
+    Ok(())
 }
 
 /// QIR API that allocates the next available qubit in the simulation.
