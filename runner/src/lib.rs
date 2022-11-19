@@ -95,7 +95,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
 
     for _ in 1..=shots {
         println!("START");
-        for attr in attrs {
+        for attr in attrs.iter() {
             print!("METADATA\t{}", attr.0);
             if !attr.1.is_empty() {
                 print!("\t{}", attr.1);
