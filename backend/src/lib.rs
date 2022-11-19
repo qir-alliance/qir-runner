@@ -19,6 +19,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
 use std::mem::size_of;
+use std::os::raw::c_char;
 use std::os::raw::c_double;
 
 use result_bool::{
@@ -46,6 +47,17 @@ thread_local! {
         sim: QuantumSim::default(),
         res: bitvec![],
         max_qubit_id: 0
+    });
+}
+
+/// Initializes the execution environment.
+#[no_mangle]
+pub unsafe extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        state.sim = QuantumSim::default();
+        state.res = bitvec![];
+        state.max_qubit_id = 0;
     });
 }
 
@@ -690,7 +702,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
 
 /// QIR API for recording the given result into the program output.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
+pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
@@ -705,7 +717,15 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
                 .expect("Result with given id missing after expansion.")
         };
 
-        println!("RESULT\t{}", if b { "1" } else { "0" });
+        print!("OUTPUT\tRESULT\t{}", if b { "1" } else { "0" });
+        if tag.is_null() {
+            println!();
+        } else {
+            unsafe {
+                let tag_string = strings::to_string(tag);
+                println!("\t{}", tag_string);
+            }
+        }
     });
 }
 

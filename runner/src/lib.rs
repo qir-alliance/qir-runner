@@ -66,15 +66,47 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
         return Err("Target doesn't have a target machine.".to_owned());
     }
 
-    let entry_point = choose_entry_point(module_functions(module), entry_point)?;
     inkwell::support::load_library_permanently("");
+
     let execution_engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .map_err(|e| e.to_string())?;
 
     bind_functions(module, &execution_engine);
+    const shots: u32 = 1;
+    let entry_point = choose_entry_point(module_functions(module), entry_point)?;
+    // TODO: need a cleaner way to get the attr strings for metadata
+    let attrs: Vec<(String, String)> = entry_point
+        .attributes(AttributeLoc::Function)
+        .iter()
+        .map(|attr| {
+            (
+                attr.get_string_kind_id()
+                    .to_str()
+                    .expect("Invalid UTF8 data")
+                    .to_string(),
+                attr.get_string_value()
+                    .to_str()
+                    .expect("Invalid UTF8 data")
+                    .to_string(),
+            )
+        })
+        .collect();
 
-    unsafe { run_entry_point(&execution_engine, entry_point) }
+    for _ in 1..=shots {
+        println!("START");
+        for attr in attrs {
+            print!("METADATA\t{}", attr.0);
+            if !attr.1.is_empty() {
+                print!("\t{}", attr.1);
+            }
+            println!();
+        }
+
+        unsafe { run_entry_point(&execution_engine, entry_point)? }
+        println!("END\t0");
+    }
+    Ok(())
 }
 
 fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
@@ -138,8 +170,11 @@ fn module_functions<'ctx>(module: &Module<'ctx>) -> impl Iterator<Item = Functio
 
 fn is_entry_point(function: FunctionValue) -> bool {
     function
-        .get_string_attribute(AttributeLoc::Function, "EntryPoint")
+        .get_string_attribute(AttributeLoc::Function, "entry_point")
         .is_some()
+        || function
+            .get_string_attribute(AttributeLoc::Function, "EntryPoint")
+            .is_some()
 }
 
 fn run_basic_passes_on(module: &Module) -> bool {
@@ -171,6 +206,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) {
         };
     }
 
+    bind!(__quantum__rt__initialize);
     bind!(__quantum__qis__arccos__body);
     bind!(__quantum__qis__arcsin__body);
     bind!(__quantum__qis__arctan__body);
@@ -239,11 +275,10 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) {
     bind!(__quantum__rt__array_concatenate);
     bind!(__quantum__rt__array_copy);
     bind!(__quantum__rt__array_create_1d);
-    bind!(__quantum__rt__array_end_record_output);
+    bind!(__quantum__rt__array_record_output);
     bind!(__quantum__rt__array_get_element_ptr_1d);
     bind!(__quantum__rt__array_get_size_1d);
     bind!(__quantum__rt__array_slice_1d);
-    bind!(__quantum__rt__array_start_record_output);
     bind!(__quantum__rt__array_update_alias_count);
     bind!(__quantum__rt__array_update_reference_count);
     bind!(__quantum__rt__bigint_add);
@@ -307,8 +342,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) {
     bind!(__quantum__rt__string_update_reference_count);
     bind!(__quantum__rt__tuple_copy);
     bind!(__quantum__rt__tuple_create);
-    bind!(__quantum__rt__tuple_end_record_output);
-    bind!(__quantum__rt__tuple_start_record_output);
+    bind!(__quantum__rt__tuple_record_output);
     bind!(__quantum__rt__tuple_update_alias_count);
     bind!(__quantum__rt__tuple_update_reference_count);
 }
