@@ -25,14 +25,7 @@ fn output(
     if !tag.is_null() {
         output.write(b"\t")?;
         unsafe {
-            extern "C" {
-                /// Provided by libc or compiler_builtins.
-                fn strlen(s: *const c_char) -> usize;
-            }
-            let len = strlen(tag);
-            let ptr = tag as *const u8;
-            let bytes = std::slice::from_raw_parts(ptr, len as usize + 1);
-            output.write(bytes)?;
+            output.write(CString::from_raw(tag).as_bytes())?;
         }
     }
     output.write(LINE_ENDING)?;
