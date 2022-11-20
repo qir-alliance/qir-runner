@@ -72,7 +72,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
         .create_jit_execution_engine(OptimizationLevel::None)
         .map_err(|e| e.to_string())?;
 
-    bind_functions(module, &execution_engine);
+    bind_functions(module, &execution_engine)?;
 
     unsafe { run_entry_point(&execution_engine, entry_point) }
 }
@@ -160,13 +160,26 @@ extern "C" {
 }
 
 #[allow(clippy::too_many_lines)]
-fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) {
+fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
+    let mut declarations: Vec<FunctionValue> = module_functions(module)
+        .filter(|f| {
+            f.count_basic_blocks() == 0
+                && !f
+                    .get_name()
+                    .to_str()
+                    .expect("Unable to coerce function name into str.")
+                    .starts_with("llvm.")
+        })
+        .collect();
+
     macro_rules! bind {
         ($func:ident) => {
-            if let Some(func) =
-                &module_functions(&module).find(|f| f.get_name().to_str() == Ok(stringify!($func)))
+            if let Some(func) = declarations
+                .iter()
+                .find(|f| f.get_name().to_str() == Ok(stringify!($func)))
             {
                 execution_engine.add_global_mapping(func, $func as usize);
+                declarations.retain_mut(|f| f.get_name().to_str() != Ok(stringify!($func)));
             }
         };
     }
@@ -311,4 +324,31 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) {
     bind!(__quantum__rt__tuple_start_record_output);
     bind!(__quantum__rt__tuple_update_alias_count);
     bind!(__quantum__rt__tuple_update_reference_count);
+
+    if declarations.is_empty() {
+        Ok(())
+    } else {
+        let (first, rest) = declarations
+            .split_first()
+            .expect("Declarations list should be non-empty.");
+        Err(format!(
+            "Failed to link some declared functions: {}",
+            rest.iter().fold(
+                first
+                    .get_name()
+                    .to_owned()
+                    .into_string()
+                    .expect("Unable to allocate string for function name"),
+                |mut accum, f| {
+                    accum.push_str(", ");
+                    accum.push_str(
+                        f.get_name()
+                            .to_str()
+                            .expect("Unable to coerce function name into str."),
+                    );
+                    accum
+                }
+            )
+        ))
+    }
 }
