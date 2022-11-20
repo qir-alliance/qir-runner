@@ -4,6 +4,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused)]
 
+extern crate getopts;
+
 pub use qir_backend::{
     arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
     result_bool::*, strings::*, tuples::*, *,
@@ -17,10 +19,12 @@ use inkwell::{
     module::Module,
     passes::{PassManager, PassManagerBuilder},
     targets::{InitializationConfig, Target, TargetMachine},
-    values::FunctionValue,
+    values::{BasicValueEnum, FunctionValue, IntValue},
     OptimizationLevel,
 };
 use std::{ffi::OsStr, path::Path};
+
+use getopts::Options;
 
 /// # Errors
 ///
@@ -98,6 +102,48 @@ unsafe fn run_entry_point(
         execution_engine.run_function(entry_point, &[]);
         Ok(())
     } else {
+        //println!("Entry point params: {:?}", entry_point.get_params());
+        //println!();
+
+        let mut opts = Options::new();
+        opts.long_only(true);
+
+        for param in entry_point.get_param_iter() {
+            match param {
+                BasicValueEnum::IntValue(v) => opts.reqopt(
+                    "",
+                    v.get_name()
+                        .to_str()
+                        .expect("Entry point parameter name missing."),
+                    format!("{}-bit Integer parameter", v.get_type().get_bit_width()).as_str(),
+                    "",
+                ),
+                BasicValueEnum::FloatValue(v) => opts.reqopt(
+                    "",
+                    v.get_name()
+                        .to_str()
+                        .expect("Entry point parameter name missing."),
+                    "Floating point parameter",
+                    "",
+                ),
+                BasicValueEnum::PointerValue(v) => opts.reqopt(
+                    "",
+                    v.get_name()
+                        .to_str()
+                        .expect("Entry point parameter name missing."),
+                    if v.get_type().get_element_type().is_int_type() {
+                        "String parameter"
+                    } else {
+                        "Array parameter UNHANDLED"
+                    },
+                    "",
+                ),
+                _ => unimplemented!(),
+            };
+        }
+
+        println!("{}", opts.usage("Constructed Usage"));
+
         Err("Entry point has parameters or a non-void return type.".to_owned())
     }
 }

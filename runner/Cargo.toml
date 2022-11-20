@@ -13,6 +13,9 @@ features = []
 [dependencies.qir-backend]
 path = "../backend"
 
+[dependencies.getopts]
+version = "0.2"
+
 [features]
 default = []
 llvm11-0 = ["inkwell/llvm11-0"]
