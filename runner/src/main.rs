@@ -13,12 +13,7 @@ fn main() -> Result<(), String> {
         println!("USAGE: qir-runner <ll/bc filename> [entry point function]");
         Ok(())
     } else {
-        let path = &args[1];
-        let name = if args.len() > 2 {
-            Some(args[2].as_str())
-        } else {
-            None
-        };
-        qir_runner::run_file(path, name)
+        let (path, args) = args.split_at(2);
+        qir_runner::run_file(&path[1], args)
     }
 }

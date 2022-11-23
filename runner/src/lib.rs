@@ -19,7 +19,8 @@ use inkwell::{
     module::Module,
     passes::{PassManager, PassManagerBuilder},
     targets::{InitializationConfig, Target, TargetMachine},
-    values::{BasicValueEnum, FunctionValue, IntValue},
+    types::VoidType,
+    values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, GenericValue, IntValue},
     OptimizationLevel,
 };
 use std::{ffi::OsStr, path::Path};
@@ -32,28 +33,28 @@ use getopts::Options;
 /// - `filename` does not exist or the user does not have permission to read it.
 /// - `filename` does not contain a valid bitcode module
 /// - `filename` does not have either a .ll or .bc as an extension
-/// - `entry_point` is not found in the QIR
-/// - Entry point has parameters or a non-void return type.
-pub fn run_file(path: impl AsRef<Path>, entry_point: Option<&str>) -> Result<(), String> {
+/// - `args` does not match an entry point and its parameters
+/// - Entry point has a non-void return
+pub fn run_file(path: impl AsRef<Path>, args: &[String]) -> Result<(), String> {
     let context = Context::create();
     let module = load_file(path, &context)?;
-    run_module(&module, entry_point)
+    run_module(&module, args)
 }
 
 /// # Errors
 ///
 /// Will return `Err` if
 /// - `bytes` does not contain a valid bitcode module
-/// - `entry_point` is not found in the QIR
-/// - Entry point has parameters or a non-void return type.
-pub fn run_bitcode(bytes: &[u8], entry_point: Option<&str>) -> Result<(), String> {
+/// - `args` does not match an entry point and its parameters
+/// - Entry point has a non-void return
+pub fn run_bitcode(bytes: &[u8], args: &[String]) -> Result<(), String> {
     let context = Context::create();
     let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
     let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
-    run_module(&module, entry_point)
+    run_module(&module, args)
 }
 
-fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> {
+fn run_module(module: &Module, args: &[String]) -> Result<(), String> {
     module
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;
@@ -70,15 +71,10 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
         return Err("Target doesn't have a target machine.".to_owned());
     }
 
-    let entry_point = choose_entry_point(module_functions(module), entry_point)?;
+    let (entry_point, args) = choose_entry_point(module_functions(module), args)?;
     inkwell::support::load_library_permanently("");
-    let execution_engine = module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .map_err(|e| e.to_string())?;
 
-    bind_functions(module, &execution_engine);
-
-    unsafe { run_entry_point(&execution_engine, entry_point) }
+    unsafe { run_entry_point(module, entry_point, args) }
 }
 
 fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
@@ -95,74 +91,174 @@ fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String
 }
 
 unsafe fn run_entry_point(
-    execution_engine: &ExecutionEngine,
+    module: &Module,
     entry_point: FunctionValue,
+    args: &[String],
 ) -> Result<(), String> {
-    if entry_point.count_params() == 0 && entry_point.get_type().get_return_type().is_none() {
-        execution_engine.run_function(entry_point, &[]);
+    if entry_point.get_type().get_return_type().is_none() {
+        let wrapper = add_entry_point_wrapper(module, entry_point, args)?;
+
+        let execution_engine = module
+            .create_jit_execution_engine(OptimizationLevel::None)
+            .map_err(|e| e.to_string())?;
+
+        bind_functions(module, &execution_engine);
+
+        execution_engine.run_function(wrapper, &[]);
         Ok(())
     } else {
-        //println!("Entry point params: {:?}", entry_point.get_params());
-        //println!();
-
-        let mut opts = Options::new();
-        opts.long_only(true);
-
-        for param in entry_point.get_param_iter() {
-            match param {
-                BasicValueEnum::IntValue(v) => opts.reqopt(
-                    "",
-                    v.get_name()
-                        .to_str()
-                        .expect("Entry point parameter name missing."),
-                    format!("{}-bit Integer parameter", v.get_type().get_bit_width()).as_str(),
-                    "",
-                ),
-                BasicValueEnum::FloatValue(v) => opts.reqopt(
-                    "",
-                    v.get_name()
-                        .to_str()
-                        .expect("Entry point parameter name missing."),
-                    "Floating point parameter",
-                    "",
-                ),
-                BasicValueEnum::PointerValue(v) => opts.reqopt(
-                    "",
-                    v.get_name()
-                        .to_str()
-                        .expect("Entry point parameter name missing."),
-                    if v.get_type().get_element_type().is_int_type() {
-                        "String parameter"
-                    } else {
-                        "Array parameter UNHANDLED"
-                    },
-                    "",
-                ),
-                _ => unimplemented!(),
-            };
-        }
-
-        println!("{}", opts.usage("Constructed Usage"));
-
-        Err("Entry point has parameters or a non-void return type.".to_owned())
+        Err("Entry point has a non-void return type.".to_owned())
     }
+}
+
+fn options_from_entry_point(entry_point: FunctionValue) -> Options {
+    let mut opts = Options::new();
+    opts.long_only(true);
+
+    for param in entry_point.get_param_iter() {
+        match param {
+            BasicValueEnum::IntValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                format!("{}-bit Integer parameter", v.get_type().get_bit_width()).as_str(),
+                "",
+            ),
+            BasicValueEnum::FloatValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                "Floating point parameter",
+                "",
+            ),
+            BasicValueEnum::PointerValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                if v.get_type().get_element_type().is_int_type() {
+                    "String parameter"
+                } else {
+                    unimplemented!("Unsupported pointer type: {}", param)
+                },
+                "",
+            ),
+            _ => unimplemented!("Unsupported argument type: {}", param),
+        };
+    }
+    opts
+}
+
+#[allow(clippy::cast_sign_loss)]
+fn add_entry_point_wrapper<'ctx>(
+    module: &Module<'ctx>,
+    entry_point: FunctionValue,
+    args: &[String],
+) -> Result<FunctionValue<'ctx>, String> {
+    let opts = options_from_entry_point(entry_point);
+    let parsed_args = opts.parse(args);
+
+    let context = module.get_context();
+
+    let wrapper = module.add_function(
+        "__generated_entry_point_wrapper__",
+        context.void_type().fn_type(&[], false),
+        None,
+    );
+    let basic_block = context.append_basic_block(wrapper, "entry");
+    let builder = context.create_builder();
+    builder.position_at_end(basic_block);
+
+    let generated_args: Vec<BasicMetadataValueEnum<'_>> = if let Ok(parsed_args) = parsed_args {
+        Ok(entry_point
+            .get_param_iter()
+            .map(|param| match param {
+                BasicValueEnum::IntValue(v) => BasicMetadataValueEnum::IntValue(
+                    v.get_type().const_int(
+                        parsed_args
+                            .opt_get::<i64>(
+                                v.get_name()
+                                    .to_str()
+                                    .expect("Entry point params must have names"),
+                            )
+                            .expect("Unable to parse?")
+                            .expect("All parameters must be present.")
+                            as u64,
+                        true,
+                    ),
+                ),
+                BasicValueEnum::FloatValue(v) => BasicMetadataValueEnum::FloatValue(
+                    v.get_type().const_float(
+                        parsed_args
+                            .opt_get(
+                                v.get_name()
+                                    .to_str()
+                                    .expect("Entry point params must have names"),
+                            )
+                            .expect("Unable to parse?")
+                            .expect("All parameters must be present."),
+                    ),
+                ),
+                BasicValueEnum::PointerValue(v) => todo!(),
+                _ => unimplemented!("Unsupported argument type: {}", param),
+            })
+            .collect())
+    } else {
+        println!("{}", opts.usage(""));
+        Err(format!(
+            "Failed to parse arguments: {}",
+            parsed_args.expect_err("Parsed args known to be Err type.")
+        ))
+    }?;
+
+    let _ = builder.build_call(entry_point, &generated_args, "call");
+    let _ = builder.build_return(None);
+
+    Ok(wrapper)
 }
 
 fn choose_entry_point<'ctx>(
     functions: impl Iterator<Item = FunctionValue<'ctx>>,
-    name: Option<&str>,
-) -> Result<FunctionValue<'ctx>, String> {
-    let mut entry_points = functions
-        .filter(|f| is_entry_point(*f) && name.iter().all(|n| f.get_name().to_str() == Ok(n)));
+    args: &[String],
+) -> Result<(FunctionValue<'ctx>, &[String]), String> {
+    let entry_points: Vec<FunctionValue> = functions.filter(|f| is_entry_point(*f)).collect();
 
-    let entry_point = entry_points
-        .next()
-        .ok_or_else(|| "No matching entry point found.".to_owned())?;
-
-    if entry_points.next().is_some() {
-        Err("Multiple matching entry points found.".to_owned())
+    if entry_points.is_empty() {
+        Err("No entry point functions found.".to_owned())
+    } else if entry_points.len() == 1 {
+        Ok((entry_points[0], args))
+    } else if let Some(entry_point) = entry_points
+        .iter()
+        .find(|f| f.get_name().to_str().ok() == args.first().map(|a| &**a))
+    {
+        Ok((*entry_point, args.split_at(1).1))
     } else {
-        Ok(entry_point)
+        let (first_entry_point, other_entry_points) = entry_points
+            .split_first()
+            .expect("Should have at least one entry point.");
+
+        println!(
+            "Available entry points:\n\t{}",
+            other_entry_points.iter().fold(
+                first_entry_point
+                    .get_name()
+                    .to_owned()
+                    .into_string()
+                    .expect("Unable to allocate string for function name"),
+                |mut accum, f| {
+                    accum.push_str("\n\t");
+                    accum.push_str(
+                        f.get_name()
+                            .to_str()
+                            .expect("Unable to coerce function name into str."),
+                    );
+                    accum
+                }
+            )
+        );
+        Err("Multiple entry points found, entry point parameter required.".to_owned())
     }
 }
 
