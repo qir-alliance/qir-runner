@@ -122,7 +122,7 @@ fn options_from_entry_point(entry_point: FunctionValue) -> Options {
                 v.get_name()
                     .to_str()
                     .expect("Entry point parameter name missing."),
-                format!("{}-bit Integer parameter", v.get_type().get_bit_width()).as_str(),
+                format!("{}-bit Integer", v.get_type().get_bit_width()).as_str(),
                 "",
             ),
             BasicValueEnum::FloatValue(v) => opts.reqopt(
@@ -130,7 +130,7 @@ fn options_from_entry_point(entry_point: FunctionValue) -> Options {
                 v.get_name()
                     .to_str()
                     .expect("Entry point parameter name missing."),
-                "Floating point parameter",
+                "Double",
                 "",
             ),
             BasicValueEnum::PointerValue(v) => opts.reqopt(
@@ -139,13 +139,36 @@ fn options_from_entry_point(entry_point: FunctionValue) -> Options {
                     .to_str()
                     .expect("Entry point parameter name missing."),
                 if v.get_type().get_element_type().is_int_type() {
-                    "String parameter"
+                    "String"
                 } else {
-                    unimplemented!("Unsupported pointer type: {}", param)
+                    "Unsupported pointer type"
                 },
                 "",
             ),
-            _ => unimplemented!("Unsupported argument type: {}", param),
+            BasicValueEnum::ArrayValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                "Unsupported array type",
+                "This parameter cannot be used.",
+            ),
+            BasicValueEnum::StructValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                "Unsupported struct type",
+                "This parameter cannot be used.",
+            ),
+            BasicValueEnum::VectorValue(v) => opts.reqopt(
+                "",
+                v.get_name()
+                    .to_str()
+                    .expect("Entry point parameter name missing."),
+                "Unsupported vector type",
+                "This parameter cannot be used.",
+            ),
         };
     }
     opts
@@ -160,63 +183,75 @@ fn add_entry_point_wrapper<'ctx>(
     let opts = options_from_entry_point(entry_point);
     let parsed_args = opts.parse(args);
 
-    let context = module.get_context();
-
-    let wrapper = module.add_function(
-        "__generated_entry_point_wrapper__",
-        context.void_type().fn_type(&[], false),
-        None,
-    );
-    let basic_block = context.append_basic_block(wrapper, "entry");
-    let builder = context.create_builder();
-    builder.position_at_end(basic_block);
-
-    let generated_args: Vec<BasicMetadataValueEnum<'_>> = if let Ok(parsed_args) = parsed_args {
-        Ok(entry_point
-            .get_param_iter()
-            .map(|param| match param {
-                BasicValueEnum::IntValue(v) => BasicMetadataValueEnum::IntValue(
-                    v.get_type().const_int(
-                        parsed_args
-                            .opt_get::<i64>(
-                                v.get_name()
-                                    .to_str()
-                                    .expect("Entry point params must have names"),
-                            )
-                            .expect("Unable to parse?")
-                            .expect("All parameters must be present.")
-                            as u64,
-                        true,
-                    ),
-                ),
-                BasicValueEnum::FloatValue(v) => BasicMetadataValueEnum::FloatValue(
-                    v.get_type().const_float(
-                        parsed_args
-                            .opt_get(
-                                v.get_name()
-                                    .to_str()
-                                    .expect("Entry point params must have names"),
-                            )
-                            .expect("Unable to parse?")
-                            .expect("All parameters must be present."),
-                    ),
-                ),
+    if let Ok(parsed_args) = parsed_args {
+        let mut generated_args = vec![];
+        for param in entry_point.get_param_iter() {
+            generated_args.push(match param {
+                BasicValueEnum::IntValue(v) => {
+                    let name = v
+                        .get_name()
+                        .to_str()
+                        .expect("Entry point params must have names");
+                    BasicMetadataValueEnum::IntValue(
+                        v.get_type().const_int(
+                            parsed_args
+                                .opt_get::<i64>(name)
+                                .map_err(|e| {
+                                    format!("Unable to parse integer argument '{}': {}", name, e)
+                                })?
+                                .expect("All parameters must be present.")
+                                as u64,
+                            true,
+                        ),
+                    )
+                }
+                BasicValueEnum::FloatValue(v) => {
+                    let name = v
+                        .get_name()
+                        .to_str()
+                        .expect("Entry point params must have names");
+                    BasicMetadataValueEnum::FloatValue(
+                        v.get_type().const_float(
+                            parsed_args
+                                .opt_get(name)
+                                .map_err(|e| {
+                                    format!("Unable to parse double argument '{}': {}", name, e)
+                                })?
+                                .expect("All parameters must be present."),
+                        ),
+                    )
+                }
                 BasicValueEnum::PointerValue(v) => todo!(),
                 _ => unimplemented!("Unsupported argument type: {}", param),
-            })
-            .collect())
+            });
+        }
+
+        let context = module.get_context();
+        let wrapper = module.add_function(
+            "__generated_entry_point_wrapper__",
+            context.void_type().fn_type(&[], false),
+            None,
+        );
+        let basic_block = context.append_basic_block(wrapper, "entry");
+        let builder = context.create_builder();
+        builder.position_at_end(basic_block);
+        let _ = builder.build_call(entry_point, &generated_args, "call");
+        let _ = builder.build_return(None);
+
+        Ok(wrapper)
     } else {
-        println!("{}", opts.usage(""));
+        println!(
+            "PARAMETERS:{}",
+            opts.usage_with_format(|params| params.fold(
+                "".to_string(),
+                |accum, param_desc| format!("{}\n{}", accum, param_desc)
+            ))
+        );
         Err(format!(
             "Failed to parse arguments: {}",
             parsed_args.expect_err("Parsed args known to be Err type.")
         ))
-    }?;
-
-    let _ = builder.build_call(entry_point, &generated_args, "call");
-    let _ = builder.build_return(None);
-
-    Ok(wrapper)
+    }
 }
 
 fn choose_entry_point<'ctx>(
@@ -239,25 +274,27 @@ fn choose_entry_point<'ctx>(
             .split_first()
             .expect("Should have at least one entry point.");
 
-        println!(
-            "Available entry points:\n\t{}",
-            other_entry_points.iter().fold(
-                first_entry_point
+        println!("AVAILABLE ENTRY POINTS:\n");
+        for entry_point in entry_points {
+            println!(
+                "{}",
+                entry_point
                     .get_name()
-                    .to_owned()
-                    .into_string()
-                    .expect("Unable to allocate string for function name"),
-                |mut accum, f| {
-                    accum.push_str("\n\t");
-                    accum.push_str(
-                        f.get_name()
-                            .to_str()
-                            .expect("Unable to coerce function name into str."),
-                    );
-                    accum
-                }
-            )
-        );
+                    .to_str()
+                    .expect("Entry point parameters must have names.")
+            );
+            if entry_point.count_params() > 0 {
+                print!(
+                    "{}",
+                    options_from_entry_point(entry_point).usage_with_format(|params| params.fold(
+                        "".to_string(),
+                        |accum, param_desc| format!("{}{}\n", accum, param_desc)
+                    ))
+                );
+            }
+            println!("");
+        }
+
         Err("Multiple entry points found, entry point parameter required.".to_owned())
     }
 }

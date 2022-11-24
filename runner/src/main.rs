@@ -10,7 +10,7 @@ fn main() -> Result<(), String> {
     if args.len() == 1 {
         println!("OVERVIEW: Virtual execution environment for QIR programs");
         println!();
-        println!("USAGE: qir-runner <ll/bc filename> [entry point function]");
+        println!("USAGE: qir-runner <ll/bc filename> [entry point function] [entry point parameters]");
         Ok(())
     } else {
         let (path, args) = args.split_at(2);
