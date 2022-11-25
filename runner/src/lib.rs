@@ -16,12 +16,12 @@ use inkwell::{
     context::Context,
     execution_engine::ExecutionEngine,
     memory_buffer::MemoryBuffer,
-    module::Module,
+    module::{Linkage, Module},
     passes::{PassManager, PassManagerBuilder},
     targets::{InitializationConfig, Target, TargetMachine},
     types::VoidType,
     values::{BasicMetadataValueEnum, BasicValueEnum, FunctionValue, GenericValue, IntValue},
-    OptimizationLevel,
+    AddressSpace, OptimizationLevel,
 };
 use std::{ffi::OsStr, path::Path};
 
@@ -221,7 +221,39 @@ fn add_entry_point_wrapper<'ctx>(
                         ),
                     )
                 }
-                BasicValueEnum::PointerValue(v) => todo!(),
+                BasicValueEnum::PointerValue(v) => {
+                    let name = v
+                        .get_name()
+                        .to_str()
+                        .expect("Entry point params must have names");
+
+                    let const_str = module.get_context().const_string(
+                        parsed_args
+                            .opt_str(name)
+                            .expect("All parameters must be present.")
+                            .as_bytes(),
+                        true,
+                    );
+
+                    let global_str = module.add_global(
+                        module
+                            .get_context()
+                            .i8_type()
+                            .array_type(const_str.get_type().get_size()),
+                        None,
+                        "",
+                    );
+                    global_str.set_linkage(Linkage::Internal);
+                    global_str.set_constant(true);
+                    global_str.set_initializer(&const_str);
+
+                    let zero = module.get_context().i32_type().const_int(0, false);
+                    BasicMetadataValueEnum::PointerValue(unsafe {
+                        global_str
+                            .as_pointer_value()
+                            .const_in_bounds_gep(&[zero, zero])
+                    })
+                }
                 _ => unimplemented!("Unsupported argument type: {}", param),
             });
         }
@@ -292,7 +324,7 @@ fn choose_entry_point<'ctx>(
                     ))
                 );
             }
-            println!("");
+            println!();
         }
 
         Err("Multiple entry points found, entry point parameter required.".to_owned())
