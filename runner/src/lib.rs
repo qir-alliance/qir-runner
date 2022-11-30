@@ -92,7 +92,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
             )
         })
         .collect();
-    
+
     for _ in 1..=1 {
         println!("START");
         for attr in &attrs {
