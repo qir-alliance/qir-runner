@@ -96,7 +96,7 @@ mod tests {
     }
     #[test]
     fn test_output_double_whole_untagged() {
-        let val: c_double = 42.000000000000001;
+        let val: c_double = 42.000_000_000_000_001;
         let double_str = double_to_string(val);
         assert_untagged_output_match("DOUBLE", &double_str, "OUTPUT\tDOUBLE\t42.0");
     }
@@ -123,17 +123,16 @@ mod tests {
     fn assert_untagged_output_match(ty: &str, val: &dyn Display, expected_str: &str) {
         let mut out: Vec<u8> = Vec::new();
         output(ty, &val, null_mut(), &mut out).unwrap();
-        let actual = get_byte_vec_as_string(out);
+        let actual = get_byte_vec_as_string(&out);
         let expected = get_string_with_line_ending(expected_str);
         assert_eq!(actual, expected);
     }
     fn get_string_with_line_ending(value: &str) -> String {
-        let ending = get_byte_vec_as_string(LINE_ENDING.to_vec());
+        let ending = get_byte_vec_as_string(LINE_ENDING);
         value.to_owned() + ending.as_str()
     }
-    fn get_byte_vec_as_string(out: Vec<u8>) -> String {
-        let val = std::str::from_utf8(&out).unwrap();
-        let result = val.to_string();
-        result
+    fn get_byte_vec_as_string(out: &[u8]) -> String {
+        let val = std::str::from_utf8(out).unwrap();
+        val.to_string()
     }
 }
