@@ -73,7 +73,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
         .map_err(|e| e.to_string())?;
 
     bind_functions(module, &execution_engine);
-    const shots: u32 = 1;
+
     let entry_point = choose_entry_point(module_functions(module), entry_point)?;
     // TODO: need a cleaner way to get the attr strings for metadata
     let attrs: Vec<(String, String)> = entry_point
@@ -92,10 +92,10 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
             )
         })
         .collect();
-
-    for _ in 1..=shots {
+    
+    for _ in 1..=1 {
         println!("START");
-        for attr in attrs.iter() {
+        for attr in &attrs {
             print!("METADATA\t{}", attr.0);
             if !attr.1.is_empty() {
                 print!("\t{}", attr.1);

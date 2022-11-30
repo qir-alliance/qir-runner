@@ -52,7 +52,7 @@ thread_local! {
 
 /// Initializes the execution environment.
 #[no_mangle]
-pub unsafe extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
+pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
         state.sim = QuantumSim::default();
@@ -723,9 +723,9 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
 }
 
 #[cfg(windows)]
-const LINE_ENDING: &'static [u8] = b"\r\n";
+const LINE_ENDING: &[u8] = b"\r\n";
 #[cfg(not(windows))]
-const LINE_ENDING: &'static [u8] = b"\n";
+const LINE_ENDING: &[u8] = b"\n";
 
 fn output(
     ty: &str,
@@ -735,12 +735,12 @@ fn output(
 ) -> std::io::Result<()> {
     output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
     if !tag.is_null() {
-        output.write(b"\t")?;
+        output.write_all(b"\t")?;
         unsafe {
-            output.write(CString::from_raw(tag).as_bytes())?;
+            output.write_all(CString::from_raw(tag).as_bytes())?;
         }
     }
-    output.write(LINE_ENDING)?;
+    output.write_all(LINE_ENDING)?;
     Ok(())
 }
 

@@ -11,9 +11,9 @@ use std::{
 use crate::strings::double_to_string;
 
 #[cfg(windows)]
-const LINE_ENDING: &'static [u8] = b"\r\n";
+const LINE_ENDING: &[u8] = b"\r\n";
 #[cfg(not(windows))]
-const LINE_ENDING: &'static [u8] = b"\n";
+const LINE_ENDING: &[u8] = b"\n";
 
 fn output(
     ty: &str,
@@ -23,12 +23,12 @@ fn output(
 ) -> std::io::Result<()> {
     output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
     if !tag.is_null() {
-        output.write(b"\t")?;
+        output.write_all(b"\t")?;
         unsafe {
-            output.write(CString::from_raw(tag).as_bytes())?;
+            output.write_all(CString::from_raw(tag).as_bytes())?;
         }
     }
-    output.write(LINE_ENDING)?;
+    output.write_all(LINE_ENDING)?;
     Ok(())
 }
 
