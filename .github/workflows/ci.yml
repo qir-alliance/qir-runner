@@ -75,7 +75,7 @@ jobs:
       - name: Build
         run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
 
   nightly:
     name: Build Nightly
@@ -96,7 +96,7 @@ jobs:
       - name: Build Nightly
         run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test Nightly
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
 
   release:
     name: Release
@@ -131,7 +131,7 @@ jobs:
       - name: Build
         run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
       - name: Artifacts
         uses: actions/upload-artifact@v3
         with:
