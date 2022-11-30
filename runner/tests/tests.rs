@@ -29,3 +29,14 @@ fn run_file_errors_on_missing_file() {
         result.unwrap_err().to_lowercase()
     );
 }
+
+#[test]
+fn run_file_errors_on_missing_binding() {
+    let bitcode = include_bytes!("resources/missing-intrinsic.bc");
+    let result = run_bitcode(bitcode, None);
+    assert!(result.is_err());
+    assert_eq!(
+        "failed to link some declared functions: __quantum__qis__mycustomintrinsic__body",
+        result.unwrap_err().to_lowercase()
+    );
+}
