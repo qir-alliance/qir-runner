@@ -602,7 +602,6 @@ dependencies = [
 [[package]]
 name = "qir-stdlib"
 version = "0.1.0"
-source = "git+https://github.com/microsoft/qsharp-runtime#15a54935a2f9ac5cac798385bb3b4952deae3496"
 dependencies = [
  "llvm-tools",
  "num-bigint",
