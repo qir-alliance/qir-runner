@@ -33,11 +33,9 @@ impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
     fn new() -> Self {
-        let mut initial_state = FxHashMap::default();
-        initial_state.insert(BigUint::zero(), Complex64::one());
-
         QuantumSim {
-            state: initial_state,
+            state: FxHashMap::default(),
+
             id_map: FxHashMap::default(),
         }
     }
@@ -47,6 +45,11 @@ impl QuantumSim {
     /// if those identifiers are available.
     #[must_use]
     pub(crate) fn allocate(&mut self) -> usize {
+        if self.id_map.is_empty() {
+            // Add the intial value for the zero state.
+            self.state.insert(BigUint::zero(), Complex64::one());
+        }
+
         // Add the new entry into the FxHashMap at the first available sequential ID.
         let mut sorted_keys: Vec<&usize> = self.id_map.keys().collect();
         sorted_keys.sort();
@@ -69,24 +72,40 @@ impl QuantumSim {
     ///
     /// The function will panic if the given id does not correpsond to an allocated qubit.
     pub(crate) fn release(&mut self, id: usize) {
-        let loc = self
+        // Since it is easier to release a contiguous half of the state, find the qubit
+        // with the last location and swap that with the qubit to be released.
+        let n_qubits = self.id_map.len();
+        let loc = *self
             .id_map
-            .remove(&id)
+            .get(&id)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {}.", id));
+        let last_loc = n_qubits - 1;
+        if last_loc != loc {
+            let last_id = *self
+                .id_map
+                .iter()
+                .find(|(_, &value)| value == last_loc)
+                .unwrap()
+                .0;
+            self.swap_qubit_state(loc, last_loc);
+            *(self.id_map.get_mut(&last_id).unwrap()) = loc;
+            *(self.id_map.get_mut(&id).unwrap()) = last_loc;
+        };
 
         // Measure and collapse the state for this qubit.
-        let res = self.measure_impl(loc);
+        let res = self.measure_impl(last_loc);
 
-        // If the result of measurement was true then we must set the bit for this qubit in every key
-        // to zero to "reset" the qubit.
+        // Remove the released ID from the mapping and cleanup the unused part of the state.
+        self.id_map.remove(&id);
         if res {
             let qubit = self.id_map.len() as u64;
             self.state = self
                 .state
                 .drain()
-                .fold(FxHashMap::default(), |mut accum, (mut k, v)| {
-                    k.set_bit(qubit, false);
-                    accum.insert(k, v);
+                .fold(FxHashMap::default(), |mut accum, (k, v)| {
+                    let mut new_k = k.clone();
+                    new_k.set_bit(qubit, !k.bit(qubit));
+                    accum.insert(new_k, v);
                     accum
                 });
         }
@@ -94,6 +113,9 @@ impl QuantumSim {
 
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
+    /// # Panics
+    ///
+    /// This function panics if it is unable sort the state into qubit id order.
     pub(crate) fn dump(&mut self) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
@@ -286,12 +308,9 @@ impl QuantumSim {
 
         // Normalize the new state using the accumulated scaling.
         let scaling = 1.0 / scaling_denominator.sqrt();
-        for (k, v) in new_state.drain() {
-            let scaled_value = v * scaling;
-            if !scaled_value.is_nearly_zero() {
-                self.state.insert(k, scaled_value);
-            }
-        }
+        new_state.iter_mut().for_each(|(_, v)| *v *= scaling);
+
+        self.state = new_state;
     }
 
     /// Swaps the mapped ids for the given qubits.

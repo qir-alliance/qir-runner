@@ -68,7 +68,7 @@ unsafe fn map_paulis(
     if paulis_size != qubits_size {
         __quantum__rt__fail(__quantum__rt__string_create(
             CString::new("Pauli array and Qubit array must be the same size.")
-                .expect("Unable to allocate memory for failure message string.")
+                .unwrap()
                 .as_bytes_with_nul()
                 .as_ptr() as *mut i8,
         ));
@@ -567,6 +567,8 @@ pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool
 }
 
 /// QIR API that measures a given qubit in the computational basis, returning a runtime managed result value.
+/// # Panics
+///
 #[no_mangle]
 pub extern "C" fn __quantum__qis__m__body(qubit: *mut c_void) -> *mut c_void {
     SIM_STATE.with(|sim_state| {
@@ -748,15 +750,14 @@ pub extern "C" fn __quantum__rt__qubit_allocate() -> *mut c_void {
 }
 
 /// QIR API for allocating the given number of qubits in the simulation, returning them as a runtime managed array.
+/// # Panics
+///
+/// This function will panic if the underlying platform has a pointer size that cannot be described in
+/// a `u32`.
 #[allow(clippy::cast_ptr_alignment)]
 #[no_mangle]
 pub extern "C" fn __quantum__rt__qubit_allocate_array(size: u64) -> *const QirArray {
-    let arr = __quantum__rt__array_create_1d(
-        size_of::<usize>()
-            .try_into()
-            .expect("System pointer size too large to be described with u32."),
-        size,
-    );
+    let arr = __quantum__rt__array_create_1d(size_of::<usize>().try_into().unwrap(), size);
     for index in 0..size {
         unsafe {
             let elem = __quantum__rt__array_get_element_ptr_1d(arr, index).cast::<*mut c_void>();
@@ -790,12 +791,15 @@ pub extern "C" fn __quantum__rt__qubit_release(qubit: *mut c_void) {
 }
 
 /// QIR API for getting the string interpretation of a qubit identifier.
+/// # Panics
+///
+/// This function will panic if it is unable to allocate the memory for the string.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const CString {
     unsafe {
         __quantum__rt__string_create(
             CString::new(format!("{}", qubit as usize))
-                .expect("Unable to allocate memory for qubit string.")
+                .unwrap()
                 .as_bytes_with_nul()
                 .as_ptr() as *mut i8,
         )
