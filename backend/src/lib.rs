@@ -13,6 +13,7 @@ mod nearly_zero;
 mod simulator;
 
 use bitvec::prelude::*;
+use nearly_zero::NearlyZero;
 use num_complex::Complex64;
 use simulator::QuantumSim;
 use std::cell::RefCell;
@@ -627,6 +628,30 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
             __quantum__rt__result_get_zero()
         }
     })
+}
+
+/// QIR API for checking internal simulator state and verifying the given qubit is in the |0⟩ state.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__assertzero__body(qubit: *mut c_void) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
+
+        if !state
+            .sim
+            .joint_probability(&[qubit as usize])
+            .is_nearly_zero()
+        {
+            unsafe {
+                __quantum__rt__fail(__quantum__rt__string_create(
+                    CString::new("Qubit is not in |0⟩ state.")
+                        .expect("Unable to allocate memory for failure message string.")
+                        .as_bytes_with_nul()
+                        .as_ptr() as *mut i8,
+                ));
+            }
+        }
+    });
 }
 
 /// QIR API for checking internal simulator state and verifying the probability of the given parity measurement result
