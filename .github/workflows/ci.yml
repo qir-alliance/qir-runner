@@ -132,15 +132,26 @@ jobs:
         run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
       - name: Test
         run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
-      - name: Artifacts
+      - name: Artifacts executable
         uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
-          path: |
-            target/release/*qir-runner
-            target/release/*qir-runner.exe
-            runner/*NOTICE.txt
-            LICENSE
+          path: target/release/qir-runner
+      - name: Artifacts executable (Windows)
+        uses: actions/upload-artifact@v3
+        with:
+          name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
+          path: target/release/qir-runner.exe
+      - name: Artifacts Notice file
+        uses: actions/upload-artifact@v3
+        with:
+          name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
+          path: runner/NOTICE.txt
+      - name: Artifacts License file
+        uses: actions/upload-artifact@v3
+        with:
+          name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
+          path: LICENSE
 
   docs:
     runs-on: "ubuntu-20.04"
