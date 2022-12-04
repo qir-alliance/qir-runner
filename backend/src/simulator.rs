@@ -1165,36 +1165,95 @@ mod tests {
         F1: FnMut(&mut QuantumSim, &[usize]),
         F2: FnMut(&mut QuantumSim, &[usize]),
     {
-        let mut sim = QuantumSim::default();
-
-        // Allocte the control we use to verify behavior.
-        let ctl = sim.allocate();
-        sim.h(ctl);
-
-        // Allocate the requested number of targets, entangling the control with them.
-        let mut qs = vec![];
-        for _ in 0..count {
-            let q = sim.allocate();
-            sim.mcx(&[ctl], q);
-            qs.push(q);
+        enum QueuedOp {
+            NoOp,
+            H,
+            Rx,
+            Ry,
         }
 
-        op(&mut sim, &qs);
-        reference(&mut sim, &qs);
+        for inner_op in [QueuedOp::NoOp, QueuedOp::H, QueuedOp::Rx, QueuedOp::Ry] {
+            let mut sim = QuantumSim::default();
 
-        // Undo the entanglement.
-        for q in qs {
-            sim.mcx(&[ctl], q);
+            // Allocte the control we use to verify behavior.
+            let ctl = sim.allocate();
+            sim.h(ctl);
+
+            // Allocate the requested number of targets, entangling the control with them.
+            let mut qs = vec![];
+            for _ in 0..count {
+                let q = sim.allocate();
+                sim.mcx(&[ctl], q);
+                qs.push(q);
+            }
+
+            // To test queuing, try the op after running each of the different intermediate operationsthat
+            // can be queued.
+            match inner_op {
+                QueuedOp::NoOp => (),
+                QueuedOp::H => {
+                    for &q in &qs {
+                        sim.h(q);
+                    }
+                }
+                QueuedOp::Rx => {
+                    for &q in &qs {
+                        sim.rx(PI / 7.0, q);
+                    }
+                }
+                QueuedOp::Ry => {
+                    for &q in &qs {
+                        sim.ry(PI / 7.0, q);
+                    }
+                }
+            }
+
+            op(&mut sim, &qs);
+
+            // Trigger a flush between the op and expected adjoint reference to ensure the reference is
+            // run without any queued, commuted operations.
+            let _ = sim.joint_probability(&qs);
+
+            reference(&mut sim, &qs);
+
+            // Perform the adjoint of any additional ops. We check the joint probability of the target
+            // qubits before and after to force a flush of the operation queue. This helps us verify queuing, as the
+            // original operation will have used the queue and commuting while the adjoint perform here will not.
+            let _ = sim.joint_probability(&qs);
+            match inner_op {
+                QueuedOp::NoOp => (),
+                QueuedOp::H => {
+                    for &q in &qs {
+                        sim.h(q);
+                    }
+                }
+                QueuedOp::Rx => {
+                    for &q in &qs {
+                        sim.rx(PI / -7.0, q);
+                    }
+                }
+                QueuedOp::Ry => {
+                    for &q in &qs {
+                        sim.ry(PI / -7.0, q);
+                    }
+                }
+            }
+            let _ = sim.joint_probability(&qs);
+
+            // Undo the entanglement.
+            for q in qs {
+                sim.mcx(&[ctl], q);
+            }
+            sim.h(ctl);
+
+            // We know the operations are equal if the control is left in the zero state.
+            assert!(sim.joint_probability(&[ctl]).is_nearly_zero());
+
+            // Sparse state vector should have one entry for |0⟩.
+            // Dump the state first to force a flush of any queued operations.
+            sim.dump();
+            assert_eq!(sim.state.len(), 1);
         }
-        sim.h(ctl);
-
-        // We know the operations are equal if the control is left in the zero state.
-        assert!(sim.joint_probability(&[ctl]).is_nearly_zero());
-
-        // Sparse state vector should have one entry for |0⟩.
-        // Dump the state first to force a flush of any queued operations.
-        sim.dump();
-        assert_eq!(sim.state.len(), 1);
     }
 
     #[test]
