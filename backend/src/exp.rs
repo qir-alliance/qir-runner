@@ -24,7 +24,7 @@ use std::{
 use crate::{
     ensure_sufficient_qubits,
     nearly_zero::NearlyZero,
-    simulator::{QuantumSim, SparseState},
+    simulator::{FlushLevel, QuantumSim, SparseState},
     SIM_STATE,
 };
 
@@ -166,6 +166,9 @@ impl QuantumSim {
         theta: f64,
         targets: &[usize],
     ) {
+        self.flush_queue(ctls, FlushLevel::HRxRy);
+        self.flush_queue(targets, FlushLevel::HRxRy);
+
         let ctls: Vec<u64> = ctls
             .iter()
             .map(|c| {
@@ -372,7 +375,7 @@ mod tests {
 
         // If the rotations were performed correctly, the check qubit `paired` should
         // always be back in the ground state, and the whole state vector should be
-        // back to a single, zero state.
+        // back to a single zero state.
         assert!(!sim.joint_measure(&[paired]));
         assert_eq!(sim.state.len(), 1);
     }

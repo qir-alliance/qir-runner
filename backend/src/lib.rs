@@ -3,7 +3,11 @@
 
 #![deny(clippy::all, clippy::pedantic)]
 
-//! Module defining QIR compliant APIs for quantum simulation.
+//! # QIR compliant backend for quantum simulation.
+//! This libary builds on top of the `qir_stdlib` to implement a full backend for simulation of QIR
+//! programs. This includes a broad set of quantum intrinsic operations for sparse state simulation,
+//! based on the design from
+//! <a href="https://arxiv.org/abs/2105.01533">Leveraging state sparsity for more efficient quantum simulations</a>.
 
 pub mod result_bool;
 
@@ -754,7 +758,7 @@ pub extern "C" fn __quantum__rt__qubit_allocate_array(size: u64) -> *const QirAr
     let arr = __quantum__rt__array_create_1d(
         size_of::<usize>()
             .try_into()
-            .expect("System pointer size too large to be described with u32"),
+            .expect("System pointer size too large to be described with u32."),
         size,
     );
     for index in 0..size {
