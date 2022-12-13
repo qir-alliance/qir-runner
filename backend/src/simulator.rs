@@ -1064,7 +1064,7 @@ mod tests {
         // Release out of order.
         sim.release(3);
 
-        // Remaining qubits should all be in zero state except 4.
+        // Remaining qubits should all still be in one.
         assert_eq!(sim.state.len(), 1);
         assert!(!sim.joint_probability(&[0]).is_nearly_zero());
         assert!(!sim.joint_probability(&[1]).is_nearly_zero());
