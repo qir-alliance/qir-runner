@@ -66,17 +66,25 @@ impl QuantumSim {
     /// if those identifiers are available.
     #[must_use]
     pub(crate) fn allocate(&mut self) -> usize {
-        // Add the new entry into the FxHashMap at the first available sequential ID.
+        // Add the new entry into the FxHashMap at the first available sequential ID and first available
+        // sequential location.
         let mut sorted_keys: Vec<&usize> = self.id_map.keys().collect();
         sorted_keys.sort();
-        let n_qubits = sorted_keys.len();
+        let mut sorted_vals: Vec<&usize> = self.id_map.values().collect();
+        sorted_vals.sort();
         let new_key = sorted_keys
             .iter()
             .enumerate()
             .take_while(|(index, key)| index == **key)
             .last()
             .map_or(0_usize, |(_, &&key)| key + 1);
-        self.id_map.insert(new_key, n_qubits);
+        let new_val = sorted_vals
+            .iter()
+            .enumerate()
+            .take_while(|(index, val)| index == **val)
+            .last()
+            .map_or(0_usize, |(_, &&val)| val + 1);
+        self.id_map.insert(new_key, new_val);
 
         // Return the new ID that was used.
         new_key
@@ -101,12 +109,11 @@ impl QuantumSim {
         // If the result of measurement was true then we must set the bit for this qubit in every key
         // to zero to "reset" the qubit.
         if res {
-            let qubit = self.id_map.len() as u64;
             self.state = self
                 .state
                 .drain()
                 .fold(FxHashMap::default(), |mut accum, (mut k, v)| {
-                    k.set_bit(qubit, false);
+                    k.set_bit(loc as u64, false);
                     accum.insert(k, v);
                     accum
                 });
@@ -1041,6 +1048,40 @@ mod tests {
         assert!(almost_equal(sim.joint_probability(&[q]), 0.0));
         sim.release(extra);
         sim.release(q);
+    }
+
+    // Verify that out of order release of non-zero qubits behaves as expected, namely qubits that
+    // are not released are still in the expected states, newly allocated qubits use the available spot
+    // and start in a zero state.
+    #[test]
+    fn test_out_of_order_release() {
+        let sim = &mut QuantumSim::default();
+        for i in 0..5 {
+            assert_eq!(sim.allocate(), i);
+            sim.x(i);
+        }
+
+        // Release out of order.
+        sim.release(3);
+
+        // Remaining qubits should all be in zero state except 4.
+        assert_eq!(sim.state.len(), 1);
+        assert!(!sim.joint_probability(&[0]).is_nearly_zero());
+        assert!(!sim.joint_probability(&[1]).is_nearly_zero());
+        assert!(!sim.joint_probability(&[2]).is_nearly_zero());
+        assert!(!sim.joint_probability(&[4]).is_nearly_zero());
+
+        // Cheat and peak at the released location to make sure it has been zeroed out.
+        assert!(sim.check_joint_probability(&[3]).is_nearly_zero());
+
+        // Next allocation should be the empty spot, and it should be in zero state.
+        assert_eq!(sim.allocate(), 3);
+        assert!(sim.joint_probability(&[3]).is_nearly_zero());
+
+        for i in 0..5 {
+            sim.release(i);
+        }
+        assert_eq!(sim.state.len(), 1);
     }
 
     /// Verify joint probability works as expected, namely that it corresponds to the parity of the
