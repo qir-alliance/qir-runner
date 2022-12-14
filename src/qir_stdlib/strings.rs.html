@@ -381,6 +381,12 @@
 <span id="381">381</span>
 <span id="382">382</span>
 <span id="383">383</span>
+<span id="384">384</span>
+<span id="385">385</span>
+<span id="386">386</span>
+<span id="387">387</span>
+<span id="388">388</span>
+<span id="389">389</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -502,7 +508,8 @@
 
     <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
     <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::bigints</span>::{
-        <span class="ident">__quantum__rt__bigint_create_i64</span>, <span class="ident">__quantum__rt__bigint_update_reference_count</span>,
+        <span class="ident">__quantum__rt__bigint_create_array</span>, <span class="ident">__quantum__rt__bigint_create_i64</span>,
+        <span class="ident">__quantum__rt__bigint_update_reference_count</span>,
     };
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
@@ -672,8 +679,7 @@
 
     <span class="attribute">#[<span class="ident">test</span>]</span>
     <span class="kw">fn</span> <span class="ident">test_to_string</span>() {
-        <span class="kw">let</span> <span class="ident">input0</span> <span class="op">=</span> <span class="number">42</span>;
-        <span class="kw">let</span> <span class="ident">str0</span> <span class="op">=</span> <span class="ident">__quantum__rt__int_to_string</span>(<span class="ident">input0</span>);
+        <span class="kw">let</span> <span class="ident">str0</span> <span class="op">=</span> <span class="ident">__quantum__rt__int_to_string</span>(<span class="number">42_i64</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str0</span>))
@@ -682,8 +688,7 @@
                 <span class="string">&quot;42&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input1</span> <span class="op">=</span> <span class="number">4.2</span>;
-        <span class="kw">let</span> <span class="ident">str1</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="ident">input1</span>);
+        <span class="kw">let</span> <span class="ident">str1</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="number">4.2_f64</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str1</span>))
@@ -692,8 +697,7 @@
                 <span class="string">&quot;4.2&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input1_1</span> <span class="op">=</span> <span class="number">4.0</span>;
-        <span class="kw">let</span> <span class="ident">str1_1</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="ident">input1_1</span>);
+        <span class="kw">let</span> <span class="ident">str1_1</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="number">4.0_f64</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str1_1</span>))
@@ -702,8 +706,7 @@
                 <span class="string">&quot;4.0&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input1_2</span> <span class="op">=</span> <span class="number">0.1</span>;
-        <span class="kw">let</span> <span class="ident">str1_2</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="ident">input1_2</span>);
+        <span class="kw">let</span> <span class="ident">str1_2</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="number">0.1_f64</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str1_2</span>))
@@ -712,8 +715,7 @@
                 <span class="string">&quot;0.1&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input1_3</span> <span class="op">=</span> <span class="number">0.100_000_000_01</span>;
-        <span class="kw">let</span> <span class="ident">str1_3</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="ident">input1_3</span>);
+        <span class="kw">let</span> <span class="ident">str1_3</span> <span class="op">=</span> <span class="ident">__quantum__rt__double_to_string</span>(<span class="number">0.100_000_000_01_f64</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str1_3</span>))
@@ -722,8 +724,7 @@
                 <span class="string">&quot;0.10000000001&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input2</span> <span class="op">=</span> <span class="bool-val">false</span>;
-        <span class="kw">let</span> <span class="ident">str2</span> <span class="op">=</span> <span class="ident">__quantum__rt__bool_to_string</span>(<span class="ident">input2</span>);
+        <span class="kw">let</span> <span class="ident">str2</span> <span class="op">=</span> <span class="ident">__quantum__rt__bool_to_string</span>(<span class="bool-val">false</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str2</span>))
@@ -732,8 +733,7 @@
                 <span class="string">&quot;false&quot;</span>
             );
         }
-        <span class="kw">let</span> <span class="ident">input3</span> <span class="op">=</span> <span class="ident">Pauli::Z</span>;
-        <span class="kw">let</span> <span class="ident">str3</span> <span class="op">=</span> <span class="ident">__quantum__rt__pauli_to_string</span>(<span class="ident">input3</span>);
+        <span class="kw">let</span> <span class="ident">str3</span> <span class="op">=</span> <span class="ident">__quantum__rt__pauli_to_string</span>(<span class="ident">Pauli::Z</span>);
         <span class="kw">unsafe</span> {
             <span class="macro">assert_eq!</span>(
                 <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str3</span>))
@@ -751,7 +751,19 @@
                     .<span class="ident">unwrap</span>(),
                 <span class="string">&quot;400002&quot;</span>
             );
-
+            <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str4</span>, <span class="op">-</span><span class="number">1</span>);
+        }
+        <span class="kw">unsafe</span> {
+            <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> [<span class="number">0x18</span>, <span class="number">0xFC</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xF3</span>, <span class="number">0x01</span>];
+            <span class="kw">let</span> <span class="ident">input5</span> <span class="op">=</span>
+                <span class="ident">__quantum__rt__bigint_create_array</span>(<span class="ident">bytes</span>.<span class="ident">len</span>().<span class="ident">try_into</span>().<span class="ident">unwrap</span>(), <span class="ident">bytes</span>.<span class="ident">as_ptr</span>());
+            <span class="kw">let</span> <span class="ident">str5</span> <span class="op">=</span> <span class="ident">__quantum__rt__bigint_to_string</span>(<span class="ident">input5</span>);
+            <span class="macro">assert_eq!</span>(
+                <span class="ident">CStr::from_ptr</span>(<span class="ident">__quantum__rt__string_get_data</span>(<span class="ident">str5</span>))
+                    .<span class="ident">to_str</span>()
+                    .<span class="ident">unwrap</span>(),
+                <span class="string">&quot;9223372036854775807000&quot;</span>
+            );
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str0</span>, <span class="op">-</span><span class="number">1</span>);
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str1</span>, <span class="op">-</span><span class="number">1</span>);
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str1_1</span>, <span class="op">-</span><span class="number">1</span>);
@@ -759,8 +771,8 @@
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str1_3</span>, <span class="op">-</span><span class="number">1</span>);
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str2</span>, <span class="op">-</span><span class="number">1</span>);
             <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str3</span>, <span class="op">-</span><span class="number">1</span>);
-            <span class="ident">__quantum__rt__string_update_reference_count</span>(<span class="ident">str4</span>, <span class="op">-</span><span class="number">1</span>);
             <span class="ident">__quantum__rt__bigint_update_reference_count</span>(<span class="ident">input4</span>, <span class="op">-</span><span class="number">1</span>);
+            <span class="ident">__quantum__rt__bigint_update_reference_count</span>(<span class="ident">input5</span>, <span class="op">-</span><span class="number">1</span>);
         }
     }
 }
