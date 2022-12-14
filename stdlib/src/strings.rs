@@ -119,7 +119,8 @@ mod tests {
 
     use super::*;
     use crate::bigints::{
-        __quantum__rt__bigint_create_i64, __quantum__rt__bigint_update_reference_count, __quantum__rt__bigint_create_array,
+        __quantum__rt__bigint_create_array, __quantum__rt__bigint_create_i64,
+        __quantum__rt__bigint_update_reference_count,
     };
 
     #[test]
@@ -365,7 +366,8 @@ mod tests {
         }
         unsafe {
             let bytes = [0x18, 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF3, 0x01];
-            let input5 = __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
+            let input5 =
+                __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
             let str5 = __quantum__rt__bigint_to_string(input5);
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str5))
