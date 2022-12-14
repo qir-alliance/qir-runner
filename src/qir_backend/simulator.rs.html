@@ -1435,6 +1435,47 @@
 <span id="1435">1435</span>
 <span id="1436">1436</span>
 <span id="1437">1437</span>
+<span id="1438">1438</span>
+<span id="1439">1439</span>
+<span id="1440">1440</span>
+<span id="1441">1441</span>
+<span id="1442">1442</span>
+<span id="1443">1443</span>
+<span id="1444">1444</span>
+<span id="1445">1445</span>
+<span id="1446">1446</span>
+<span id="1447">1447</span>
+<span id="1448">1448</span>
+<span id="1449">1449</span>
+<span id="1450">1450</span>
+<span id="1451">1451</span>
+<span id="1452">1452</span>
+<span id="1453">1453</span>
+<span id="1454">1454</span>
+<span id="1455">1455</span>
+<span id="1456">1456</span>
+<span id="1457">1457</span>
+<span id="1458">1458</span>
+<span id="1459">1459</span>
+<span id="1460">1460</span>
+<span id="1461">1461</span>
+<span id="1462">1462</span>
+<span id="1463">1463</span>
+<span id="1464">1464</span>
+<span id="1465">1465</span>
+<span id="1466">1466</span>
+<span id="1467">1467</span>
+<span id="1468">1468</span>
+<span id="1469">1469</span>
+<span id="1470">1470</span>
+<span id="1471">1471</span>
+<span id="1472">1472</span>
+<span id="1473">1473</span>
+<span id="1474">1474</span>
+<span id="1475">1475</span>
+<span id="1476">1476</span>
+<span id="1477">1477</span>
+<span id="1478">1478</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -1503,17 +1544,25 @@
     <span class="doccomment">/// if those identifiers are available.</span>
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">allocate</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="ident">usize</span> {
-        <span class="comment">// Add the new entry into the FxHashMap at the first available sequential ID.</span>
+        <span class="comment">// Add the new entry into the FxHashMap at the first available sequential ID and first available</span>
+        <span class="comment">// sequential location.</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sorted_keys</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">usize</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">id_map</span>.<span class="ident">keys</span>().<span class="ident">collect</span>();
         <span class="ident">sorted_keys</span>.<span class="ident">sort</span>();
-        <span class="kw">let</span> <span class="ident">n_qubits</span> <span class="op">=</span> <span class="ident">sorted_keys</span>.<span class="ident">len</span>();
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sorted_vals</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">usize</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">id_map</span>.<span class="ident">values</span>().<span class="ident">collect</span>();
+        <span class="ident">sorted_vals</span>.<span class="ident">sort</span>();
         <span class="kw">let</span> <span class="ident">new_key</span> <span class="op">=</span> <span class="ident">sorted_keys</span>
             .<span class="ident">iter</span>()
             .<span class="ident">enumerate</span>()
             .<span class="ident">take_while</span>(<span class="op">|</span>(<span class="ident">index</span>, <span class="ident">key</span>)<span class="op">|</span> <span class="ident">index</span> <span class="op">==</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">key</span>)
             .<span class="ident">last</span>()
             .<span class="ident">map_or</span>(<span class="number">0_usize</span>, <span class="op">|</span>(<span class="kw">_</span>, <span class="op">&amp;&amp;</span><span class="ident">key</span>)<span class="op">|</span> <span class="ident">key</span> <span class="op">+</span> <span class="number">1</span>);
-        <span class="self">self</span>.<span class="ident">id_map</span>.<span class="ident">insert</span>(<span class="ident">new_key</span>, <span class="ident">n_qubits</span>);
+        <span class="kw">let</span> <span class="ident">new_val</span> <span class="op">=</span> <span class="ident">sorted_vals</span>
+            .<span class="ident">iter</span>()
+            .<span class="ident">enumerate</span>()
+            .<span class="ident">take_while</span>(<span class="op">|</span>(<span class="ident">index</span>, <span class="ident">val</span>)<span class="op">|</span> <span class="ident">index</span> <span class="op">==</span> <span class="kw-2">*</span><span class="kw-2">*</span><span class="ident">val</span>)
+            .<span class="ident">last</span>()
+            .<span class="ident">map_or</span>(<span class="number">0_usize</span>, <span class="op">|</span>(<span class="kw">_</span>, <span class="op">&amp;&amp;</span><span class="ident">val</span>)<span class="op">|</span> <span class="ident">val</span> <span class="op">+</span> <span class="number">1</span>);
+        <span class="self">self</span>.<span class="ident">id_map</span>.<span class="ident">insert</span>(<span class="ident">new_key</span>, <span class="ident">new_val</span>);
 
         <span class="comment">// Return the new ID that was used.</span>
         <span class="ident">new_key</span>
@@ -1538,12 +1587,11 @@
         <span class="comment">// If the result of measurement was true then we must set the bit for this qubit in every key</span>
         <span class="comment">// to zero to &quot;reset&quot; the qubit.</span>
         <span class="kw">if</span> <span class="ident">res</span> {
-            <span class="kw">let</span> <span class="ident">qubit</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">id_map</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">u64</span>;
             <span class="self">self</span>.<span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>
                 .<span class="ident">state</span>
                 .<span class="ident">drain</span>()
                 .<span class="ident">fold</span>(<span class="ident">FxHashMap::default</span>(), <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">accum</span>, (<span class="kw-2">mut</span> <span class="ident">k</span>, <span class="ident">v</span>)<span class="op">|</span> {
-                    <span class="ident">k</span>.<span class="ident">set_bit</span>(<span class="ident">qubit</span>, <span class="bool-val">false</span>);
+                    <span class="ident">k</span>.<span class="ident">set_bit</span>(<span class="ident">loc</span> <span class="kw">as</span> <span class="ident">u64</span>, <span class="bool-val">false</span>);
                     <span class="ident">accum</span>.<span class="ident">insert</span>(<span class="ident">k</span>, <span class="ident">v</span>);
                     <span class="ident">accum</span>
                 });
@@ -2478,6 +2526,40 @@
         <span class="macro">assert!</span>(<span class="ident">almost_equal</span>(<span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="ident">q</span>]), <span class="number">0.0</span>));
         <span class="ident">sim</span>.<span class="ident">release</span>(<span class="ident">extra</span>);
         <span class="ident">sim</span>.<span class="ident">release</span>(<span class="ident">q</span>);
+    }
+
+    <span class="comment">// Verify that out of order release of non-zero qubits behaves as expected, namely qubits that</span>
+    <span class="comment">// are not released are still in the expected states, newly allocated qubits use the available spot</span>
+    <span class="comment">// and start in a zero state.</span>
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_out_of_order_release</span>() {
+        <span class="kw">let</span> <span class="ident">sim</span> <span class="op">=</span> <span class="kw-2">&amp;mut</span> <span class="ident">QuantumSim::default</span>();
+        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">5</span> {
+            <span class="macro">assert_eq!</span>(<span class="ident">sim</span>.<span class="ident">allocate</span>(), <span class="ident">i</span>);
+            <span class="ident">sim</span>.<span class="ident">x</span>(<span class="ident">i</span>);
+        }
+
+        <span class="comment">// Release out of order.</span>
+        <span class="ident">sim</span>.<span class="ident">release</span>(<span class="number">3</span>);
+
+        <span class="comment">// Remaining qubits should all still be in one.</span>
+        <span class="macro">assert_eq!</span>(<span class="ident">sim</span>.<span class="ident">state</span>.<span class="ident">len</span>(), <span class="number">1</span>);
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">0</span>]).<span class="ident">is_nearly_zero</span>());
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">1</span>]).<span class="ident">is_nearly_zero</span>());
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">2</span>]).<span class="ident">is_nearly_zero</span>());
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">4</span>]).<span class="ident">is_nearly_zero</span>());
+
+        <span class="comment">// Cheat and peak at the released location to make sure it has been zeroed out.</span>
+        <span class="macro">assert!</span>(<span class="ident">sim</span>.<span class="ident">check_joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">3</span>]).<span class="ident">is_nearly_zero</span>());
+
+        <span class="comment">// Next allocation should be the empty spot, and it should be in zero state.</span>
+        <span class="macro">assert_eq!</span>(<span class="ident">sim</span>.<span class="ident">allocate</span>(), <span class="number">3</span>);
+        <span class="macro">assert!</span>(<span class="ident">sim</span>.<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="number">3</span>]).<span class="ident">is_nearly_zero</span>());
+
+        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">5</span> {
+            <span class="ident">sim</span>.<span class="ident">release</span>(<span class="ident">i</span>);
+        }
+        <span class="macro">assert_eq!</span>(<span class="ident">sim</span>.<span class="ident">state</span>.<span class="ident">len</span>(), <span class="number">1</span>);
     }
 
     <span class="doccomment">/// Verify joint probability works as expected, namely that it corresponds to the parity of the</span>
