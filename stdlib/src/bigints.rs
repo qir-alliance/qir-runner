@@ -15,19 +15,19 @@ pub unsafe extern "C" fn __quantum__rt__bigint_create_array(
     size: u32,
     input: *const u8,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(BigInt::from_signed_bytes_be(
+    Rc::into_raw(Rc::new(BigInt::from_signed_bytes_le(
         std::slice::from_raw_parts(input, size as usize),
     )))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__bigint_get_data(input: *const BigInt) -> *const u8 {
-    ManuallyDrop::new((*input).to_signed_bytes_be()).as_ptr()
+    ManuallyDrop::new((*input).to_signed_bytes_le()).as_ptr()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__bigint_get_length(input: *const BigInt) -> u32 {
-    let size = (*input).to_signed_bytes_be().len();
+    let size = (*input).to_signed_bytes_le().len();
     size.try_into()
         .expect("Length of bigint representation too large for 32-bit integer.")
 }
@@ -181,11 +181,11 @@ mod tests {
 
     #[test]
     fn test_bigint_create_from_array() {
-        let bytes = 42_i64.to_be_bytes();
+        let bytes = 9_223_372_036_854_775_807_i64.to_le_bytes();
         unsafe {
             let bigint_1 =
                 __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
-            assert_eq!(*bigint_1, (42).try_into().unwrap());
+            assert_eq!(*bigint_1, (9_223_372_036_854_775_807_i64).try_into().unwrap());
             __quantum__rt__bigint_update_reference_count(bigint_1, -1);
         }
     }
