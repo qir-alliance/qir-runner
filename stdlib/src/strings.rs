@@ -128,7 +128,8 @@ mod tests {
 
     use super::*;
     use crate::bigints::{
-        __quantum__rt__bigint_create_i64, __quantum__rt__bigint_update_reference_count,
+        __quantum__rt__bigint_create_array, __quantum__rt__bigint_create_i64,
+        __quantum__rt__bigint_update_reference_count,
     };
 
     #[test]
@@ -298,8 +299,7 @@ mod tests {
 
     #[test]
     fn test_to_string() {
-        let input0 = 42;
-        let str0 = __quantum__rt__int_to_string(input0);
+        let str0 = __quantum__rt__int_to_string(42_i64);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str0))
@@ -308,8 +308,7 @@ mod tests {
                 "42"
             );
         }
-        let input1 = 4.2;
-        let str1 = __quantum__rt__double_to_string(input1);
+        let str1 = __quantum__rt__double_to_string(4.2_f64);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str1))
@@ -318,8 +317,7 @@ mod tests {
                 "4.2"
             );
         }
-        let input1_1 = 4.0;
-        let str1_1 = __quantum__rt__double_to_string(input1_1);
+        let str1_1 = __quantum__rt__double_to_string(4.0_f64);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_1))
@@ -328,8 +326,7 @@ mod tests {
                 "4.0"
             );
         }
-        let input1_2 = 0.1;
-        let str1_2 = __quantum__rt__double_to_string(input1_2);
+        let str1_2 = __quantum__rt__double_to_string(0.1_f64);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_2))
@@ -338,8 +335,7 @@ mod tests {
                 "0.1"
             );
         }
-        let input1_3 = 0.100_000_000_01;
-        let str1_3 = __quantum__rt__double_to_string(input1_3);
+        let str1_3 = __quantum__rt__double_to_string(0.100_000_000_01_f64);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_3))
@@ -348,8 +344,7 @@ mod tests {
                 "0.10000000001"
             );
         }
-        let input2 = false;
-        let str2 = __quantum__rt__bool_to_string(input2);
+        let str2 = __quantum__rt__bool_to_string(false);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str2))
@@ -358,8 +353,7 @@ mod tests {
                 "false"
             );
         }
-        let input3 = Pauli::Z;
-        let str3 = __quantum__rt__pauli_to_string(input3);
+        let str3 = __quantum__rt__pauli_to_string(Pauli::Z);
         unsafe {
             assert_eq!(
                 CStr::from_ptr(__quantum__rt__string_get_data(str3))
@@ -377,7 +371,19 @@ mod tests {
                     .unwrap(),
                 "400002"
             );
-
+            __quantum__rt__string_update_reference_count(str4, -1);
+        }
+        unsafe {
+            let bytes = [0x18, 0xFC, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF3, 0x01];
+            let input5 =
+                __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
+            let str5 = __quantum__rt__bigint_to_string(input5);
+            assert_eq!(
+                CStr::from_ptr(__quantum__rt__string_get_data(str5))
+                    .to_str()
+                    .unwrap(),
+                "9223372036854775807000"
+            );
             __quantum__rt__string_update_reference_count(str0, -1);
             __quantum__rt__string_update_reference_count(str1, -1);
             __quantum__rt__string_update_reference_count(str1_1, -1);
@@ -385,8 +391,8 @@ mod tests {
             __quantum__rt__string_update_reference_count(str1_3, -1);
             __quantum__rt__string_update_reference_count(str2, -1);
             __quantum__rt__string_update_reference_count(str3, -1);
-            __quantum__rt__string_update_reference_count(str4, -1);
             __quantum__rt__bigint_update_reference_count(input4, -1);
+            __quantum__rt__bigint_update_reference_count(input5, -1);
         }
     }
 }
