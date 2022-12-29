@@ -95,7 +95,7 @@ fn run_file_errors_on_missing_binding() {
 #[test]
 fn legacy_output_recording_calls_are_mapped() {
     let bitcode = include_bytes!("resources/legacy_output.bc");
-    if let Err(msg) = run_bitcode(bitcode, None) {        
+    if let Err(msg) = run_bitcode(bitcode, None) {
         panic!("legacy output recording mapping failed: {msg}")
     }
 }
