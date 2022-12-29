@@ -727,6 +727,15 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
     );
 }
 
+pub mod unlabeled {
+    use std::{ffi::c_void, ptr::null_mut};
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
+        super::__quantum__rt__result_record_output(result, null_mut());
+    }
+}
+
 /// QIR API for recording the given result into the program output.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {

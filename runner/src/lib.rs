@@ -5,8 +5,8 @@
 #![allow(unused)]
 
 pub use qir_backend::{
-    arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
-    result_bool::*, strings::*, tuples::*, *,
+    arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::deprecated::*,
+    output_recording::*, range_support::*, result_bool::*, strings::*, tuples::*, *,
 };
 
 use inkwell::{
@@ -223,6 +223,23 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         };
     }
 
+    macro_rules! bind_output_record {
+        ($func:ident) => {
+            if let Some(func) = declarations.get(stringify!($func)) {
+                if func.get_params().len() == 1 {
+                    execution_engine.add_global_mapping(
+                        func,
+                        qir_backend::output_recording::unlabeled::$func as usize,
+                    );
+                    declarations.remove(stringify!($func));
+                } else {
+                    execution_engine.add_global_mapping(func, $func as usize);
+                    declarations.remove(stringify!($func));
+                }
+            }
+        };
+    }
+
     bind!(__quantum__rt__initialize);
     bind!(__quantum__qis__arccos__body);
     bind!(__quantum__qis__arcsin__body);
@@ -292,7 +309,36 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__array_concatenate);
     bind!(__quantum__rt__array_copy);
     bind!(__quantum__rt__array_create_1d);
-    bind!(__quantum__rt__array_record_output);
+
+    // Legacy output methods
+    bind!(__quantum__rt__array_end_record_output);
+    bind!(__quantum__rt__array_start_record_output);
+    bind!(__quantum__rt__tuple_end_record_output);
+    bind!(__quantum__rt__tuple_start_record_output);
+
+    // New calls
+    bind_output_record!(__quantum__rt__array_record_output);
+    bind_output_record!(__quantum__rt__tuple_record_output);
+
+    // calls with unlabeled signature variants
+    bind_output_record!(__quantum__rt__bool_record_output);
+    bind_output_record!(__quantum__rt__double_record_output);
+    bind_output_record!(__quantum__rt__int_record_output);
+
+    // results need special handling as they aren't in the std lib
+    if let Some(func) = declarations.get("__quantum__rt__result_record_output") {
+        if func.get_params().len() == 1 {
+            execution_engine.add_global_mapping(
+                func,
+                qir_backend::unlabeled::__quantum__rt__result_record_output as usize,
+            );
+            declarations.remove("__quantum__rt__result_record_output");
+        } else {
+            execution_engine.add_global_mapping(func, __quantum__rt__result_record_output as usize);
+            declarations.remove("__quantum__rt__result_record_output");
+        }
+    }
+
     bind!(__quantum__rt__array_get_element_ptr_1d);
     bind!(__quantum__rt__array_get_size_1d);
     bind!(__quantum__rt__array_slice_1d);
@@ -348,7 +394,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__result_equal);
     bind!(__quantum__rt__result_get_one);
     bind!(__quantum__rt__result_get_zero);
-    bind!(__quantum__rt__result_record_output);
     bind!(__quantum__rt__result_to_string);
     bind!(__quantum__rt__result_update_reference_count);
     bind!(__quantum__rt__string_concatenate);
@@ -359,7 +404,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__string_update_reference_count);
     bind!(__quantum__rt__tuple_copy);
     bind!(__quantum__rt__tuple_create);
-    bind!(__quantum__rt__tuple_record_output);
     bind!(__quantum__rt__tuple_update_alias_count);
     bind!(__quantum__rt__tuple_update_reference_count);
 
