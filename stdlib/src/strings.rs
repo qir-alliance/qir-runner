@@ -113,7 +113,8 @@ pub unsafe extern "C" fn __quantum__rt__bigint_to_string(input: *const BigInt) -
     convert(&*input)
 }
 
-#[cfg(test)]mod tests {
+#[cfg(test)]
+mod tests {
     use std::mem::ManuallyDrop;
 
     use super::*;
