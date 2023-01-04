@@ -113,17 +113,7 @@ pub unsafe extern "C" fn __quantum__rt__bigint_to_string(input: *const BigInt) -
     convert(&*input)
 }
 
-pub unsafe fn to_string(tag: *mut i8) -> String {
-    let str = CString::new(CStr::from_ptr(tag).to_owned()).expect("Failed to create CString");
-    let utf8_value = (*str)
-        .to_str()
-        .expect("Unable to convert input string")
-        .escape_default();
-    format!("{utf8_value}")
-}
-
-#[cfg(test)]
-mod tests {
+#[cfg(test)]mod tests {
     use std::mem::ManuallyDrop;
 
     use super::*;
