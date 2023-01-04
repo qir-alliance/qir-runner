@@ -15,3 +15,7 @@ llvm-tools = "0.1.1"
 
 [lib]
 crate-type = ["staticlib", "rlib"]
+
+[features]
+default = []
+skip-range-support = []
