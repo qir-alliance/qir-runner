@@ -137,7 +137,7 @@ mod tests {
         let orig_str = CString::new("Test String").unwrap();
         let str = unsafe {
             __quantum__rt__string_create(
-                orig_str.as_bytes_with_nul().as_ptr() as *mut std::os::raw::c_char
+                orig_str.as_bytes_with_nul().as_ptr() as *mut std::ffi::c_char
             )
         };
         // string_create should make a copy, not consume original.

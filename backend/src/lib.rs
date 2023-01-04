@@ -24,8 +24,8 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::ffi::{c_void, CString};
 use std::mem::size_of;
-use std::os::raw::c_char;
-use std::os::raw::c_double;
+use std::ffi::c_char;
+use std::ffi::c_double;
 
 use result_bool::{
     __quantum__rt__result_equal, __quantum__rt__result_get_one, __quantum__rt__result_get_zero,
