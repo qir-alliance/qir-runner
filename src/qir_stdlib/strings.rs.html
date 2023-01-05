@@ -517,7 +517,7 @@
         <span class="kw">let</span> <span class="ident">orig_str</span> <span class="op">=</span> <span class="ident">CString::new</span>(<span class="string">&quot;Test String&quot;</span>).<span class="ident">unwrap</span>();
         <span class="kw">let</span> <span class="ident">str</span> <span class="op">=</span> <span class="kw">unsafe</span> {
             <span class="ident">__quantum__rt__string_create</span>(
-                <span class="ident">orig_str</span>.<span class="ident">as_bytes_with_nul</span>().<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">std::os::raw::c_char</span>
+                <span class="ident">orig_str</span>.<span class="ident">as_bytes_with_nul</span>().<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">std::ffi::c_char</span>
             )
         };
         <span class="comment">// string_create should make a copy, not consume original.</span>
