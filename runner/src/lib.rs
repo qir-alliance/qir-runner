@@ -5,8 +5,8 @@
 #![allow(unused)]
 
 pub use qir_backend::{
-    arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::deprecated::*,
-    output_recording::*, range_support::*, result_bool::*, strings::*, tuples::*, *,
+    arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
+    result_bool::*, strings::*, tuples::*, *,
 };
 
 use inkwell::{
@@ -224,6 +224,24 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         };
     }
 
+    const DEPRECATED: &str = r#"Use of deprecated output recording call.
+    Please update your QIR tooling.
+    Found:"#;
+
+    macro_rules! deprecate_error {
+        ($func:ident) => {
+            if let Some(func) = declarations.get(stringify!($func)) {
+                return Err(format!("{} {}", DEPRECATED, stringify!($func)));
+            }
+        };
+    }
+
+    // Legacy output methods
+    deprecate_error!(__quantum__rt__array_end_record_output);
+    deprecate_error!(__quantum__rt__array_start_record_output);
+    deprecate_error!(__quantum__rt__tuple_end_record_output);
+    deprecate_error!(__quantum__rt__tuple_start_record_output);
+
     macro_rules! bind_output_record {
         ($func:ident) => {
             if let Some(func) = declarations.get(stringify!($func)) {
@@ -310,12 +328,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__array_concatenate);
     bind!(__quantum__rt__array_copy);
     bind!(__quantum__rt__array_create_1d);
-
-    // Legacy output methods
-    bind!(__quantum__rt__array_end_record_output);
-    bind!(__quantum__rt__array_start_record_output);
-    bind!(__quantum__rt__tuple_end_record_output);
-    bind!(__quantum__rt__tuple_start_record_output);
 
     // New calls
     bind_output_record!(__quantum__rt__array_record_output);

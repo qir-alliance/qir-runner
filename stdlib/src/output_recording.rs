@@ -76,38 +76,6 @@ pub unsafe extern "C" fn __quantum__rt__message_record_output(str: *const CStrin
     );
 }
 
-pub mod deprecated {
-    use std::{io, ptr::null_mut};
-    const DEPRECATED: &str =
-        "Use of deprecated output recording call. Please update your QIR tooling. Found:";
-
-    #[allow(non_snake_case)]
-    fn show_message(function: &str) {
-        super::output(DEPRECATED, &function, null_mut(), &mut io::stdout())
-            .expect("Failed to write deprecated message");
-    }
-
-    #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__array_start_record_output() {
-        show_message("__quantum__rt__array_start_record_output");
-    }
-
-    #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__array_end_record_output() {
-        show_message("__quantum__rt__array_end_record_output");
-    }
-
-    #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__tuple_start_record_output() {
-        show_message("__quantum__rt__tuple_start_record_output");
-    }
-
-    #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__tuple_end_record_output() {
-        show_message("__quantum__rt__tuple_end_record_output");
-    }
-}
-
 pub mod unlabeled {
     use std::{ffi::c_double, ptr::null_mut};
 
