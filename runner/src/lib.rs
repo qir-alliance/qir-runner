@@ -197,6 +197,10 @@ extern "C" {
 
 #[allow(clippy::too_many_lines)]
 fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
+    const DEPRECATED: &str = r#"Use of deprecated output recording call.
+    Please update your QIR tooling.
+    Found:"#;
+
     let mut declarations: HashMap<String, FunctionValue> = HashMap::default();
     for func in module_functions(module).filter(|f| {
         f.count_basic_blocks() == 0
@@ -224,10 +228,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         };
     }
 
-    const DEPRECATED: &str = r#"Use of deprecated output recording call.
-    Please update your QIR tooling.
-    Found:"#;
-
     macro_rules! deprecate_error {
         ($func:ident) => {
             if let Some(func) = declarations.get(stringify!($func)) {
@@ -235,12 +235,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             }
         };
     }
-
-    // Legacy output methods
-    deprecate_error!(__quantum__rt__array_end_record_output);
-    deprecate_error!(__quantum__rt__array_start_record_output);
-    deprecate_error!(__quantum__rt__tuple_end_record_output);
-    deprecate_error!(__quantum__rt__tuple_start_record_output);
 
     macro_rules! bind_output_record {
         ($func:ident) => {
@@ -258,6 +252,12 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             }
         };
     }
+
+    // Legacy output methods
+    deprecate_error!(__quantum__rt__array_end_record_output);
+    deprecate_error!(__quantum__rt__array_start_record_output);
+    deprecate_error!(__quantum__rt__tuple_end_record_output);
+    deprecate_error!(__quantum__rt__tuple_start_record_output);
 
     bind!(__quantum__rt__initialize);
     bind!(__quantum__qis__arccos__body);
