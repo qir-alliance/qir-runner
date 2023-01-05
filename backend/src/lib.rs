@@ -22,9 +22,10 @@ use num_complex::Complex64;
 use simulator::QuantumSim;
 use std::cell::RefCell;
 use std::convert::TryInto;
+use std::ffi::c_char;
+use std::ffi::c_double;
 use std::ffi::{c_void, CString};
 use std::mem::size_of;
-use std::os::raw::c_double;
 
 use result_bool::{
     __quantum__rt__result_equal, __quantum__rt__result_get_one, __quantum__rt__result_get_zero,
@@ -51,6 +52,17 @@ thread_local! {
         sim: QuantumSim::default(),
         res: bitvec![],
         max_qubit_id: 0
+    });
+}
+
+/// Initializes the execution environment.
+#[no_mangle]
+pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        state.sim = QuantumSim::default();
+        state.res = bitvec![];
+        state.max_qubit_id = 0;
     });
 }
 
@@ -715,9 +727,18 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
     );
 }
 
+pub mod unlabeled {
+    use std::{ffi::c_void, ptr::null_mut};
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
+        super::__quantum__rt__result_record_output(result, null_mut());
+    }
+}
+
 /// QIR API for recording the given result into the program output.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
+pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
@@ -732,8 +753,31 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
                 .expect("Result with given id missing after expansion.")
         };
 
-        println!("RESULT\t{}", if b { "1" } else { "0" });
+        let val: i64 = if b { 1 } else { 0 };
+        output("RESULT", &val, tag, &mut std::io::stdout()).expect("Failed to write result output");
     });
+}
+
+#[cfg(windows)]
+const LINE_ENDING: &[u8] = b"\r\n";
+#[cfg(not(windows))]
+const LINE_ENDING: &[u8] = b"\n";
+
+fn output(
+    ty: &str,
+    val: &dyn std::fmt::Display,
+    tag: *mut c_char,
+    output: &mut impl std::io::Write,
+) -> std::io::Result<()> {
+    output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
+    if !tag.is_null() {
+        output.write_all(b"\t")?;
+        unsafe {
+            output.write_all(CString::from_raw(tag).as_bytes())?;
+        }
+    }
+    output.write_all(LINE_ENDING)?;
+    Ok(())
 }
 
 /// QIR API that allocates the next available qubit in the simulation.

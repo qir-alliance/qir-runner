@@ -91,3 +91,47 @@ fn run_file_errors_on_missing_binding() {
         result.unwrap_err().to_lowercase()
     );
 }
+
+#[test]
+fn legacy_output_recording_calls_are_mapped() {
+    let bitcode = include_bytes!("resources/legacy_output.bc");
+    if let Err(msg) = run_bitcode(bitcode, None) {
+        panic!("legacy output recording mapping failed: {msg}")
+    }
+}
+
+#[test]
+fn deprecated_output_array_start_returns_error() {
+    let bitcode = include_bytes!("resources/deprecated_output_array_start.bc");
+    if let Err(msg) = run_bitcode(bitcode, None) {
+        println!("{msg}");
+        assert!(msg.contains("Found: __quantum__rt__array_start_record_output"))
+    }
+}
+
+#[test]
+fn deprecated_output_array_end_returns_error() {
+    let bitcode = include_bytes!("resources/deprecated_output_array_end.bc");
+    if let Err(msg) = run_bitcode(bitcode, None) {
+        println!("{msg}");
+        assert!(msg.contains("Found: __quantum__rt__array_end_record_output"))
+    }
+}
+
+#[test]
+fn deprecated_output_tuple_start_returns_error() {
+    let bitcode = include_bytes!("resources/deprecated_output_tuple_start.bc");
+    if let Err(msg) = run_bitcode(bitcode, None) {
+        println!("{msg}");
+        assert!(msg.contains("Found: __quantum__rt__tuple_start_record_output"))
+    }
+}
+
+#[test]
+fn deprecated_output_tuple_end_returns_error() {
+    let bitcode = include_bytes!("resources/deprecated_output_tuple_end.bc");
+    if let Err(msg) = run_bitcode(bitcode, None) {
+        println!("{msg}");
+        assert!(msg.contains("Found: __quantum__rt__tuple_end_record_output"))
+    }
+}

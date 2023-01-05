@@ -4,7 +4,7 @@
 // TODO: transition math functions to `__quantum__rt` once compiler support is ready (https://github.com/microsoft/qsharp-compiler/issues/1557).
 
 use rand::Rng;
-use std::os::raw::c_double;
+use std::ffi::c_double;
 
 use crate::{__quantum__rt__fail, strings::convert};
 
