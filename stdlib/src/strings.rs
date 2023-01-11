@@ -18,7 +18,7 @@ pub unsafe extern "C" fn __quantum__rt__string_create(str: *mut c_char) -> *cons
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__string_get_data(str: *const CString) -> *const c_char {
-    (*str).as_bytes_with_nul().as_ptr().cast::<i8>()
+    (*str).as_bytes_with_nul().as_ptr().cast::<c_char>()
 }
 
 #[no_mangle]
