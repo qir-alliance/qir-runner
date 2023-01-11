@@ -47,7 +47,7 @@
 <span class="attribute">#![<span class="ident">deny</span>(<span class="ident">clippy::all</span>, <span class="ident">clippy::pedantic</span>)]</span>
 
 <span class="kw">use</span> <span class="ident">qir_stdlib::strings::__quantum__rt__string_create</span>;
-<span class="kw">use</span> <span class="ident">std::ffi</span>::{<span class="ident">c_void</span>, <span class="ident">CString</span>};
+<span class="kw">use</span> <span class="ident">std::ffi</span>::{<span class="ident">c_char</span>, <span class="ident">c_void</span>, <span class="ident">CString</span>};
 
 <span class="attribute">#[<span class="ident">no_mangle</span>]</span>
 <span class="kw">pub</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">__quantum__rt__result_get_zero</span>() -&gt; <span class="kw-2">*mut</span> <span class="ident">c_void</span> {
@@ -82,7 +82,7 @@
             )
             .<span class="ident">expect</span>(<span class="string">&quot;Failed to allocate memory for result string.&quot;</span>)
             .<span class="ident">as_bytes_with_nul</span>()
-            .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">i8</span>,
+            .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">c_char</span>,
         )
     }
 }

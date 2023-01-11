@@ -1017,7 +1017,7 @@
             <span class="ident">CString::new</span>(<span class="string">&quot;Pauli array and Qubit array must be the same size.&quot;</span>)
                 .<span class="ident">expect</span>(<span class="string">&quot;Unable to allocate memory for failure message string.&quot;</span>)
                 .<span class="ident">as_bytes_with_nul</span>()
-                .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">i8</span>,
+                .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">c_char</span>,
         ));
     }
 
@@ -1580,7 +1580,7 @@
                     <span class="ident">CString::new</span>(<span class="string">&quot;Qubit is not in |0⟩ state.&quot;</span>)
                         .<span class="ident">expect</span>(<span class="string">&quot;Unable to allocate memory for failure message string.&quot;</span>)
                         .<span class="ident">as_bytes_with_nul</span>()
-                        .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">i8</span>,
+                        .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">c_char</span>,
                 ));
             }
         }
@@ -1776,7 +1776,7 @@
             <span class="ident">CString::new</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">qubit</span> <span class="kw">as</span> <span class="ident">usize</span>))
                 .<span class="ident">expect</span>(<span class="string">&quot;Unable to allocate memory for qubit string.&quot;</span>)
                 .<span class="ident">as_bytes_with_nul</span>()
-                .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">i8</span>,
+                .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">c_char</span>,
         )
     }
 }
