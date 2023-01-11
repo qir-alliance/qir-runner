@@ -68,7 +68,7 @@ where
             CString::new(input.to_string())
                 .expect("Unable to allocate string for conversion.")
                 .as_bytes_with_nul()
-                .as_ptr() as *mut i8,
+                .as_ptr() as *mut c_char,
         )
     }
 }
@@ -150,7 +150,7 @@ mod tests {
     fn test_string_get_data() {
         let str = unsafe {
             __quantum__rt__string_create(
-                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut i8
+                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char
             )
         };
         unsafe {
@@ -170,7 +170,7 @@ mod tests {
     fn test_string_get_length() {
         let str = unsafe {
             __quantum__rt__string_create(
-                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut i8
+                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char
             )
         };
         assert_eq!(unsafe { __quantum__rt__string_get_length(str) }, 4);
@@ -183,7 +183,7 @@ mod tests {
     fn test_string_update_reference_count() {
         unsafe {
             let str = __quantum__rt__string_create(
-                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut i8,
+                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char,
             );
             let rc = ManuallyDrop::new(Rc::from_raw(str));
             assert_eq!(Rc::strong_count(&rc), 1);
@@ -199,13 +199,13 @@ mod tests {
     fn test_string_concatenate() {
         unsafe {
             let str1 = __quantum__rt__string_create(
-                CString::new("Hello").unwrap().as_bytes_with_nul().as_ptr() as *mut i8,
+                CString::new("Hello").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char,
             );
             let str2 = __quantum__rt__string_create(
                 CString::new(", World!")
                     .unwrap()
                     .as_bytes_with_nul()
-                    .as_ptr() as *mut i8,
+                    .as_ptr() as *mut c_char,
             );
             let str3 = __quantum__rt__string_concatenate(str1, str2);
             // Concatenated string should have combined value.
@@ -244,16 +244,16 @@ mod tests {
     fn test_string_equal() {
         unsafe {
             let str1 = __quantum__rt__string_create(
-                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut i8,
+                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char,
             );
             let str2 = __quantum__rt__string_create(
-                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut i8,
+                CString::new("Data").unwrap().as_bytes_with_nul().as_ptr() as *mut c_char,
             );
             let str3 = __quantum__rt__string_create(
                 CString::new("Not Data")
                     .unwrap()
                     .as_bytes_with_nul()
-                    .as_ptr() as *mut i8,
+                    .as_ptr() as *mut c_char,
             );
             assert!(__quantum__rt__string_equal(str1, str2));
             assert!(!__quantum__rt__string_equal(str1, str3));

@@ -3,7 +3,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use qir_stdlib::strings::__quantum__rt__string_create;
-use std::ffi::{c_void, CString};
+use std::ffi::{c_char, c_void, CString};
 
 #[no_mangle]
 pub extern "C" fn __quantum__rt__result_get_zero() -> *mut c_void {
@@ -38,7 +38,7 @@ pub extern "C" fn __quantum__rt__result_to_string(res: *mut c_void) -> *const CS
             )
             .expect("Failed to allocate memory for result string.")
             .as_bytes_with_nul()
-            .as_ptr() as *mut i8,
+            .as_ptr() as *mut c_char,
         )
     }
 }

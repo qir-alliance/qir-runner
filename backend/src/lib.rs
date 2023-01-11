@@ -86,7 +86,7 @@ unsafe fn map_paulis(
             CString::new("Pauli array and Qubit array must be the same size.")
                 .expect("Unable to allocate memory for failure message string.")
                 .as_bytes_with_nul()
-                .as_ptr() as *mut i8,
+                .as_ptr() as *mut c_char,
         ));
     }
 
@@ -649,7 +649,7 @@ pub extern "C" fn __quantum__qis__assertzero__body(qubit: *mut c_void) {
                     CString::new("Qubit is not in |0⟩ state.")
                         .expect("Unable to allocate memory for failure message string.")
                         .as_bytes_with_nul()
-                        .as_ptr() as *mut i8,
+                        .as_ptr() as *mut c_char,
                 ));
             }
         }
@@ -845,7 +845,7 @@ pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const C
             CString::new(format!("{}", qubit as usize))
                 .expect("Unable to allocate memory for qubit string.")
                 .as_bytes_with_nul()
-                .as_ptr() as *mut i8,
+                .as_ptr() as *mut c_char,
         )
     }
 }
