@@ -122,7 +122,7 @@ impl QuantumSim {
 
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
-    pub(crate) fn dump(&mut self) {
+    pub(crate) fn dump(&mut self, output: &mut impl std::io::Write) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
         let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
@@ -143,27 +143,43 @@ impl QuantumSim {
             }
         });
 
-        self.dump_impl(false);
+        self.dump_impl(false, output);
     }
 
     /// Utility function that performs the actual output of state (and optionally map) to screen. Can
     /// be called internally from other functions to aid in debugging and does not perform any modification
     /// of the internal structures.
-    fn dump_impl(&self, print_id_map: bool) {
+    fn dump_impl(&self, print_id_map: bool, output: &mut impl std::io::Write) {
         if print_id_map {
-            println!("MAP: {:?}", self.id_map);
+            output
+                .write_fmt(format_args!("MAP: {:?}\n", self.id_map))
+                .expect("Unable to write to output");
         };
-        print!("STATE: [ ");
+        output
+            .write_fmt(format_args!("{{ "))
+            .expect("Unable to write to output");
         let mut sorted_keys = self.state.keys().collect::<Vec<_>>();
         sorted_keys.sort_unstable();
-        for key in sorted_keys {
-            print!(
-                "|{}\u{27e9}: {}, ",
-                key,
-                self.state.get(key).map_or_else(Complex64::zero, |v| *v)
-            );
+        let (last_key, most_keys) = sorted_keys.split_last().unwrap();
+        for key in most_keys {
+            let val = self.state.get(key).map_or_else(Complex64::zero, |v| *v);
+            output
+                .write_fmt(format_args!(
+                    "\"|{}\u{27e9}\": [{}, {}], ",
+                    key, val.re, val.im
+                ))
+                .expect("Unable to write to output");
         }
-        println!("]");
+        let last_val = self
+            .state
+            .get(last_key)
+            .map_or_else(Complex64::zero, |v| *v);
+        output
+            .write_fmt(format_args!(
+                "\"|{}\u{27e9}\": [{}, {}] }}\n",
+                last_key, last_val.re, last_val.im
+            ))
+            .expect("Unable to write to output");
     }
 
     /// Checks the probability of parity measurement in the computational basis for the given set of
@@ -1294,7 +1310,7 @@ mod tests {
 
             // Sparse state vector should have one entry for |0⟩.
             // Dump the state first to force a flush of any queued operations.
-            sim.dump();
+            sim.dump(&mut std::io::stdout());
             assert_eq!(sim.state.len(), 1);
         }
     }
