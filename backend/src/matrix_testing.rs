@@ -413,7 +413,7 @@ mod tests {
 
         // Sparse state vector should have one entry for |0⟩.
         // Dump the state first to force a flush of any queued operations.
-        sim.dump();
+        sim.dump(&mut std::io::stdout());
         assert_eq!(sim.state.len(), 1);
     }
 
