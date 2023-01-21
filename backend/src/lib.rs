@@ -632,6 +632,20 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
     })
 }
 
+/// QIR API for checking internal simulator state and returning true if the given qubit is in the |0⟩ state.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__checkzero__body(qubit: *mut c_void) -> bool {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
+
+        state
+            .sim
+            .joint_probability(&[qubit as usize])
+            .is_nearly_zero()
+    })
+}
+
 /// QIR API for checking internal simulator state and verifying the given qubit is in the |0⟩ state.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__assertzero__body(qubit: *mut c_void) {
