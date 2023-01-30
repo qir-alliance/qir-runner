@@ -13,7 +13,6 @@ on:
 env:
   RUSTFLAGS: -Dwarnings
   CARGO_INCREMENTAL: 0
-  LLVM_FEATURE: llvm14-0
 
 jobs:
   fmt:
@@ -33,10 +32,10 @@ jobs:
         run: cargo fmt -v --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -vv --all-targets --features ${{ env.LLVM_FEATURE }}
+        run: cargo clippy -vv --all-targets
 
       - name: cargo doc
-        run: cargo doc -vv --all --no-deps --features ${{ env.LLVM_FEATURE }}
+        run: cargo doc -vv --all --no-deps
 
       - name: Publish Docs as Artifacts
         uses: actions/upload-artifact@v2
@@ -58,7 +57,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo bench
-        run: cargo bench --workspace --features ${{ env.LLVM_FEATURE }}
+        run: cargo bench --workspace
 
   build:
     name: Build
@@ -73,9 +72,9 @@ jobs:
         run: rustup show
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo build -vv --release
       - name: Test
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
+        run: cargo test -vv --release -- --nocapture
 
   nightly:
     name: Build Nightly
@@ -94,9 +93,9 @@ jobs:
           components: rustfmt, clippy, llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
       - name: Build Nightly
-        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo build -vv --release
       - name: Test Nightly
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
+        run: cargo test -vv --release -- --nocapture
 
   release:
     name: Release
@@ -105,18 +104,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {
-              os: "ubuntu-20.04",
-              arch: "amd64",
-            }
-          - {
-              os: "windows-2019",
-              arch: "amd64",
-            }
-          - {
-              os: "macos-11",
-              arch: "amd64",
-            }
+          - { os: "ubuntu-20.04", arch: "amd64" }
+          - { os: "windows-2019", arch: "amd64" }
+          - { os: "macos-11", arch: "amd64" }
     steps:
       - uses: actions/checkout@v3
       - name: Setup rust toolchain
@@ -129,9 +119,9 @@ jobs:
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
       - name: Build
-        run: cargo build -vv --release --features ${{ env.LLVM_FEATURE }}
+        run: cargo build -vv --release
       - name: Test
-        run: cargo test -vv --release --features ${{ env.LLVM_FEATURE }} -- --nocapture
+        run: cargo test -vv --release -- --nocapture
       - name: Artifacts executable
         uses: actions/upload-artifact@v3
         with:
