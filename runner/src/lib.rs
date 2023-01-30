@@ -72,9 +72,7 @@ fn run_module(module: &Module, entry_point: Option<&str>) -> Result<(), String> 
         .create_jit_execution_engine(OptimizationLevel::None)
         .map_err(|e| e.to_string())?;
 
-    if !bind_functions(module, &execution_engine)? {
-        println!("WARNING: Mix of legacy and current output recording functions found. Please update your tooling.");
-    }
+    bind_functions(module, &execution_engine)?;
 
     let entry_point = choose_entry_point(module_functions(module), entry_point)?;
     // TODO: need a cleaner way to get the attr strings for metadata
@@ -198,7 +196,7 @@ extern "C" {
 }
 
 #[allow(clippy::too_many_lines)]
-fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<bool, String> {
+fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
     let mut uses_legacy = vec![];
     let mut declarations: HashMap<String, FunctionValue> = HashMap::default();
     for func in module_functions(module).filter(|f| {
@@ -440,11 +438,14 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__tuple_update_alias_count, 2);
     bind!(__quantum__rt__tuple_update_reference_count, 2);
 
-    if declarations.is_empty() {
+    if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
+        || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
+    {
+        Err("Failing bindings due to mix of legacy and current output recording patterns, pleasue update your tooling".to_string())
+    } else if declarations.is_empty() {
         // Return `true` if and only if the code uses either all legacy or all current output recording
         // patterns. If it uses a mix, return false.
-        Ok(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
-            || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
+        Ok(())
     } else {
         let keys = declarations.keys().collect::<Vec<_>>();
         let (first, rest) = keys
