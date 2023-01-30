@@ -197,10 +197,6 @@ extern "C" {
 
 #[allow(clippy::too_many_lines)]
 fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
-    const DEPRECATED: &str = r#"Use of deprecated output recording call.
-    Please update your QIR tooling.
-    Found:"#;
-
     let mut declarations: HashMap<String, FunctionValue> = HashMap::default();
     for func in module_functions(module).filter(|f| {
         f.count_basic_blocks() == 0
@@ -228,10 +224,14 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         };
     }
 
-    macro_rules! deprecate_error {
+    macro_rules! deprecated_output {
         ($func:ident) => {
             if let Some(func) = declarations.get(stringify!($func)) {
-                return Err(format!("{} {}", DEPRECATED, stringify!($func)));
+                execution_engine.add_global_mapping(
+                    func,
+                    qir_backend::output_recording::legacy::$func as usize,
+                );
+                declarations.remove(stringify!($func));
             }
         };
     }
@@ -242,7 +242,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                 if func.get_params().len() == 1 {
                     execution_engine.add_global_mapping(
                         func,
-                        qir_backend::output_recording::unlabeled::$func as usize,
+                        qir_backend::output_recording::legacy::$func as usize,
                     );
                     declarations.remove(stringify!($func));
                 } else {
@@ -254,10 +254,10 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     }
 
     // Legacy output methods
-    deprecate_error!(__quantum__rt__array_end_record_output);
-    deprecate_error!(__quantum__rt__array_start_record_output);
-    deprecate_error!(__quantum__rt__tuple_end_record_output);
-    deprecate_error!(__quantum__rt__tuple_start_record_output);
+    deprecated_output!(__quantum__rt__array_end_record_output);
+    deprecated_output!(__quantum__rt__array_start_record_output);
+    deprecated_output!(__quantum__rt__tuple_end_record_output);
+    deprecated_output!(__quantum__rt__tuple_start_record_output);
 
     bind!(__quantum__rt__initialize);
     bind!(__quantum__qis__arccos__body);
@@ -343,7 +343,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         if func.get_params().len() == 1 {
             execution_engine.add_global_mapping(
                 func,
-                qir_backend::unlabeled::__quantum__rt__result_record_output as usize,
+                qir_backend::legacy::__quantum__rt__result_record_output as usize,
             );
             declarations.remove("__quantum__rt__result_record_output");
         } else {

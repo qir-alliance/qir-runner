@@ -727,12 +727,32 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
     );
 }
 
-pub mod unlabeled {
-    use std::{ffi::c_void, ptr::null_mut};
+pub mod legacy {
+    use std::ffi::c_void;
+
+    use crate::{
+        result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
+        SIM_STATE,
+    };
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
-        super::__quantum__rt__result_record_output(result, null_mut());
+        SIM_STATE.with(|sim_state| {
+            let res = &mut sim_state.borrow_mut().res;
+            let res_id = result as usize;
+            let b = if res.is_empty() {
+                // No static measurements have been used, so default to dynamic handling.
+                __quantum__rt__result_equal(result, __quantum__rt__result_get_one())
+            } else {
+                if res.len() < res_id + 1 {
+                    res.resize(res_id + 1, false);
+                }
+                *res.get(res_id)
+                    .expect("Result with given id missing after expansion.")
+            };
+
+            println!("RESULT\t{}", if b { "1" } else { "0" });
+        });
     }
 }
 
