@@ -441,7 +441,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
         || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
     {
-        Err("Failing bindings due to mix of legacy and current output recording patterns, please update your tooling".to_string())
+        Err("Use of legacy and current output recording functions in the same program is not supported".to_string())
     } else if declarations.is_empty() {
         // Return `true` if and only if the code uses either all legacy or all current output recording
         // patterns. If it uses a mix, return false.
