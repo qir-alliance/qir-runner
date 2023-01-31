@@ -197,10 +197,7 @@ extern "C" {
 
 #[allow(clippy::too_many_lines)]
 fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
-    const DEPRECATED: &str = r#"Use of deprecated output recording call.
-    Please update your QIR tooling.
-    Found:"#;
-
+    let mut uses_legacy = vec![];
     let mut declarations: HashMap<String, FunctionValue> = HashMap::default();
     for func in module_functions(module).filter(|f| {
         f.count_basic_blocks() == 0
@@ -220,18 +217,33 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     }
 
     macro_rules! bind {
-        ($func:ident) => {
+        ($func:ident, $param_count:expr) => {
             if let Some(func) = declarations.get(stringify!($func)) {
+                if func.get_params().len() != $param_count {
+                    return Err(format!(
+                        "Function '{}' has mismatched parameters: expected {}, found {}",
+                        stringify!($func),
+                        $param_count,
+                        func.get_params().len()
+                    ));
+                }
                 execution_engine.add_global_mapping(func, $func as usize);
                 declarations.remove(stringify!($func));
             }
         };
     }
 
-    macro_rules! deprecate_error {
+    macro_rules! legacy_output {
         ($func:ident) => {
             if let Some(func) = declarations.get(stringify!($func)) {
-                return Err(format!("{} {}", DEPRECATED, stringify!($func)));
+                execution_engine.add_global_mapping(
+                    func,
+                    qir_backend::output_recording::legacy::$func as usize,
+                );
+                declarations.remove(stringify!($func));
+                Some(true)
+            } else {
+                None
             }
         };
     }
@@ -242,185 +254,195 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                 if func.get_params().len() == 1 {
                     execution_engine.add_global_mapping(
                         func,
-                        qir_backend::output_recording::unlabeled::$func as usize,
+                        qir_backend::output_recording::legacy::$func as usize,
                     );
                     declarations.remove(stringify!($func));
+                    Some(true)
                 } else {
                     execution_engine.add_global_mapping(func, $func as usize);
                     declarations.remove(stringify!($func));
+                    Some(false)
                 }
+            } else {
+                None
             }
         };
     }
 
     // Legacy output methods
-    deprecate_error!(__quantum__rt__array_end_record_output);
-    deprecate_error!(__quantum__rt__array_start_record_output);
-    deprecate_error!(__quantum__rt__tuple_end_record_output);
-    deprecate_error!(__quantum__rt__tuple_start_record_output);
+    uses_legacy.push(legacy_output!(__quantum__rt__array_end_record_output));
+    uses_legacy.push(legacy_output!(__quantum__rt__array_start_record_output));
+    uses_legacy.push(legacy_output!(__quantum__rt__tuple_end_record_output));
+    uses_legacy.push(legacy_output!(__quantum__rt__tuple_start_record_output));
 
-    bind!(__quantum__rt__initialize);
-    bind!(__quantum__qis__arccos__body);
-    bind!(__quantum__qis__arcsin__body);
-    bind!(__quantum__qis__arctan__body);
-    bind!(__quantum__qis__arctan2__body);
-    bind!(__quantum__qis__assertmeasurementprobability__body);
-    bind!(__quantum__qis__assertmeasurementprobability__ctl);
-    bind!(__quantum__qis__ccx__body);
-    bind!(__quantum__qis__cnot__body);
-    bind!(__quantum__qis__cos__body);
-    bind!(__quantum__qis__cosh__body);
-    bind!(__quantum__qis__cx__body);
-    bind!(__quantum__qis__cz__body);
-    bind!(__quantum__qis__drawrandomdouble__body);
-    bind!(__quantum__qis__drawrandomint__body);
-    bind!(__quantum__qis__dumpmachine__body);
-    bind!(__quantum__qis__exp__body);
-    bind!(__quantum__qis__exp__adj);
-    bind!(__quantum__qis__exp__body);
-    bind!(__quantum__qis__exp__ctl);
-    bind!(__quantum__qis__exp__ctladj);
-    bind!(__quantum__qis__exp__ctl);
-    bind!(__quantum__qis__h__body);
-    bind!(__quantum__qis__h__ctl);
-    bind!(__quantum__qis__ieeeremainder__body);
-    bind!(__quantum__qis__infinity__body);
-    bind!(__quantum__qis__isinf__body);
-    bind!(__quantum__qis__isnan__body);
-    bind!(__quantum__qis__isnegativeinfinity__body);
-    bind!(__quantum__qis__log__body);
-    bind!(__quantum__qis__m__body);
-    bind!(__quantum__qis__measure__body);
-    bind!(__quantum__qis__mz__body);
-    bind!(__quantum__qis__nan__body);
-    bind!(__quantum__qis__r__adj);
-    bind!(__quantum__qis__r__body);
-    bind!(__quantum__qis__r__ctl);
-    bind!(__quantum__qis__r__ctladj);
-    bind!(__quantum__qis__read_result__body);
-    bind!(__quantum__qis__reset__body);
-    bind!(__quantum__qis__rx__body);
-    bind!(__quantum__qis__rx__ctl);
-    bind!(__quantum__qis__ry__body);
-    bind!(__quantum__qis__ry__ctl);
-    bind!(__quantum__qis__rz__body);
-    bind!(__quantum__qis__rz__ctl);
-    bind!(__quantum__qis__s__adj);
-    bind!(__quantum__qis__s__body);
-    bind!(__quantum__qis__s__ctl);
-    bind!(__quantum__qis__s__ctladj);
-    bind!(__quantum__qis__sin__body);
-    bind!(__quantum__qis__sinh__body);
-    bind!(__quantum__qis__sqrt__body);
-    bind!(__quantum__qis__swap__body);
-    bind!(__quantum__qis__t__adj);
-    bind!(__quantum__qis__t__body);
-    bind!(__quantum__qis__t__ctl);
-    bind!(__quantum__qis__t__ctladj);
-    bind!(__quantum__qis__tan__body);
-    bind!(__quantum__qis__tanh__body);
-    bind!(__quantum__qis__x__body);
-    bind!(__quantum__qis__x__ctl);
-    bind!(__quantum__qis__y__body);
-    bind!(__quantum__qis__y__ctl);
-    bind!(__quantum__qis__z__body);
-    bind!(__quantum__qis__z__ctl);
-    bind!(__quantum__rt__array_concatenate);
-    bind!(__quantum__rt__array_copy);
-    bind!(__quantum__rt__array_create_1d);
+    bind!(__quantum__rt__initialize, 1);
+    bind!(__quantum__qis__arccos__body, 1);
+    bind!(__quantum__qis__arcsin__body, 1);
+    bind!(__quantum__qis__arctan__body, 1);
+    bind!(__quantum__qis__arctan2__body, 2);
+    bind!(__quantum__qis__assertmeasurementprobability__body, 6);
+    bind!(__quantum__qis__assertmeasurementprobability__ctl, 6);
+    bind!(__quantum__qis__ccx__body, 3);
+    bind!(__quantum__qis__cnot__body, 2);
+    bind!(__quantum__qis__cos__body, 1);
+    bind!(__quantum__qis__cosh__body, 1);
+    bind!(__quantum__qis__cx__body, 2);
+    bind!(__quantum__qis__cz__body, 2);
+    bind!(__quantum__qis__drawrandomdouble__body, 2);
+    bind!(__quantum__qis__drawrandomint__body, 2);
+    bind!(__quantum__qis__dumpmachine__body, 1);
+    bind!(__quantum__qis__exp__body, 3);
+    bind!(__quantum__qis__exp__adj, 3);
+    bind!(__quantum__qis__exp__ctl, 2);
+    bind!(__quantum__qis__exp__ctladj, 2);
+    bind!(__quantum__qis__h__body, 1);
+    bind!(__quantum__qis__h__ctl, 2);
+    bind!(__quantum__qis__ieeeremainder__body, 2);
+    bind!(__quantum__qis__infinity__body, 0);
+    bind!(__quantum__qis__isinf__body, 1);
+    bind!(__quantum__qis__isnan__body, 1);
+    bind!(__quantum__qis__isnegativeinfinity__body, 1);
+    bind!(__quantum__qis__log__body, 1);
+    bind!(__quantum__qis__m__body, 1);
+    bind!(__quantum__qis__measure__body, 2);
+    bind!(__quantum__qis__mz__body, 2);
+    bind!(__quantum__qis__nan__body, 0);
+    bind!(__quantum__qis__r__adj, 3);
+    bind!(__quantum__qis__r__body, 3);
+    bind!(__quantum__qis__r__ctl, 2);
+    bind!(__quantum__qis__r__ctladj, 2);
+    bind!(__quantum__qis__read_result__body, 1);
+    bind!(__quantum__qis__reset__body, 1);
+    bind!(__quantum__qis__rx__body, 2);
+    bind!(__quantum__qis__rx__ctl, 2);
+    bind!(__quantum__qis__ry__body, 2);
+    bind!(__quantum__qis__ry__ctl, 2);
+    bind!(__quantum__qis__rz__body, 2);
+    bind!(__quantum__qis__rz__ctl, 2);
+    bind!(__quantum__qis__s__adj, 1);
+    bind!(__quantum__qis__s__body, 1);
+    bind!(__quantum__qis__s__ctl, 2);
+    bind!(__quantum__qis__s__ctladj, 2);
+    bind!(__quantum__qis__sin__body, 1);
+    bind!(__quantum__qis__sinh__body, 1);
+    bind!(__quantum__qis__sqrt__body, 1);
+    bind!(__quantum__qis__swap__body, 2);
+    bind!(__quantum__qis__t__adj, 1);
+    bind!(__quantum__qis__t__body, 1);
+    bind!(__quantum__qis__t__ctl, 2);
+    bind!(__quantum__qis__t__ctladj, 2);
+    bind!(__quantum__qis__tan__body, 1);
+    bind!(__quantum__qis__tanh__body, 1);
+    bind!(__quantum__qis__x__body, 1);
+    bind!(__quantum__qis__x__ctl, 2);
+    bind!(__quantum__qis__y__body, 1);
+    bind!(__quantum__qis__y__ctl, 2);
+    bind!(__quantum__qis__z__body, 1);
+    bind!(__quantum__qis__z__ctl, 2);
+    bind!(__quantum__rt__array_concatenate, 2);
+    bind!(__quantum__rt__array_copy, 2);
+    bind!(__quantum__rt__array_create_1d, 2);
 
     // New calls
-    bind_output_record!(__quantum__rt__array_record_output);
-    bind_output_record!(__quantum__rt__tuple_record_output);
+    bind!(__quantum__rt__array_record_output, 2);
+    bind!(__quantum__rt__tuple_record_output, 2);
 
     // calls with unlabeled signature variants
-    bind_output_record!(__quantum__rt__bool_record_output);
-    bind_output_record!(__quantum__rt__double_record_output);
-    bind_output_record!(__quantum__rt__int_record_output);
+    uses_legacy.push(bind_output_record!(__quantum__rt__bool_record_output));
+    uses_legacy.push(bind_output_record!(__quantum__rt__double_record_output));
+    uses_legacy.push(bind_output_record!(__quantum__rt__int_record_output));
 
     // results need special handling as they aren't in the std lib
-    if let Some(func) = declarations.get("__quantum__rt__result_record_output") {
-        if func.get_params().len() == 1 {
-            execution_engine.add_global_mapping(
-                func,
-                qir_backend::unlabeled::__quantum__rt__result_record_output as usize,
-            );
-            declarations.remove("__quantum__rt__result_record_output");
+    uses_legacy.push(
+        if let Some(func) = declarations.get("__quantum__rt__result_record_output") {
+            if func.get_params().len() == 1 {
+                execution_engine.add_global_mapping(
+                    func,
+                    qir_backend::legacy::__quantum__rt__result_record_output as usize,
+                );
+                declarations.remove("__quantum__rt__result_record_output");
+                Some(true)
+            } else {
+                execution_engine
+                    .add_global_mapping(func, __quantum__rt__result_record_output as usize);
+                declarations.remove("__quantum__rt__result_record_output");
+                Some(false)
+            }
         } else {
-            execution_engine.add_global_mapping(func, __quantum__rt__result_record_output as usize);
-            declarations.remove("__quantum__rt__result_record_output");
-        }
-    }
+            None
+        },
+    );
 
-    bind!(__quantum__rt__array_get_element_ptr_1d);
-    bind!(__quantum__rt__array_get_size_1d);
-    bind!(__quantum__rt__array_slice_1d);
-    bind!(__quantum__rt__array_update_alias_count);
-    bind!(__quantum__rt__array_update_reference_count);
-    bind!(__quantum__rt__bigint_add);
-    bind!(__quantum__rt__bigint_bitand);
-    bind!(__quantum__rt__bigint_bitnot);
-    bind!(__quantum__rt__bigint_bitor);
-    bind!(__quantum__rt__bigint_bitxor);
-    bind!(__quantum__rt__bigint_create_array);
-    bind!(__quantum__rt__bigint_create_i64);
-    bind!(__quantum__rt__bigint_divide);
-    bind!(__quantum__rt__bigint_equal);
-    bind!(__quantum__rt__bigint_get_data);
-    bind!(__quantum__rt__bigint_get_length);
-    bind!(__quantum__rt__bigint_greater);
-    bind!(__quantum__rt__bigint_greater_eq);
-    bind!(__quantum__rt__bigint_modulus);
-    bind!(__quantum__rt__bigint_multiply);
-    bind!(__quantum__rt__bigint_negate);
-    bind!(__quantum__rt__bigint_power);
-    bind!(__quantum__rt__bigint_shiftleft);
-    bind!(__quantum__rt__bigint_shiftright);
-    bind!(__quantum__rt__bigint_subtract);
-    bind!(__quantum__rt__bigint_to_string);
-    bind!(__quantum__rt__bigint_update_reference_count);
-    bind!(__quantum__rt__bool_record_output);
-    bind!(__quantum__rt__bool_to_string);
-    bind!(__quantum__rt__callable_copy);
-    bind!(__quantum__rt__callable_create);
-    bind!(__quantum__rt__callable_invoke);
-    bind!(__quantum__rt__callable_make_adjoint);
-    bind!(__quantum__rt__callable_make_controlled);
-    bind!(__quantum__rt__callable_update_alias_count);
-    bind!(__quantum__rt__callable_update_reference_count);
-    bind!(__quantum__rt__capture_update_alias_count);
-    bind!(__quantum__rt__capture_update_reference_count);
-    bind!(__quantum__rt__double_record_output);
-    bind!(__quantum__rt__double_to_string);
-    bind!(__quantum__rt__fail);
-    bind!(__quantum__rt__int_record_output);
-    bind!(__quantum__rt__int_to_string);
-    bind!(__quantum__rt__memory_allocate);
-    bind!(__quantum__rt__message);
-    bind!(__quantum__rt__pauli_to_string);
-    bind!(__quantum__rt__qubit_allocate);
-    bind!(__quantum__rt__qubit_allocate_array);
-    bind!(__quantum__rt__qubit_release);
-    bind!(__quantum__rt__qubit_release_array);
-    bind!(__quantum__rt__qubit_to_string);
-    bind!(__quantum__rt__range_to_string);
-    bind!(__quantum__rt__result_equal);
-    bind!(__quantum__rt__result_get_one);
-    bind!(__quantum__rt__result_get_zero);
-    bind!(__quantum__rt__result_to_string);
-    bind!(__quantum__rt__result_update_reference_count);
-    bind!(__quantum__rt__string_concatenate);
-    bind!(__quantum__rt__string_create);
-    bind!(__quantum__rt__string_equal);
-    bind!(__quantum__rt__string_get_data);
-    bind!(__quantum__rt__string_get_length);
-    bind!(__quantum__rt__string_update_reference_count);
-    bind!(__quantum__rt__tuple_copy);
-    bind!(__quantum__rt__tuple_create);
-    bind!(__quantum__rt__tuple_update_alias_count);
-    bind!(__quantum__rt__tuple_update_reference_count);
+    bind!(__quantum__rt__array_get_element_ptr_1d, 2);
+    bind!(__quantum__rt__array_get_size_1d, 1);
+    bind!(__quantum__rt__array_slice_1d, 3);
+    bind!(__quantum__rt__array_update_alias_count, 2);
+    bind!(__quantum__rt__array_update_reference_count, 2);
+    bind!(__quantum__rt__bigint_add, 2);
+    bind!(__quantum__rt__bigint_bitand, 2);
+    bind!(__quantum__rt__bigint_bitnot, 1);
+    bind!(__quantum__rt__bigint_bitor, 2);
+    bind!(__quantum__rt__bigint_bitxor, 2);
+    bind!(__quantum__rt__bigint_create_array, 2);
+    bind!(__quantum__rt__bigint_create_i64, 1);
+    bind!(__quantum__rt__bigint_divide, 2);
+    bind!(__quantum__rt__bigint_equal, 2);
+    bind!(__quantum__rt__bigint_get_data, 1);
+    bind!(__quantum__rt__bigint_get_length, 1);
+    bind!(__quantum__rt__bigint_greater, 2);
+    bind!(__quantum__rt__bigint_greater_eq, 2);
+    bind!(__quantum__rt__bigint_modulus, 2);
+    bind!(__quantum__rt__bigint_multiply, 2);
+    bind!(__quantum__rt__bigint_negate, 1);
+    bind!(__quantum__rt__bigint_power, 2);
+    bind!(__quantum__rt__bigint_shiftleft, 2);
+    bind!(__quantum__rt__bigint_shiftright, 2);
+    bind!(__quantum__rt__bigint_subtract, 2);
+    bind!(__quantum__rt__bigint_to_string, 1);
+    bind!(__quantum__rt__bigint_update_reference_count, 2);
+    bind!(__quantum__rt__bool_to_string, 1);
+    bind!(__quantum__rt__callable_copy, 2);
+    bind!(__quantum__rt__callable_create, 3);
+    bind!(__quantum__rt__callable_invoke, 3);
+    bind!(__quantum__rt__callable_make_adjoint, 1);
+    bind!(__quantum__rt__callable_make_controlled, 1);
+    bind!(__quantum__rt__callable_update_alias_count, 2);
+    bind!(__quantum__rt__callable_update_reference_count, 2);
+    bind!(__quantum__rt__capture_update_alias_count, 2);
+    bind!(__quantum__rt__capture_update_reference_count, 2);
+    bind!(__quantum__rt__double_to_string, 1);
+    bind!(__quantum__rt__fail, 1);
+    bind!(__quantum__rt__int_to_string, 1);
+    bind!(__quantum__rt__memory_allocate, 1);
+    bind!(__quantum__rt__message, 1);
+    bind!(__quantum__rt__pauli_to_string, 1);
+    bind!(__quantum__rt__qubit_allocate, 0);
+    bind!(__quantum__rt__qubit_allocate_array, 1);
+    bind!(__quantum__rt__qubit_release, 1);
+    bind!(__quantum__rt__qubit_release_array, 1);
+    bind!(__quantum__rt__qubit_to_string, 1);
+    bind!(__quantum__rt__range_to_string, 1);
+    bind!(__quantum__rt__result_equal, 2);
+    bind!(__quantum__rt__result_get_one, 0);
+    bind!(__quantum__rt__result_get_zero, 0);
+    bind!(__quantum__rt__result_to_string, 1);
+    bind!(__quantum__rt__result_update_reference_count, 2);
+    bind!(__quantum__rt__string_concatenate, 2);
+    bind!(__quantum__rt__string_create, 1);
+    bind!(__quantum__rt__string_equal, 2);
+    bind!(__quantum__rt__string_get_data, 1);
+    bind!(__quantum__rt__string_get_length, 1);
+    bind!(__quantum__rt__string_update_reference_count, 2);
+    bind!(__quantum__rt__tuple_copy, 2);
+    bind!(__quantum__rt__tuple_create, 1);
+    bind!(__quantum__rt__tuple_update_alias_count, 2);
+    bind!(__quantum__rt__tuple_update_reference_count, 2);
 
-    if declarations.is_empty() {
+    if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
+        || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
+    {
+        Err("Use of legacy and current output recording functions in the same program is not supported".to_string())
+    } else if declarations.is_empty() {
         Ok(())
     } else {
         let keys = declarations.keys().collect::<Vec<_>>();

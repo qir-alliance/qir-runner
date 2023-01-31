@@ -76,27 +76,49 @@ pub unsafe extern "C" fn __quantum__rt__message_record_output(str: *const CStrin
     );
 }
 
-pub mod unlabeled {
+pub mod legacy {
     use std::{ffi::c_double, ptr::null_mut};
 
+    use crate::strings::double_to_string;
+
     #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__array_record_output(val: i64) {
-        super::__quantum__rt__array_record_output(val, null_mut());
+    pub extern "C" fn __quantum__rt__array_start_record_output() {
+        println!("RESULT\tARRAY_START");
     }
 
     #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__bool_record_output(val: bool) {
-        super::__quantum__rt__bool_record_output(val, null_mut());
+    pub extern "C" fn __quantum__rt__array_end_record_output() {
+        println!("RESULT\tARRAY_END");
     }
 
     #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__double_record_output(val: c_double) {
-        super::__quantum__rt__double_record_output(val, null_mut());
+    pub extern "C" fn __quantum__rt__tuple_start_record_output() {
+        println!("RESULT\tTUPLE_START");
+    }
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__tuple_end_record_output() {
+        println!("RESULT\tTUPLE_END");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__int_record_output(val: i64) {
-        super::__quantum__rt__int_record_output(val, null_mut());
+        println!("RESULT\t{}", val);
+    }
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__double_record_output(val: c_double) {
+        println!("RESULT\t{}", double_to_string(val));
+    }
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__bool_record_output(val: bool) {
+        println!("RESULT\t{}", val);
+    }
+
+    #[allow(non_snake_case)]
+    pub extern "C" fn __quantum__rt__array_record_output(val: i64) {
+        super::__quantum__rt__array_record_output(val, null_mut());
     }
 
     #[allow(non_snake_case)]
