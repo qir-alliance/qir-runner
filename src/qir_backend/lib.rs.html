@@ -929,6 +929,26 @@
 <span id="929">929</span>
 <span id="930">930</span>
 <span id="931">931</span>
+<span id="932">932</span>
+<span id="933">933</span>
+<span id="934">934</span>
+<span id="935">935</span>
+<span id="936">936</span>
+<span id="937">937</span>
+<span id="938">938</span>
+<span id="939">939</span>
+<span id="940">940</span>
+<span id="941">941</span>
+<span id="942">942</span>
+<span id="943">943</span>
+<span id="944">944</span>
+<span id="945">945</span>
+<span id="946">946</span>
+<span id="947">947</span>
+<span id="948">948</span>
+<span id="949">949</span>
+<span id="950">950</span>
+<span id="951">951</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -1658,12 +1678,32 @@
     );
 }
 
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">unlabeled</span> {
-    <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">ffi::c_void</span>, <span class="ident">ptr::null_mut</span>};
+<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">legacy</span> {
+    <span class="kw">use</span> <span class="ident">std::ffi::c_void</span>;
+
+    <span class="kw">use</span> <span class="kw">crate</span>::{
+        <span class="ident">result_bool</span>::{<span class="ident">__quantum__rt__result_equal</span>, <span class="ident">__quantum__rt__result_get_one</span>},
+        <span class="ident">SIM_STATE</span>,
+    };
 
     <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
     <span class="kw">pub</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">__quantum__rt__result_record_output</span>(<span class="ident">result</span>: <span class="kw-2">*mut</span> <span class="ident">c_void</span>) {
-        <span class="ident"><span class="kw">super</span>::__quantum__rt__result_record_output</span>(<span class="ident">result</span>, <span class="ident">null_mut</span>());
+        <span class="ident">SIM_STATE</span>.<span class="ident">with</span>(<span class="op">|</span><span class="ident">sim_state</span><span class="op">|</span> {
+            <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw-2">&amp;mut</span> <span class="ident">sim_state</span>.<span class="ident">borrow_mut</span>().<span class="ident">res</span>;
+            <span class="kw">let</span> <span class="ident">res_id</span> <span class="op">=</span> <span class="ident">result</span> <span class="kw">as</span> <span class="ident">usize</span>;
+            <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">res</span>.<span class="ident">is_empty</span>() {
+                <span class="comment">// No static measurements have been used, so default to dynamic handling.</span>
+                <span class="ident">__quantum__rt__result_equal</span>(<span class="ident">result</span>, <span class="ident">__quantum__rt__result_get_one</span>())
+            } <span class="kw">else</span> {
+                <span class="kw">if</span> <span class="ident">res</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">res_id</span> <span class="op">+</span> <span class="number">1</span> {
+                    <span class="ident">res</span>.<span class="ident">resize</span>(<span class="ident">res_id</span> <span class="op">+</span> <span class="number">1</span>, <span class="bool-val">false</span>);
+                }
+                <span class="kw-2">*</span><span class="ident">res</span>.<span class="ident">get</span>(<span class="ident">res_id</span>)
+                    .<span class="ident">expect</span>(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>)
+            };
+
+            <span class="macro">println!</span>(<span class="string">&quot;RESULT\t{}&quot;</span>, <span class="kw">if</span> <span class="ident">b</span> { <span class="string">&quot;1&quot;</span> } <span class="kw">else</span> { <span class="string">&quot;0&quot;</span> });
+        });
     }
 }
 

@@ -437,6 +437,28 @@
 <span id="437">437</span>
 <span id="438">438</span>
 <span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -636,10 +658,7 @@
 
 <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::too_many_lines</span>)]</span>
 <span class="kw">fn</span> <span class="ident">bind_functions</span>(<span class="ident">module</span>: <span class="kw-2">&amp;</span><span class="ident">Module</span>, <span class="ident">execution_engine</span>: <span class="kw-2">&amp;</span><span class="ident">ExecutionEngine</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="kw">const</span> <span class="ident">DEPRECATED</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">r#&quot;Use of deprecated output recording call.
-    Please update your QIR tooling.
-    Found:&quot;#</span>;
-
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">uses_legacy</span> <span class="op">=</span> <span class="macro">vec!</span>[];
     <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">declarations</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">FunctionValue</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">HashMap::default</span>();
     <span class="kw">for</span> <span class="ident">func</span> <span class="kw">in</span> <span class="ident">module_functions</span>(<span class="ident">module</span>).<span class="ident">filter</span>(<span class="op">|</span><span class="ident">f</span><span class="op">|</span> {
         <span class="ident">f</span>.<span class="ident">count_basic_blocks</span>() <span class="op">==</span> <span class="number">0</span>
@@ -659,18 +678,33 @@
     }
 
     <span class="macro">macro_rules!</span> <span class="ident">bind</span> {
-        (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>:<span class="ident">ident</span>) =&gt; {
+        (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>:<span class="ident">ident</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">param_count</span>:<span class="ident">expr</span>) =&gt; {
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">func</span>) <span class="op">=</span> <span class="ident">declarations</span>.<span class="ident">get</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>)) {
+                <span class="kw">if</span> <span class="ident">func</span>.<span class="ident">get_params</span>().<span class="ident">len</span>() <span class="op">!</span><span class="op">=</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">param_count</span> {
+                    <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                        <span class="string">&quot;Function &#39;{}&#39; has mismatched parameters: expected {}, found {}&quot;</span>,
+                        <span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>),
+                        <span class="macro-nonterminal">$</span><span class="macro-nonterminal">param_count</span>,
+                        <span class="ident">func</span>.<span class="ident">get_params</span>().<span class="ident">len</span>()
+                    ));
+                }
                 <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(<span class="ident">func</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span> <span class="kw">as</span> <span class="ident">usize</span>);
                 <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>));
             }
         };
     }
 
-    <span class="macro">macro_rules!</span> <span class="ident">deprecate_error</span> {
+    <span class="macro">macro_rules!</span> <span class="ident">legacy_output</span> {
         (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>:<span class="ident">ident</span>) =&gt; {
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">func</span>) <span class="op">=</span> <span class="ident">declarations</span>.<span class="ident">get</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>)) {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;{} {}&quot;</span>, <span class="ident">DEPRECATED</span>, <span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>)));
+                <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(
+                    <span class="ident">func</span>,
+                    <span class="ident">qir_backend::output_recording::legacy</span>::<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span> <span class="kw">as</span> <span class="ident">usize</span>,
+                );
+                <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>));
+                <span class="prelude-val">Some</span>(<span class="bool-val">true</span>)
+            } <span class="kw">else</span> {
+                <span class="prelude-val">None</span>
             }
         };
     }
@@ -681,185 +715,195 @@
                 <span class="kw">if</span> <span class="ident">func</span>.<span class="ident">get_params</span>().<span class="ident">len</span>() <span class="op">==</span> <span class="number">1</span> {
                     <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(
                         <span class="ident">func</span>,
-                        <span class="ident">qir_backend::output_recording::unlabeled</span>::<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span> <span class="kw">as</span> <span class="ident">usize</span>,
+                        <span class="ident">qir_backend::output_recording::legacy</span>::<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span> <span class="kw">as</span> <span class="ident">usize</span>,
                     );
                     <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>));
+                    <span class="prelude-val">Some</span>(<span class="bool-val">true</span>)
                 } <span class="kw">else</span> {
                     <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(<span class="ident">func</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span> <span class="kw">as</span> <span class="ident">usize</span>);
                     <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">func</span>));
+                    <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)
                 }
+            } <span class="kw">else</span> {
+                <span class="prelude-val">None</span>
             }
         };
     }
 
     <span class="comment">// Legacy output methods</span>
-    <span class="macro">deprecate_error!</span>(<span class="ident">__quantum__rt__array_end_record_output</span>);
-    <span class="macro">deprecate_error!</span>(<span class="ident">__quantum__rt__array_start_record_output</span>);
-    <span class="macro">deprecate_error!</span>(<span class="ident">__quantum__rt__tuple_end_record_output</span>);
-    <span class="macro">deprecate_error!</span>(<span class="ident">__quantum__rt__tuple_start_record_output</span>);
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">legacy_output!</span>(<span class="ident">__quantum__rt__array_end_record_output</span>));
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">legacy_output!</span>(<span class="ident">__quantum__rt__array_start_record_output</span>));
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">legacy_output!</span>(<span class="ident">__quantum__rt__tuple_end_record_output</span>));
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">legacy_output!</span>(<span class="ident">__quantum__rt__tuple_start_record_output</span>));
 
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__initialize</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arccos__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arcsin__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arctan__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arctan2__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__assertmeasurementprobability__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__assertmeasurementprobability__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ccx__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cnot__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cos__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cosh__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cx__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cz__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__drawrandomdouble__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__drawrandomint__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__dumpmachine__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__adj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__ctladj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__h__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__h__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ieeeremainder__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__infinity__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isinf__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isnan__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isnegativeinfinity__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__log__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__m__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__measure__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__mz__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__nan__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__adj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__ctladj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__read_result__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__reset__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rx__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rx__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ry__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ry__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rz__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rz__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__adj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__ctladj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sin__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sinh__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sqrt__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__swap__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__adj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__ctladj</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__tan__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__tanh__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__x__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__x__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__y__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__y__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__z__body</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__z__ctl</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_concatenate</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_copy</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_create_1d</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__initialize</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arccos__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arcsin__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arctan__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__arctan2__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__assertmeasurementprobability__body</span>, <span class="number">6</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__assertmeasurementprobability__ctl</span>, <span class="number">6</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ccx__body</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cnot__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cos__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cosh__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cx__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__cz__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__drawrandomdouble__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__drawrandomint__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__dumpmachine__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__body</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__adj</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__exp__ctladj</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__h__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__h__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ieeeremainder__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__infinity__body</span>, <span class="number">0</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isinf__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isnan__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__isnegativeinfinity__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__log__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__m__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__measure__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__mz__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__nan__body</span>, <span class="number">0</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__adj</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__body</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__r__ctladj</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__read_result__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__reset__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rx__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rx__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ry__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__ry__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rz__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__rz__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__adj</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__s__ctladj</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sin__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sinh__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__sqrt__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__swap__body</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__adj</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__t__ctladj</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__tan__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__tanh__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__x__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__x__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__y__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__y__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__z__body</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__qis__z__ctl</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_concatenate</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_copy</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_create_1d</span>, <span class="number">2</span>);
 
     <span class="comment">// New calls</span>
-    <span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__array_record_output</span>);
-    <span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__tuple_record_output</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_record_output</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_record_output</span>, <span class="number">2</span>);
 
     <span class="comment">// calls with unlabeled signature variants</span>
-    <span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__bool_record_output</span>);
-    <span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__double_record_output</span>);
-    <span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__int_record_output</span>);
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__bool_record_output</span>));
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__double_record_output</span>));
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(<span class="macro">bind_output_record!</span>(<span class="ident">__quantum__rt__int_record_output</span>));
 
     <span class="comment">// results need special handling as they aren&#39;t in the std lib</span>
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">func</span>) <span class="op">=</span> <span class="ident">declarations</span>.<span class="ident">get</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>) {
-        <span class="kw">if</span> <span class="ident">func</span>.<span class="ident">get_params</span>().<span class="ident">len</span>() <span class="op">==</span> <span class="number">1</span> {
-            <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(
-                <span class="ident">func</span>,
-                <span class="ident">qir_backend::unlabeled::__quantum__rt__result_record_output</span> <span class="kw">as</span> <span class="ident">usize</span>,
-            );
-            <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
+    <span class="ident">uses_legacy</span>.<span class="ident">push</span>(
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">func</span>) <span class="op">=</span> <span class="ident">declarations</span>.<span class="ident">get</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>) {
+            <span class="kw">if</span> <span class="ident">func</span>.<span class="ident">get_params</span>().<span class="ident">len</span>() <span class="op">==</span> <span class="number">1</span> {
+                <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(
+                    <span class="ident">func</span>,
+                    <span class="ident">qir_backend::legacy::__quantum__rt__result_record_output</span> <span class="kw">as</span> <span class="ident">usize</span>,
+                );
+                <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
+                <span class="prelude-val">Some</span>(<span class="bool-val">true</span>)
+            } <span class="kw">else</span> {
+                <span class="ident">execution_engine</span>
+                    .<span class="ident">add_global_mapping</span>(<span class="ident">func</span>, <span class="ident">__quantum__rt__result_record_output</span> <span class="kw">as</span> <span class="ident">usize</span>);
+                <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
+                <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)
+            }
         } <span class="kw">else</span> {
-            <span class="ident">execution_engine</span>.<span class="ident">add_global_mapping</span>(<span class="ident">func</span>, <span class="ident">__quantum__rt__result_record_output</span> <span class="kw">as</span> <span class="ident">usize</span>);
-            <span class="ident">declarations</span>.<span class="ident">remove</span>(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
-        }
-    }
+            <span class="prelude-val">None</span>
+        },
+    );
 
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_get_element_ptr_1d</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_get_size_1d</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_slice_1d</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_update_alias_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_add</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitand</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitnot</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitor</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitxor</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_create_array</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_create_i64</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_divide</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_equal</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_get_data</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_get_length</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_greater</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_greater_eq</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_modulus</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_multiply</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_negate</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_power</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_shiftleft</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_shiftright</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_subtract</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bool_record_output</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bool_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_copy</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_create</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_invoke</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_make_adjoint</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_make_controlled</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_update_alias_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__capture_update_alias_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__capture_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__double_record_output</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__double_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__fail</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__int_record_output</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__int_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__memory_allocate</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__message</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__pauli_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_allocate</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_allocate_array</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_release</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_release_array</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__range_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_equal</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_get_one</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_get_zero</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_to_string</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_concatenate</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_create</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_equal</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_get_data</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_get_length</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_update_reference_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_copy</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_create</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_update_alias_count</span>);
-    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_update_reference_count</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_get_element_ptr_1d</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_get_size_1d</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_slice_1d</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_update_alias_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__array_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_add</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitand</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitnot</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitor</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_bitxor</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_create_array</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_create_i64</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_divide</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_equal</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_get_data</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_get_length</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_greater</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_greater_eq</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_modulus</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_multiply</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_negate</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_power</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_shiftleft</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_shiftright</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_subtract</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bigint_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__bool_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_copy</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_create</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_invoke</span>, <span class="number">3</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_make_adjoint</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_make_controlled</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_update_alias_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__callable_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__capture_update_alias_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__capture_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__double_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__fail</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__int_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__memory_allocate</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__message</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__pauli_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_allocate</span>, <span class="number">0</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_allocate_array</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_release</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_release_array</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__qubit_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__range_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_equal</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_get_one</span>, <span class="number">0</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_get_zero</span>, <span class="number">0</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_to_string</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__result_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_concatenate</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_create</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_equal</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_get_data</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_get_length</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__string_update_reference_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_copy</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_create</span>, <span class="number">1</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_update_alias_count</span>, <span class="number">2</span>);
+    <span class="macro">bind!</span>(<span class="ident">__quantum__rt__tuple_update_reference_count</span>, <span class="number">2</span>);
 
-    <span class="kw">if</span> <span class="ident">declarations</span>.<span class="ident">is_empty</span>() {
+    <span class="kw">if</span> <span class="op">!</span>(<span class="ident">uses_legacy</span>.<span class="ident">iter</span>().<span class="ident">filter_map</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">b</span><span class="op">|</span> <span class="ident">b</span>).<span class="ident">all</span>(<span class="op">|</span><span class="ident">b</span><span class="op">|</span> <span class="ident">b</span>)
+        <span class="op">|</span><span class="op">|</span> <span class="ident">uses_legacy</span>.<span class="ident">iter</span>().<span class="ident">filter_map</span>(<span class="op">|</span><span class="kw-2">&amp;</span><span class="ident">b</span><span class="op">|</span> <span class="ident">b</span>).<span class="ident">all</span>(<span class="op">|</span><span class="ident">b</span><span class="op">|</span> <span class="op">!</span><span class="ident">b</span>))
+    {
+        <span class="prelude-val">Err</span>(<span class="string">&quot;Use of legacy and current output recording functions in the same program is not supported&quot;</span>.<span class="ident">to_string</span>())
+    } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">declarations</span>.<span class="ident">is_empty</span>() {
         <span class="prelude-val">Ok</span>(())
     } <span class="kw">else</span> {
         <span class="kw">let</span> <span class="ident">keys</span> <span class="op">=</span> <span class="ident">declarations</span>.<span class="ident">keys</span>().<span class="ident">collect</span>::<span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span>();
