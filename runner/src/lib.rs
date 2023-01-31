@@ -443,8 +443,6 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     {
         Err("Use of legacy and current output recording functions in the same program is not supported".to_string())
     } else if declarations.is_empty() {
-        // Return `true` if and only if the code uses either all legacy or all current output recording
-        // patterns. If it uses a mix, return false.
         Ok(())
     } else {
         let keys = declarations.keys().collect::<Vec<_>>();
