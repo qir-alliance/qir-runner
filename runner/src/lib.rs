@@ -33,7 +33,7 @@ use std::{collections::HashMap, ffi::OsStr, path::Path};
 pub fn run_file(
     path: impl AsRef<Path>,
     entry_point: Option<&str>,
-    shots: i64,
+    shots: u32,
 ) -> Result<(), String> {
     let context = Context::create();
     let module = load_file(path, &context)?;
@@ -46,14 +46,14 @@ pub fn run_file(
 /// - `bytes` does not contain a valid bitcode module
 /// - `entry_point` is not found in the QIR
 /// - Entry point has parameters or a non-void return type.
-pub fn run_bitcode(bytes: &[u8], entry_point: Option<&str>, shots: i64) -> Result<(), String> {
+pub fn run_bitcode(bytes: &[u8], entry_point: Option<&str>, shots: u32) -> Result<(), String> {
     let context = Context::create();
     let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
     let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
     run_module(&module, entry_point, shots)
 }
 
-fn run_module(module: &Module, entry_point: Option<&str>, shots: i64) -> Result<(), String> {
+fn run_module(module: &Module, entry_point: Option<&str>, shots: u32) -> Result<(), String> {
     module
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;

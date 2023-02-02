@@ -15,7 +15,7 @@ fn main() -> Result<(), String> {
             .required(true),
         arg!(-e --entrypoint <NAME> "Name of the entry point function to execute"),
         arg!(-s --shots <NUM> "The number of times to repeat the execution of the chosen entry point in the program")
-            .value_parser(value_parser!(i64))
+            .value_parser(value_parser!(u32))
             .default_value("1")]);
 
     let matches = cmd.try_get_matches().map_err(|e| e.to_string());
@@ -29,7 +29,7 @@ fn main() -> Result<(), String> {
             matches
                 .get_one::<String>("entrypoint")
                 .map(std::string::String::as_str),
-            *matches.get_one::<i64>("shots").unwrap(),
+            *matches.get_one::<u32>("shots").unwrap(),
         ),
     }
 }
