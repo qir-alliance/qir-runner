@@ -10,5 +10,6 @@ branch = "master"
 default-features = false
 features = ["llvm14-0"]
 
-[dependencies.qir-backend]
-path = "../backend"
+[dependencies]
+qir-backend = { path = "../backend" }
+clap = "4.1.4"
