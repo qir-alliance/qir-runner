@@ -21,7 +21,7 @@ fn main() -> Result<(), String> {
     let matches = cmd.try_get_matches().map_err(|e| e.to_string());
     match matches {
         Err(e) => {
-            print!("{}", e);
+            eprint!("{}", e);
             Ok(())
         }
         Ok(matches) => qir_runner::run_file(
