@@ -9,6 +9,20 @@ Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec) pro
   This package provides an API or CLI tool to execute QIR.
 - [**stdlib**](stdlib)
   This package implements the QIR standard runtime library
+
+## Command Line Usage
+
+```
+Usage: qir-runner [OPTIONS] --file <PATH>
+
+Options:
+  -f, --file <PATH>        (Required) Path to the QIR file to run
+  -e, --entrypoint <NAME>  Name of the entry point function to execute
+  -s, --shots <NUM>        The number of times to repeat the execution of the chosen entry point in the program [default: 1]
+  -r, --rngseed <NUM>      The value to use when seeding the random number generator used for quantum simulation
+  -h, --help               Print help
+```
+
 ## Documentation
 
 API documentation is available at [https://qir-alliance.github.io/qir-runner](https://qir-alliance.github.io/qir-runner).
