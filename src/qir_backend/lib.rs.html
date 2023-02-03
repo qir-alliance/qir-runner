@@ -949,6 +949,11 @@
 <span id="949">949</span>
 <span id="950">950</span>
 <span id="951">951</span>
+<span id="952">952</span>
+<span id="953">953</span>
+<span id="954">954</span>
+<span id="955">955</span>
+<span id="956">956</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -1004,6 +1009,11 @@
         <span class="ident">res</span>: <span class="macro">bitvec!</span>[],
         <span class="ident">max_qubit_id</span>: <span class="number">0</span>
     });
+}
+
+<span class="doccomment">/// Sets the seed for the pseudo-random number generator used during measurements.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">set_rng_seed</span>(<span class="ident">seed</span>: <span class="ident">u64</span>) {
+    <span class="ident">simulator::set_rng_seed</span>(<span class="ident">seed</span>);
 }
 
 <span class="doccomment">/// Initializes the execution environment.</span>
