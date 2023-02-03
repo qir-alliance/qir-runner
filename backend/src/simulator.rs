@@ -5,9 +5,9 @@ use crate::nearly_zero::NearlyZero;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, Zero};
-use rand::Rng;
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::f64::consts::FRAC_1_SQRT_2;
+use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2};
 
 pub type SparseState = FxHashMap<BigUint, Complex64>;
 
@@ -28,6 +28,14 @@ pub(crate) struct QuantumSim {
 
     /// The map for tracking queued Pauli-Y rotations by a given angle for a given qubit.
     ry_queue: FxHashMap<usize, f64>,
+}
+
+thread_local! {
+    static RNG: RefCell<StdRng> = RefCell::new(StdRng::from_entropy());
+}
+
+pub(crate) fn set_rng_seed(seed: u64) {
+    RNG.with(|rng| rng.replace(StdRng::seed_from_u64(seed)));
 }
 
 /// Levels for flushing of queued gates.
@@ -209,8 +217,7 @@ impl QuantumSim {
     /// Utility that performs the actual measurement and collapse of the state for the given
     /// location.
     fn measure_impl(&mut self, loc: usize) -> bool {
-        let mut rng = rand::thread_rng();
-        let random_sample: f64 = rng.gen();
+        let random_sample = RNG.with(|rng| rng.borrow_mut().gen::<f64>());
         let res = random_sample < self.check_joint_probability(&[loc]);
         self.collapse(loc, res);
         res
@@ -237,8 +244,7 @@ impl QuantumSim {
             })
             .collect();
 
-        let mut rng = rand::thread_rng();
-        let random_sample: f64 = rng.gen();
+        let random_sample = RNG.with(|rng| rng.borrow_mut().gen::<f64>());
         let res = random_sample < self.check_joint_probability(&locs);
         self.joint_collapse(&locs, res);
         res
@@ -1200,6 +1206,32 @@ mod tests {
         for i in 0..5000 {
             sim.release(i);
         }
+    }
+
+    /// Verify seeded RNG is predictable.
+    #[test]
+    fn test_seeded_rng() {
+        set_rng_seed(42);
+        let mut sim = QuantumSim::new();
+        let q = sim.allocate();
+        let mut val1 = 0_u64;
+        for i in 0..64 {
+            sim.h(q);
+            if sim.measure(q) {
+                val1 += 1 << i;
+            }
+        }
+        set_rng_seed(42);
+        let mut sim = QuantumSim::new();
+        let q = sim.allocate();
+        let mut val2 = 0_u64;
+        for i in 0..64 {
+            sim.h(q);
+            if sim.measure(q) {
+                val2 += 1 << i;
+            }
+        }
+        assert_eq!(val1, val2);
     }
 
     /// Utility for testing operation equivalence.

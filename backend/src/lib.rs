@@ -55,6 +55,11 @@ thread_local! {
     });
 }
 
+/// Sets the seed for the pseudo-random number generator used during measurements.
+pub fn set_rng_seed(seed: u64) {
+    simulator::set_rng_seed(seed);
+}
+
 /// Initializes the execution environment.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
