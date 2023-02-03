@@ -20,7 +20,7 @@ use inkwell::{
     values::FunctionValue,
     OptimizationLevel,
 };
-use std::{collections::HashMap, ffi::OsStr, path::Path};
+use std::{collections::HashMap, ffi::OsStr, path::Path, ptr::null_mut};
 
 /// # Errors
 ///
@@ -107,6 +107,7 @@ fn run_module(module: &Module, entry_point: Option<&str>, shots: u32) -> Result<
             println!();
         }
 
+        __quantum__rt__initialize(null_mut());
         unsafe { run_entry_point(&execution_engine, entry_point)? }
         println!("END\t0");
     }
