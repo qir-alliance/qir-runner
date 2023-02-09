@@ -626,6 +626,7 @@ dependencies = [
  "clap 4.1.4",
  "inkwell",
  "qir-backend",
+ "qir-stdlib",
 ]
 
 [[package]]
