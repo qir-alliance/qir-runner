@@ -9,7 +9,7 @@ fn main() -> Result<(), String> {
         .map(PathBuf::from)
         .ok_or_else(|| "Environment variable OUT_DIR not defined.".to_string())?;
 
-    #[cfg(feature = "ir-range-support")]
+    #[cfg(feature = "range-support")]
     {
         // Compile the LLVM IR bridge file. Requires the llvm-tools-preview component.
         // This is only needed for range support, and this entire build.rs can be dropped when that functionality is

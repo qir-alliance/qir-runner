@@ -11,6 +11,6 @@ default-features = false
 features = ["llvm14-0"]
 
 [dependencies]
-qir-stdlib = { path = "../stdlib", features = ["ir-range-support"] }
+qir-stdlib = { path = "../stdlib", features = ["range-support"] }
 qir-backend = { path = "../backend" }
 clap = "4.1.4"
