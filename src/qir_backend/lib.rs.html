@@ -954,6 +954,11 @@
 <span id="954">954</span>
 <span id="955">955</span>
 <span id="956">956</span>
+<span id="957">957</span>
+<span id="958">958</span>
+<span id="959">959</span>
+<span id="960">960</span>
+<span id="961">961</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.</span>
 <span class="comment">// Licensed under the MIT License.</span>
 
@@ -1593,28 +1598,17 @@
     })
 }
 
-<span class="doccomment">/// QIR API for checking internal simulator state and verifying the given qubit is in the |0⟩ state.</span>
-<span class="attribute">#[<span class="ident">no_mangle</span>]</span>
-<span class="kw">pub</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span> <span class="ident">__quantum__qis__assertzero__body</span>(<span class="ident">qubit</span>: <span class="kw-2">*mut</span> <span class="ident">c_void</span>) {
+<span class="doccomment">/// Rust API for checking internal simulator state and returning true only if the given qubit is in exactly the |0⟩ state.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">qubit_is_zero</span>(<span class="ident">qubit</span>: <span class="kw-2">*mut</span> <span class="ident">c_void</span>) -&gt; <span class="ident">bool</span> {
     <span class="ident">SIM_STATE</span>.<span class="ident">with</span>(<span class="op">|</span><span class="ident">sim_state</span><span class="op">|</span> {
         <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw-2">&amp;mut</span> <span class="kw-2">*</span><span class="ident">sim_state</span>.<span class="ident">borrow_mut</span>();
         <span class="ident">ensure_sufficient_qubits</span>(<span class="kw-2">&amp;mut</span> <span class="ident">state</span>.<span class="ident">sim</span>, <span class="ident">qubit</span> <span class="kw">as</span> <span class="ident">usize</span>, <span class="kw-2">&amp;mut</span> <span class="ident">state</span>.<span class="ident">max_qubit_id</span>);
 
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">state</span>
+        <span class="ident">state</span>
             .<span class="ident">sim</span>
             .<span class="ident">joint_probability</span>(<span class="kw-2">&amp;</span>[<span class="ident">qubit</span> <span class="kw">as</span> <span class="ident">usize</span>])
             .<span class="ident">is_nearly_zero</span>()
-        {
-            <span class="kw">unsafe</span> {
-                <span class="ident">__quantum__rt__fail</span>(<span class="ident">__quantum__rt__string_create</span>(
-                    <span class="ident">CString::new</span>(<span class="string">&quot;Qubit is not in |0⟩ state.&quot;</span>)
-                        .<span class="ident">expect</span>(<span class="string">&quot;Unable to allocate memory for failure message string.&quot;</span>)
-                        .<span class="ident">as_bytes_with_nul</span>()
-                        .<span class="ident">as_ptr</span>() <span class="kw">as</span> <span class="kw-2">*mut</span> <span class="ident">c_char</span>,
-                ));
-            }
-        }
-    });
+    })
 }
 
 <span class="doccomment">/// QIR API for checking internal simulator state and verifying the probability of the given parity measurement result</span>
@@ -1857,6 +1851,8 @@
 <span class="kw">mod</span> <span class="ident">tests</span> {
     <span class="kw">use</span> <span class="ident">std::ffi::c_void</span>;
 
+    <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::qubit_is_zero</span>;
+
     <span class="kw">use</span> <span class="kw">super</span>::{
         <span class="ident">__quantum__qis__cnot__body</span>, <span class="ident">__quantum__qis__h__body</span>, <span class="ident">__quantum__qis__m__body</span>,
         <span class="ident">__quantum__qis__mz__body</span>, <span class="ident">__quantum__qis__read_result__body</span>, <span class="ident">__quantum__qis__x__body</span>,
@@ -1908,6 +1904,20 @@
             ));
             <span class="ident">__quantum__rt__qubit_release_array</span>(<span class="ident">qs</span>);
         }
+    }
+
+    <span class="attribute">#[<span class="ident">test</span>]</span>
+    <span class="kw">fn</span> <span class="ident">test_qubit_is_zero</span>() {
+        <span class="kw">let</span> <span class="ident">q0</span> <span class="op">=</span> <span class="ident">__quantum__rt__qubit_allocate</span>();
+        <span class="macro">assert!</span>(<span class="ident">qubit_is_zero</span>(<span class="ident">q0</span>));
+        <span class="ident">__quantum__qis__x__body</span>(<span class="ident">q0</span>);
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">qubit_is_zero</span>(<span class="ident">q0</span>));
+        <span class="ident">__quantum__qis__h__body</span>(<span class="ident">q0</span>);
+        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">qubit_is_zero</span>(<span class="ident">q0</span>));
+        <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="ident">__quantum__qis__m__body</span>(<span class="ident">q0</span>);
+        <span class="macro">assert!</span>(
+            <span class="ident">qubit_is_zero</span>(<span class="ident">q0</span>) <span class="op">!</span><span class="op">=</span> <span class="ident">__quantum__rt__result_equal</span>(<span class="ident">r</span>, <span class="ident">__quantum__rt__result_get_one</span>())
+        );
     }
 }
 </code></pre></div>
