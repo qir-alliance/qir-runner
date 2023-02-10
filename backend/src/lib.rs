@@ -637,9 +637,8 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
     })
 }
 
-/// QIR API for checking internal simulator state and returning true if the given qubit is in the |0⟩ state.
-#[no_mangle]
-pub extern "C" fn __quantum__qis__checkzero__body(qubit: *mut c_void) -> bool {
+/// Rust API for checking internal simulator state and returning true only if the given qubit is in exactly the |0⟩ state.
+pub fn qubit_is_zero(qubit: *mut c_void) -> bool {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
         ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
@@ -649,30 +648,6 @@ pub extern "C" fn __quantum__qis__checkzero__body(qubit: *mut c_void) -> bool {
             .joint_probability(&[qubit as usize])
             .is_nearly_zero()
     })
-}
-
-/// QIR API for checking internal simulator state and verifying the given qubit is in the |0⟩ state.
-#[no_mangle]
-pub extern "C" fn __quantum__qis__assertzero__body(qubit: *mut c_void) {
-    SIM_STATE.with(|sim_state| {
-        let state = &mut *sim_state.borrow_mut();
-        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
-
-        if !state
-            .sim
-            .joint_probability(&[qubit as usize])
-            .is_nearly_zero()
-        {
-            unsafe {
-                __quantum__rt__fail(__quantum__rt__string_create(
-                    CString::new("Qubit is not in |0⟩ state.")
-                        .expect("Unable to allocate memory for failure message string.")
-                        .as_bytes_with_nul()
-                        .as_ptr() as *mut c_char,
-                ));
-            }
-        }
-    });
 }
 
 /// QIR API for checking internal simulator state and verifying the probability of the given parity measurement result
@@ -915,6 +890,8 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
 mod tests {
     use std::ffi::c_void;
 
+    use crate::qubit_is_zero;
+
     use super::{
         __quantum__qis__cnot__body, __quantum__qis__h__body, __quantum__qis__m__body,
         __quantum__qis__mz__body, __quantum__qis__read_result__body, __quantum__qis__x__body,
@@ -966,5 +943,19 @@ mod tests {
             ));
             __quantum__rt__qubit_release_array(qs);
         }
+    }
+
+    #[test]
+    fn test_qubit_is_zero() {
+        let q0 = __quantum__rt__qubit_allocate();
+        assert!(qubit_is_zero(q0));
+        __quantum__qis__x__body(q0);
+        assert!(!qubit_is_zero(q0));
+        __quantum__qis__h__body(q0);
+        assert!(!qubit_is_zero(q0));
+        let r = __quantum__qis__m__body(q0);
+        assert!(
+            qubit_is_zero(q0) != __quantum__rt__result_equal(r, __quantum__rt__result_get_one())
+        );
     }
 }
