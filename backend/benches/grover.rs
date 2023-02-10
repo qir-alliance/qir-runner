@@ -54,8 +54,8 @@ pub fn grover(c: &mut Criterion) {
             // and assert both qubits are back in the |0⟩ state.
             __quantum__qis__z__body(1 as *mut c_void);
             __quantum__qis__x__body(1 as *mut c_void);
-            __quantum__qis__assertzero__body(std::ptr::null_mut());
-            __quantum__qis__assertzero__body(1 as *mut c_void);
+            assert!(qubit_is_zero(std::ptr::null_mut()));
+            assert!(qubit_is_zero(1 as *mut c_void));
         })
     });
 }
