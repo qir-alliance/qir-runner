@@ -3,14 +3,124 @@
 
 use qir_runner::{run_bitcode, run_file};
 
-// This test verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
-// It will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of several gates against decompositions thereof,
+// This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
+// They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
 // and additionally makes use of several features from the QIR standard library, namely callables, tuples, arrays, and strings.
-// It is based on code from https://github.com/microsoft/qsharp-runtime/tree/main/src/Simulation/TargetDefinitions/Tests.
-#[test]
-fn test_choi_jamiolkowski_isomorphism() -> Result<(), String> {
-    let bitcode = include_bytes!("resources/cji.bc");
-    run_bitcode(bitcode, None, 1)
+// They are based on code from https://github.com/microsoft/qsharp-runtime/tree/main/src/Simulation/TargetDefinitions/Tests.
+// Note: these tests are computationally intensive and disabled in debug by default (they will run with `cargo test --release` and in CI).
+// To enable, comment out the line below.
+#[cfg(not(debug_assertions))]
+#[cfg(test)]
+mod cji_tests {
+    use qir_runner::run_bitcode;
+
+    #[test]
+    fn test_h_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyH"), 1)
+    }
+
+    #[test]
+    fn test_s_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyS"), 1)
+    }
+
+    #[test]
+    fn test_t_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyT"), 1)
+    }
+
+    #[test]
+    fn test_x_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyX"), 1)
+    }
+
+    #[test]
+    fn test_y_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyY"), 1)
+    }
+
+    #[test]
+    fn test_z_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyZ"), 1)
+    }
+
+    #[test]
+    fn test_cnot_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyCNOT"), 1)
+    }
+
+    #[test]
+    fn test_cx_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyCX"), 1)
+    }
+
+    #[test]
+    fn test_cy_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyCY"), 1)
+    }
+
+    #[test]
+    fn test_cz_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyCZ"), 1)
+    }
+
+    #[test]
+    fn test_ccnot_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyCCNOT"), 1)
+    }
+
+    #[test]
+    fn test_rx_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRx"), 1)
+    }
+
+    #[test]
+    fn test_ry_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRy"), 1)
+    }
+
+    #[test]
+    fn test_rz_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRz"), 1)
+    }
+
+    #[test]
+    fn test_r_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyR"), 1)
+    }
+
+    #[test]
+    fn test_r1_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyR1"), 1)
+    }
+
+    #[test]
+    fn test_swap_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifySWAP"), 1)
+    }
+
+    #[test]
+    fn test_exp_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyExp"), 1)
+    }
 }
 
 // This test confirms selection of a particular named entry point from a file with two entry points
