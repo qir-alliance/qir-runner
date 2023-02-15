@@ -1,3 +1,3 @@
-(function() {var implementors = {};
-implementors["qir_stdlib"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.64.0/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"qir_stdlib/enum.Pauli.html\" title=\"enum qir_stdlib::Pauli\">Pauli</a>","synthetic":false,"types":["qir_stdlib::Pauli"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"qir_stdlib":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.67.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"qir_stdlib/enum.Pauli.html\" title=\"enum qir_stdlib::Pauli\">Pauli</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
