@@ -11,7 +11,7 @@ on:
       - feature/*
 
 env:
-  RUSTFLAGS: -Dwarnings
+  RUSTDOCFLAGS: -Dwarnings
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
         run: cargo fmt -v --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -vv --all-targets
+        run: cargo clippy -vv --all-targets -- -D warnings
 
       - name: cargo doc
         run: cargo doc -vv --all --no-deps
