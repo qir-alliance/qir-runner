@@ -864,9 +864,12 @@ pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const C
     }
 }
 
-/// API for viewing the current global result and quantum state for the simulator.
+/// QIR API for dumping full internal simulator state.
 #[no_mangle]
-pub extern "C" fn dump_state() {
+pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
+    if !location.is_null() {
+        unimplemented!("Dump to location is not implemented.")
+    }
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
 
@@ -877,27 +880,19 @@ pub extern "C" fn dump_state() {
     });
 }
 
-/// QIR API for dumping full internal simulator state.
-#[no_mangle]
-pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
-    if !location.is_null() {
-        unimplemented!("Dump to location is not implemented.")
-    }
-    dump_state();
-}
-
 #[cfg(test)]
 mod tests {
-    use std::ffi::c_void;
+    use std::{ffi::c_void, ptr::null_mut};
 
     use crate::qubit_is_zero;
 
     use super::{
-        __quantum__qis__cnot__body, __quantum__qis__h__body, __quantum__qis__m__body,
-        __quantum__qis__mz__body, __quantum__qis__read_result__body, __quantum__qis__x__body,
-        __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
-        __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, __quantum__rt__result_get_one, dump_state,
+        __quantum__qis__cnot__body, __quantum__qis__dumpmachine__body, __quantum__qis__h__body,
+        __quantum__qis__m__body, __quantum__qis__mz__body, __quantum__qis__read_result__body,
+        __quantum__qis__x__body, __quantum__rt__qubit_allocate,
+        __quantum__rt__qubit_allocate_array, __quantum__rt__qubit_release,
+        __quantum__rt__qubit_release_array, __quantum__rt__result_equal,
+        __quantum__rt__result_get_one,
     };
     use qir_stdlib::arrays::__quantum__rt__array_get_element_ptr_1d;
 
@@ -915,7 +910,7 @@ mod tests {
         __quantum__qis__mz__body(q0, r0);
         assert!(!__quantum__qis__read_result__body(r0));
         assert!(!__quantum__qis__read_result__body(3 as *mut c_void));
-        dump_state();
+        __quantum__qis__dumpmachine__body(null_mut());
     }
 
     #[allow(clippy::cast_ptr_alignment)]
@@ -928,14 +923,14 @@ mod tests {
         let r1 = __quantum__qis__m__body(q1);
         let r2 = __quantum__qis__m__body(q2);
         assert!(__quantum__rt__result_equal(r1, r2));
-        dump_state();
+        __quantum__qis__dumpmachine__body(null_mut());
         __quantum__rt__qubit_release(q2);
         __quantum__rt__qubit_release(q1);
         let qs = __quantum__rt__qubit_allocate_array(4);
         unsafe {
             let q_elem = __quantum__rt__array_get_element_ptr_1d(qs, 3).cast::<*mut c_void>();
             __quantum__qis__x__body(*q_elem);
-            dump_state();
+            __quantum__qis__dumpmachine__body(null_mut());
             let r = __quantum__qis__m__body(*q_elem);
             assert!(__quantum__rt__result_equal(
                 r,
