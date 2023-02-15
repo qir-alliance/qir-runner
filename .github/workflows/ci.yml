@@ -105,7 +105,7 @@ jobs:
       matrix:
         config:
           - { os: "ubuntu-20.04", arch: "amd64" }
-          - { os: "windows-latest", arch: "amd64" }
+          - { os: "windows-2019", arch: "amd64" }
           - { os: "macos-11", arch: "amd64" }
     steps:
       - uses: actions/checkout@v3
