@@ -82,9 +82,9 @@ pub(crate) fn double_to_string(input: c_double) -> String {
     if (input.floor() - input.ceil()).abs() < c_double::EPSILON {
         // The value is a whole number, which by convention is displayed with one decimal point
         // to differentiate it from an integer value.
-        format!("{:.1}", input)
+        format!("{input:.1}")
     } else {
-        format!("{}", input)
+        format!("{input}")
     }
 }
 

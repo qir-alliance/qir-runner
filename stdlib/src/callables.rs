@@ -42,8 +42,8 @@ pub unsafe extern "C" fn __quantum__rt__callable_invoke(
     res_tup: *mut u8,
 ) {
     let call = &*callable;
-    let index = (if *call.is_adj.borrow() { 1 } else { 0 })
-        + (if *call.ctls_count.borrow() > 0 { 2 } else { 0 });
+    let index =
+        usize::from(*call.is_adj.borrow()) + (if *call.ctls_count.borrow() > 0 { 2 } else { 0 });
 
     // Collect any nested controls into a single control list.
     let mut args_copy: *mut *const Vec<u8> = std::ptr::null_mut();

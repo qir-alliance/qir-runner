@@ -35,7 +35,7 @@ fn main() -> Result<(), String> {
         };
 
         std::process::Command::new(llc_path)
-            .args(&[
+            .args([
                 "--filetype=obj",
                 "./src/bridge-rt.ll",
                 "-o",
@@ -44,7 +44,7 @@ fn main() -> Result<(), String> {
             .status()
             .map_err(|err| format!("llc failed: {}.", err))?;
         std::process::Command::new(llvm_ar_path)
-            .args(&[
+            .args([
                 "-r",
                 &format!("{}/{}", out_dir.display(), lib_name),
                 &format!("{}/bridge-rt.o", out_dir.display()),
