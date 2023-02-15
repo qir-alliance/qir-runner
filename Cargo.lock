@@ -459,6 +459,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "msvc_spectre_libs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb99fe7d32f24bd2116ef2c1b05745f0070c8676ce4c91a24ba3a5e1ccbbc9f6"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "ndarray"
 version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -625,6 +634,7 @@ version = "0.1.0"
 dependencies = [
  "clap 4.1.4",
  "inkwell",
+ "msvc_spectre_libs",
  "qir-backend",
  "qir-stdlib",
 ]
