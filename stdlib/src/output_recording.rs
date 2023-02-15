@@ -103,7 +103,7 @@ pub mod legacy {
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__int_record_output(val: i64) {
-        println!("RESULT\t{}", val);
+        println!("RESULT\t{val}");
     }
 
     #[allow(non_snake_case)]
@@ -113,7 +113,7 @@ pub mod legacy {
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__bool_record_output(val: bool) {
-        println!("RESULT\t{}", val);
+        println!("RESULT\t{val}");
     }
 
     #[allow(non_snake_case)]

@@ -99,8 +99,8 @@ unsafe fn map_paulis(
         .filter_map(|index| {
             let p =
                 *__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>() as Pauli;
-            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, index as u64)
-                .cast::<*mut c_void>() as usize;
+            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, index).cast::<*mut c_void>()
+                as usize;
             if let Pauli::I = p {
                 None
             } else {
@@ -680,7 +680,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__body(
             actual_prob = 1.0 - actual_prob;
         }
 
-        if (actual_prob - (prob as f64)).abs() > tol as f64 {
+        if (actual_prob - prob).abs() > tol {
             __quantum__rt__fail(msg);
         }
 
@@ -767,7 +767,7 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
                 .expect("Result with given id missing after expansion.")
         };
 
-        let val: i64 = if b { 1 } else { 0 };
+        let val: i64 = i64::from(b);
         output("RESULT", &val, tag, &mut std::io::stdout()).expect("Failed to write result output");
     });
 }

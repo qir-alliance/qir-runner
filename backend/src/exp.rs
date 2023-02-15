@@ -175,7 +175,7 @@ impl QuantumSim {
                 *self
                     .id_map
                     .get(c)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", c))
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
             .collect();
@@ -186,7 +186,7 @@ impl QuantumSim {
                 *self
                     .id_map
                     .get(c)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", c))
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
             .collect();
@@ -208,7 +208,7 @@ impl QuantumSim {
                 )
             })
         {
-            panic!("Duplicate qubit id '{}' found in application.", duplicate);
+            panic!("Duplicate qubit id '{duplicate}' found in application.");
         }
 
         let id_coeff = Complex64::new(theta.cos(), 0.0);
@@ -239,7 +239,7 @@ impl QuantumSim {
                 self.state.drain().into_iter().fold(
                     SparseState::default(),
                     |mut accum, (index, value)| {
-                        if ctls.iter().all(|c| index.bit(*c as u64))
+                        if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
                             accum.insert(index, value * id_coeff);
@@ -252,7 +252,7 @@ impl QuantumSim {
                 self.state.drain().into_iter().fold(
                     SparseState::default(),
                     |mut accum, (index, value)| {
-                        if ctls.iter().all(|c| index.bit(*c as u64))
+                        if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
                             accum.insert(index, value * pauli_coeff);
@@ -265,7 +265,7 @@ impl QuantumSim {
                 self.state.drain().into_iter().fold(
                     SparseState::default(),
                     |mut accum, (index, val)| {
-                        if ctls.iter().all(|c| index.bit(*c as u64)) {
+                        if ctls.iter().all(|c| index.bit(*c)) {
                             accum.insert(
                                 index.clone(),
                                 val * if (index & &yz_mask).count_ones() & 1 == 0 {
@@ -298,7 +298,7 @@ impl QuantumSim {
 
             let mut new_state = SparseState::default();
             for (index, value) in &self.state {
-                if ctls.iter().all(|c| index.bit(*c as u64)) {
+                if ctls.iter().all(|c| index.bit(*c)) {
                     let alt_index = index ^ &xy_mask;
                     if !self.state.contains_key(&alt_index) {
                         new_state.insert(index.clone(), value * id_coeff);

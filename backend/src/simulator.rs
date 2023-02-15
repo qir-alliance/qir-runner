@@ -109,7 +109,7 @@ impl QuantumSim {
         let loc = self
             .id_map
             .remove(&id)
-            .unwrap_or_else(|| panic!("Unable to find qubit with id {}.", id));
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {id}."));
 
         // Measure and collapse the state for this qubit.
         let res = self.measure_impl(loc);
@@ -191,7 +191,7 @@ impl QuantumSim {
                 *self
                     .id_map
                     .get(id)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", id))
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"))
             })
             .collect();
 
@@ -210,7 +210,7 @@ impl QuantumSim {
             *self
                 .id_map
                 .get(&id)
-                .unwrap_or_else(|| panic!("Unable to find qubit with id {}", id)),
+                .unwrap_or_else(|| panic!("Unable to find qubit with id {id}")),
         )
     }
 
@@ -240,7 +240,7 @@ impl QuantumSim {
                 *self
                     .id_map
                     .get(id)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", id))
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"))
             })
             .collect();
 
@@ -327,11 +327,11 @@ impl QuantumSim {
         let qubit1_mapped = *self
             .id_map
             .get(&qubit1)
-            .unwrap_or_else(|| panic!("Unable to find qubit with id {}", qubit1));
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {qubit1}"));
         let qubit2_mapped = *self
             .id_map
             .get(&qubit2)
-            .unwrap_or_else(|| panic!("Unable to find qubit with id {}", qubit2));
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {qubit2}"));
         *self.id_map.get_mut(&qubit1).unwrap() = qubit2_mapped;
         *self.id_map.get_mut(&qubit2).unwrap() = qubit1_mapped;
     }
@@ -368,8 +368,7 @@ impl QuantumSim {
         for id in ids.iter() {
             assert!(
                 unique.insert(id),
-                "Duplicate qubit id '{}' found in application.",
-                id
+                "Duplicate qubit id '{id}' found in application."
             );
         }
     }
@@ -384,7 +383,7 @@ impl QuantumSim {
         let target = *self
             .id_map
             .get(&target)
-            .unwrap_or_else(|| panic!("Unable to find qubit with id {}", target))
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {target}"))
             as u64;
 
         let ctls: Vec<u64> = ctls
@@ -393,7 +392,7 @@ impl QuantumSim {
                 *self
                     .id_map
                     .get(c)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", c))
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
             .collect();
@@ -446,8 +445,8 @@ impl QuantumSim {
         self.state = self.state.drain().into_iter().fold(
             SparseState::default(),
             |mut accum, (index, value)| {
-                let (k, v) = if ctls.iter().all(|c| index.bit(*c as u64)) {
-                    op((index, value), target as u64)
+                let (k, v) = if ctls.iter().all(|c| index.bit(*c)) {
+                    op((index, value), target)
                 } else {
                     (index, value)
                 };

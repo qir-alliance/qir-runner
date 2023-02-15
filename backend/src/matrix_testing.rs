@@ -64,7 +64,7 @@ impl QuantumSim {
                 let loc = *self
                     .id_map
                     .get(target)
-                    .unwrap_or_else(|| panic!("Unable to find qubit with id {}", target));
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {target}"));
                 let swap_id = *self
                     .id_map
                     .iter()
