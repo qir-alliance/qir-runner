@@ -403,13 +403,16 @@ mod tests {
         reference(&mut sim, &qs);
 
         // Undo the entanglement.
-        for q in qs {
-            sim.mcx(&[ctl], q);
+        for q in &qs {
+            sim.mcx(&[ctl], *q);
         }
         sim.h(ctl);
 
-        // We know the operations are equal if the control is left in the zero state.
+        // We know the operations are equal if the qubits are left in the zero state.
         assert!(sim.joint_probability(&[ctl]).is_nearly_zero());
+        for q in qs {
+            assert!(sim.joint_probability(&[q]).is_nearly_zero());
+        }
 
         // Sparse state vector should have one entry for |0⟩.
         // Dump the state first to force a flush of any queued operations.
