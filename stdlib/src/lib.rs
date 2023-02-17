@@ -76,6 +76,7 @@ pub extern "C" fn __quantum__rt__memory_allocate(size: u64) -> *mut u8 {
     .as_mut_ptr()
 }
 
+#[cfg(not(feature = "no-rt-fail"))]
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__fail(str: *const CString) {
     __quantum__rt__message(str);

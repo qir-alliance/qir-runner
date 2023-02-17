@@ -6,7 +6,14 @@
 use rand::Rng;
 use std::ffi::c_double;
 
-use crate::{__quantum__rt__fail, strings::convert};
+use crate::strings::convert;
+
+#[cfg(feature = "no-rt-fail")]
+#[allow(improper_ctypes)]
+extern "C" { fn __quantum__rt__fail(str: *const std::ffi::CString); }
+
+#[cfg(not(feature = "no-rt-fail"))]
+use crate::__quantum__rt__fail;
 
 #[no_mangle]
 pub extern "C" fn __quantum__qis__nan__body() -> c_double {
