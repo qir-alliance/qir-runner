@@ -116,6 +116,15 @@
 <a href="#116" id="116">116</a>
 <a href="#117" id="117">117</a>
 <a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -124,7 +133,16 @@
 </span><span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>std::ffi::c_double;
 
-<span class="kw">use crate</span>::{__quantum__rt__fail, strings::convert};
+<span class="kw">use </span><span class="kw">crate</span>::strings::convert;
+
+<span class="attr">#[cfg(not(feature = <span class="string">&quot;fail-support&quot;</span>))]
+#[allow(improper_ctypes)]
+</span><span class="kw">extern </span><span class="string">&quot;C&quot; </span>{
+    <span class="kw">fn </span>__quantum__rt__fail(str: <span class="kw-2">*const </span>std::ffi::CString);
+}
+
+<span class="attr">#[cfg(feature = <span class="string">&quot;fail-support&quot;</span>)]
+</span><span class="kw">use </span><span class="kw">crate</span>::__quantum__rt__fail;
 
 <span class="attr">#[no_mangle]
 </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__nan__body() -&gt; c_double {
