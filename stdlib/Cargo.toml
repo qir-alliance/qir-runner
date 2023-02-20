@@ -17,6 +17,7 @@ llvm-tools = { version = "0.1.1", optional = true}
 crate-type = ["staticlib", "rlib"]
 
 [features]
-default = []
+default = ["fail-support"]
 range-support = ["llvm-tools"]
-no-rt-fail = []
+# Enables a default implementation of __quantum__rt__fail that panics with the fail message.
+fail-support = []

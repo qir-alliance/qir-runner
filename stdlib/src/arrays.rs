@@ -4,11 +4,11 @@
 use crate::{strings::convert, update_counts};
 use std::{mem::ManuallyDrop, rc::Rc, usize};
 
-#[cfg(feature = "no-rt-fail")]
+#[cfg(not(feature = "fail-support"))]
 #[allow(improper_ctypes)]
 extern "C" { fn __quantum__rt__fail(str: *const std::ffi::CString); }
 
-#[cfg(not(feature = "no-rt-fail"))]
+#[cfg(feature = "fail-support")]
 use crate::__quantum__rt__fail;
 
 #[derive(Debug, Clone)]
