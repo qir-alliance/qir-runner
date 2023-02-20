@@ -10,7 +10,9 @@ use crate::strings::convert;
 
 #[cfg(not(feature = "fail-support"))]
 #[allow(improper_ctypes)]
-extern "C" { fn __quantum__rt__fail(str: *const std::ffi::CString); }
+extern "C" {
+    fn __quantum__rt__fail(str: *const std::ffi::CString);
+}
 
 #[cfg(feature = "fail-support")]
 use crate::__quantum__rt__fail;
