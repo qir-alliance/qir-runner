@@ -56,8 +56,18 @@ jobs:
         run: rustup show
       - uses: Swatinem/rust-cache@v2
 
-      - name: cargo bench
-        run: cargo bench --workspace
+      - name: cargo bench changes
+        run: cargo bench --workspace -- --save-baseline changes
+
+      - uses: actions/checkout@v3
+        with:
+          ref: 'main'
+
+      - name: cargo bench main
+        run: cargo bench --workspace -- --save-baseline main
+
+      - name: bench comparison
+        run: cargo bench -- --load-baseline changes --baseline main
 
   build:
     name: Build
