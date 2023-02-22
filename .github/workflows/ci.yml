@@ -55,8 +55,9 @@ jobs:
       - name: cargo bench changes
         run: cargo bench --package qir-backend -- --save-baseline changes
 
-      - name: checkout main
-        run: git checkout origin/main
+      - uses: actions/checkout@v3
+        with:
+          ref: 'main'
 
       - name: cargo bench main
         run: cargo bench --package qir-backend -- --save-baseline main
