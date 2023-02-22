@@ -376,7 +376,9 @@ mod tests {
         // If the rotations were performed correctly, the check qubit `paired` should
         // always be back in the ground state, and the whole state vector should be
         // back to a single zero state.
-        assert!(!sim.joint_measure(&[paired]));
+        assert!(sim.joint_probability(&[paired]).is_nearly_zero());
+        assert!(sim.joint_probability(&[target]).is_nearly_zero());
+        assert!(sim.joint_probability(&[control]).is_nearly_zero());
         assert_eq!(sim.state.len(), 1);
     }
 }
