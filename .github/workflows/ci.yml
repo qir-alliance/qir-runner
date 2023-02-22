@@ -57,14 +57,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo bench changes
-        run: cargo bench --workspace -- --save-baseline changes
+        run: cargo bench --package qir-backend -- --save-baseline changes
 
       - uses: actions/checkout@v3
         with:
           ref: 'main'
 
       - name: cargo bench main
-        run: cargo bench --workspace -- --save-baseline main
+        run: cargo bench --package qir-backend -- --save-baseline main
 
       - name: bench comparison
         run: cargo bench -- --load-baseline changes --baseline main
