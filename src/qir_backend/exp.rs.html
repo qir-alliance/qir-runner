@@ -380,6 +380,8 @@
 <a href="#380" id="380">380</a>
 <a href="#381" id="381">381</a>
 <a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -758,7 +760,9 @@
         <span class="comment">// If the rotations were performed correctly, the check qubit `paired` should
         // always be back in the ground state, and the whole state vector should be
         // back to a single zero state.
-        </span><span class="macro">assert!</span>(!sim.joint_measure(<span class="kw-2">&amp;</span>[paired]));
+        </span><span class="macro">assert!</span>(sim.joint_probability(<span class="kw-2">&amp;</span>[paired]).is_nearly_zero());
+        <span class="macro">assert!</span>(sim.joint_probability(<span class="kw-2">&amp;</span>[target]).is_nearly_zero());
+        <span class="macro">assert!</span>(sim.joint_probability(<span class="kw-2">&amp;</span>[control]).is_nearly_zero());
         <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
     }
 }

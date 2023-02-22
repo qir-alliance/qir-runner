@@ -1507,6 +1507,9 @@
 <a href="#1507" id="1507">1507</a>
 <a href="#1508" id="1508">1508</a>
 <a href="#1509" id="1509">1509</a>
+<a href="#1510" id="1510">1510</a>
+<a href="#1511" id="1511">1511</a>
+<a href="#1512" id="1512">1512</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -2824,13 +2827,16 @@
             <span class="kw">let _ </span>= sim.joint_probability(<span class="kw-2">&amp;</span>qs);
 
             <span class="comment">// Undo the entanglement.
-            </span><span class="kw">for </span>q <span class="kw">in </span>qs {
-                sim.mcx(<span class="kw-2">&amp;</span>[ctl], q);
+            </span><span class="kw">for </span>q <span class="kw">in </span><span class="kw-2">&amp;</span>qs {
+                sim.mcx(<span class="kw-2">&amp;</span>[ctl], <span class="kw-2">*</span>q);
             }
             sim.h(ctl);
 
-            <span class="comment">// We know the operations are equal if the control is left in the zero state.
+            <span class="comment">// We know the operations are equal if the qubits are left in the zero state.
             </span><span class="macro">assert!</span>(sim.joint_probability(<span class="kw-2">&amp;</span>[ctl]).is_nearly_zero());
+            <span class="kw">for </span>q <span class="kw">in </span>qs {
+                <span class="macro">assert!</span>(sim.joint_probability(<span class="kw-2">&amp;</span>[q]).is_nearly_zero());
+            }
 
             <span class="comment">// Sparse state vector should have one entry for |0⟩.
             // Dump the state first to force a flush of any queued operations.
