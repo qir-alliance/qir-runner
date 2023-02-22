@@ -48,10 +48,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "14.0"
       - name: Setup rust toolchain
         run: rustup show
       - uses: Swatinem/rust-cache@v2
@@ -67,7 +63,7 @@ jobs:
         run: cargo bench --package qir-backend -- --save-baseline main
 
       - name: bench comparison
-        run: cargo bench -- --load-baseline changes --baseline main
+        run: cargo bench --package qir-backend -- --load-baseline changes --baseline main
 
   build:
     name: Build
