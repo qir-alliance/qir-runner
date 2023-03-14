@@ -4,145 +4,147 @@ This project implements a basic QIR Runner prototype. This includes a git depend
 
 ## Implemented APIs
 
-```text
-__quantum__qis__arccos__body
-__quantum__qis__arcsin__body
-__quantum__qis__arctan__body
-__quantum__qis__arctan2__body
-__quantum__qis__assertmeasurementprobability__body
-__quantum__qis__assertmeasurementprobability__ctl
-__quantum__qis__ccx__body
-__quantum__qis__cnot__body
-__quantum__qis__cos__body
-__quantum__qis__cosh__body
-__quantum__qis__cx__body
-__quantum__qis__cz__body
-__quantum__qis__drawrandomdouble__body
-__quantum__qis__drawrandomint__body
-__quantum__qis__dumpmachine__body
-__quantum__qis__exp__body
-__quantum__qis__exp__adj
-__quantum__qis__exp__body
-__quantum__qis__exp__ctl
-__quantum__qis__exp__ctladj
-__quantum__qis__exp__ctl
-__quantum__qis__h__body
-__quantum__qis__h__ctl
-__quantum__qis__ieeeremainder__body
-__quantum__qis__infinity__body
-__quantum__qis__isinf__body
-__quantum__qis__isnan__body
-__quantum__qis__isnegativeinfinity__body
-__quantum__qis__log__body
-__quantum__qis__m__body
-__quantum__qis__measure__body
-__quantum__qis__mz__body
-__quantum__qis__nan__body
-__quantum__qis__r__adj
-__quantum__qis__r__body
-__quantum__qis__r__ctl
-__quantum__qis__r__ctladj
-__quantum__qis__read_result__body
-__quantum__qis__reset__body
-__quantum__qis__rx__body
-__quantum__qis__rx__ctl
-__quantum__qis__ry__body
-__quantum__qis__ry__ctl
-__quantum__qis__rz__body
-__quantum__qis__rz__ctl
-__quantum__qis__s__adj
-__quantum__qis__s__body
-__quantum__qis__s__ctl
-__quantum__qis__s__ctladj
-__quantum__qis__sin__body
-__quantum__qis__sinh__body
-__quantum__qis__sqrt__body
-__quantum__qis__swap__body
-__quantum__qis__t__adj
-__quantum__qis__t__body
-__quantum__qis__t__ctl
-__quantum__qis__t__ctladj
-__quantum__qis__tan__body
-__quantum__qis__tanh__body
-__quantum__qis__x__body
-__quantum__qis__x__ctl
-__quantum__qis__y__body
-__quantum__qis__y__ctl
-__quantum__qis__z__body
-__quantum__qis__z__ctl
-__quantum__rt__array_concatenate
-__quantum__rt__array_copy
-__quantum__rt__array_create_1d
-__quantum__rt__array_end_record_output
-__quantum__rt__array_get_element_ptr_1d
-__quantum__rt__array_get_size_1d
-__quantum__rt__array_slice_1d
-__quantum__rt__array_start_record_output
-__quantum__rt__array_update_alias_count
-__quantum__rt__array_update_reference_count
-__quantum__rt__bigint_add
-__quantum__rt__bigint_bitand
-__quantum__rt__bigint_bitnot
-__quantum__rt__bigint_bitor
-__quantum__rt__bigint_bitxor
-__quantum__rt__bigint_create_array
-__quantum__rt__bigint_create_i64
-__quantum__rt__bigint_divide
-__quantum__rt__bigint_equal
-__quantum__rt__bigint_get_data
-__quantum__rt__bigint_get_length
-__quantum__rt__bigint_greater
-__quantum__rt__bigint_greater_eq
-__quantum__rt__bigint_modulus
-__quantum__rt__bigint_multiply
-__quantum__rt__bigint_negate
-__quantum__rt__bigint_power
-__quantum__rt__bigint_shiftleft
-__quantum__rt__bigint_shiftright
-__quantum__rt__bigint_subtract
-__quantum__rt__bigint_to_string
-__quantum__rt__bigint_update_reference_count
-__quantum__rt__bool_record_output
-__quantum__rt__bool_to_string
-__quantum__rt__callable_copy
-__quantum__rt__callable_create
-__quantum__rt__callable_invoke
-__quantum__rt__callable_make_adjoint
-__quantum__rt__callable_make_controlled
-__quantum__rt__callable_update_alias_count
-__quantum__rt__callable_update_reference_count
-__quantum__rt__capture_update_alias_count
-__quantum__rt__capture_update_reference_count
-__quantum__rt__double_record_output
-__quantum__rt__double_to_string
-__quantum__rt__fail
-__quantum__rt__int_record_output
-__quantum__rt__int_to_string
-__quantum__rt__memory_allocate
-__quantum__rt__message
-__quantum__rt__pauli_to_string
-__quantum__rt__qubit_allocate
-__quantum__rt__qubit_allocate_array
-__quantum__rt__qubit_release
-__quantum__rt__qubit_release_array
-__quantum__rt__qubit_to_string
-__quantum__rt__range_to_string
-__quantum__rt__result_equal
-__quantum__rt__result_get_one
-__quantum__rt__result_get_zero
-__quantum__rt__result_record_output
-__quantum__rt__result_to_string
-__quantum__rt__result_update_reference_count
-__quantum__rt__string_concatenate
-__quantum__rt__string_create
-__quantum__rt__string_equal
-__quantum__rt__string_get_data
-__quantum__rt__string_get_length
-__quantum__rt__string_update_reference_count
-__quantum__rt__tuple_copy
-__quantum__rt__tuple_create
-__quantum__rt__tuple_end_record_output
-__quantum__rt__tuple_start_record_output
-__quantum__rt__tuple_update_alias_count
-__quantum__rt__tuple_update_reference_count
+```llvm
+double @__quantum__qis__arccos__body(double)
+double @__quantum__qis__arcsin__body(double)
+double @__quantum__qis__arctan__body(double)
+double @__quantum__qis__arctan2__body(double)
+void @__quantum__qis__assertmeasurementprobability__body(%Array*, %Array*, %Result*, double, %String*, double)
+void @__quantum__qis__assertmeasurementprobability__ctl(%Array*, %Tuple*)
+void @__quantum__qis__ccx__body(%Qubit*, %Qubit*)
+void @__quantum__qis__cnot__body(%Qubit*, %Qubit*)
+double @__quantum__qis__cos__body(double)
+double @__quantum__qis__cosh__body(double)
+void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+double @__quantum__qis__drawrandomdouble__body()
+i64 @__quantum__qis__drawrandomint__body()
+void @__quantum__qis__dumpmachine__body()
+void @__quantum__qis__exp__adj(%Array*, double, %Array*)
+void @__quantum__qis__exp__body(%Array*, double, %Array*)
+void @__quantum__qis__exp__ctl(%Array*, %Tuple*)
+void @__quantum__qis__exp__ctladj(%Array*, %Tuple*)
+void @__quantum__qis__exp__ctl(%Array*, %Tuple*)
+void @__quantum__qis__h__body(%Qubit*)
+void @__quantum__qis__h__ctl(%Array*, %Qubit*)
+double @__quantum__qis__ieeeremainder__body(double, double)
+double @__quantum__qis__infinity__body()
+i1 @__quantum__qis__isinf__body()
+i1 @__quantum__qis__isnan__body()
+i1 @__quantum__qis__isnegativeinfinity__body()
+double @__quantum__qis__log__body(double)
+%Result* @__quantum__qis__m__body(%Qubit*)
+%Result* @__quantum__qis__measure__body(%Array*, %Array*)
+void @__quantum__qis__mz__body(%Qubit*, %Result*)
+double @__quantum__qis__nan__body()
+void @__quantum__qis__r__adj(i2, double, %Qubit*)
+void @__quantum__qis__r__body(i2, double, %Qubit*)
+void @__quantum__qis__r__ctl(%Array*, %Tuple*)
+void @__quantum__qis__r__ctladj(%Array*, %Tuple*)
+bool @__quantum__qis__read_result__body(%Result*)
+void @__quantum__qis__reset__body(%Qubit*)
+void @__quantum__qis__rx__body(double, %Qubit*)
+void @__quantum__qis__rx__ctl(%Array*, %Tuple*)
+void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+void @__quantum__qis__ry__body(double, %Qubit*)
+void @__quantum__qis__ry__ctl(%Array*, %Tuple*)
+void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+void @__quantum__qis__rz__body(double, %Qubit*)
+void @__quantum__qis__rz__ctl(%Array*, %Tuple*)
+void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+void @__quantum__qis__s__adj(%Qubit*)
+void @__quantum__qis__s__body(%Qubit*)
+void @__quantum__qis__s__ctl(%Array*, %Qubit*)
+void @__quantum__qis__s__ctladj(%Array*, %Qubit*)
+double @__quantum__qis__sin__body(double)
+double @__quantum__qis__sinh__body(double)
+double @__quantum__qis__sqrt__body(double)
+void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+void @__quantum__qis__t__adj(%Qubit*)
+void @__quantum__qis__t__body(%Qubit*)
+void @__quantum__qis__t__ctl(%Array*, %Qubit*)
+void @__quantum__qis__t__ctladj(%Array*, %Qubit*)
+double @__quantum__qis__tan__body(double)
+double @__quantum__qis__tanh__body(double)
+void @__quantum__qis__x__body(%Qubit*)
+void @__quantum__qis__x__ctl(%Array*, %Qubit*)
+void @__quantum__qis__y__body(%Qubit*)
+void @__quantum__qis__y__ctl(%Array*, %Qubit*)
+void @__quantum__qis__z__body(%Qubit*)
+void @__quantum__qis__z__ctl(%Array*, %Qubit*)
+%Array* @__quantum__rt__array_concatenate(%Array*, %Array*)
+%Array* @__quantum__rt__array_copy(%Array*, bool)
+%Array* @__quantum__rt__array_create_1d(i32, i64)
+i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64)
+i64 @__quantum__rt__array_get_size_1d(%Array*)
+%Array* @__quantum__rt__array_slice_1d(%Array*, %Range, i1)
+void @__quantum__rt__array_record_output(i64, i8*)
+void @__quantum__rt__array_update_alias_count(%Array*, i32)
+void @__quantum__rt__array_update_reference_count(%Array*, i32)
+%BigInt* @__quantum__rt__bigint_add(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_bitand(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_bitnot(%BigInt*)
+%BigInt* @__quantum__rt__bigint_bitor(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_bitxor(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_create_array(i32, i8*)
+%BigInt* @__quantum__rt__bigint_create_i64(i64)
+%BigInt* @__quantum__rt__bigint_divide(%BigInt*, %BigInt*)
+bool @__quantum__rt__bigint_equal(%BigInt*, %BigInt*)
+i8* @__quantum__rt__bigint_get_data(%BigInt*)
+i32 @__quantum__rt__bigint_get_length(%BigInt*)
+bool @__quantum__rt__bigint_greater(%BigInt*, %BigInt*)
+bool @__quantum__rt__bigint_greater_eq(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_modulus(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_multiply(%BigInt*, %BigInt*)
+%BigInt* @__quantum__rt__bigint_negate(%BigInt*)
+%BigInt* @__quantum__rt__bigint_power(%BigInt*, i32)
+%BigInt* @__quantum__rt__bigint_shiftleft(%BigInt*, i64)
+%BigInt*@__quantum__rt__bigint_shiftright(%BigInt*, i64)
+void @__quantum__rt__bigint_subtract(%BigInt*, %BigInt*)
+%String* @__quantum__rt__bigint_to_string(%BigInt*)
+void @__quantum__rt__bigint_update_reference_count(%BigInt*, i32)
+void @__quantum__rt__bool_record_output(i1, i8*)
+%String* @__quantum__rt__bool_to_string(i1)
+%Callable* @__quantum__rt__callable_copy(%Callable*, bool)
+%Callable* @__quantum__rt__callable_create([4 x void(%Tuple*, %Tuple*, %Tuple*)*]*, [2 x void (%Tuple*, i32)]*, %Tuple*)
+void @__quantum__rt__callable_invoke(%Callable*, %Tuple*, %Tuple*)
+void @__quantum__rt__callable_make_adjoint(%Callable*)
+void @__quantum__rt__callable_make_controlled(%Callable*)
+void @__quantum__rt__callable_update_alias_count(%Callable*, i32)
+void @__quantum__rt__callable_update_reference_count(%Callable*, i32)
+void @__quantum__rt__capture_update_alias_count(%Callable*, i32)
+void @__quantum__rt__capture_update_reference_count(%Callable*, i32)
+void @__quantum__rt__double_record_output(double, i8*)
+%String* @__quantum__rt__double_to_string(double)
+void @__quantum__rt__fail(%String*)
+void @__quantum__rt__int_record_output(i64, i8*)
+%String* @__quantum__rt__int_to_string(i64)
+i8* @__quantum__rt__memory_allocate(i64)
+void @__quantum__rt__message(%String*)
+void @__quantum__rt__message_record_output(%String*)
+%String* @__quantum__rt__pauli_to_string(i2)
+%Qubit* @__quantum__rt__qubit_allocate()
+%Array* @__quantum__rt__qubit_allocate_array(i64)
+void @__quantum__rt__qubit_release(%Qubit*)
+void @__quantum__rt__qubit_release_array(%Array*)
+%String* @__quantum__rt__qubit_to_string(%Qubit*)
+%String* @__quantum__rt__range_to_string(%Range)
+bool @__quantum__rt__result_equal(%Result*, %Result*)
+%Result* @__quantum__rt__result_get_one()
+%Result* @__quantum__rt__result_get_zero()
+void @__quantum__rt__result_record_output(%Result*, i8*)
+%String* @__quantum__rt__result_to_string(%Result*)
+void @__quantum__rt__result_update_reference_count(%Result*, i32)
+%String* @__quantum__rt__string_concatenate(%String*, %String*)
+%String* @__quantum__rt__string_create(i8*)
+bool @__quantum__rt__string_equal(%String*, %String*)
+i8* @__quantum__rt__string_get_data(%String*)
+i32 @__quantum__rt__string_get_length(%String*)
+void @__quantum__rt__string_update_reference_count(%String*, i32)
+%Tuple* @__quantum__rt__tuple_copy(%Tuple*, i1)
+%Tuple* @__quantum__rt__tuple_create(i64)
+void @__quantum__rt__tuple_record_output(i64, i8*)
+void @__quantum__rt__tuple_update_alias_count(%Tuple*, i32)
+void @__quantum__rt__tuple_update_reference_count(%Tuple*, i32)
 ```
