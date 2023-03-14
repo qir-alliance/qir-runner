@@ -174,14 +174,6 @@ fn test_shor() -> Result<(), String> {
     run_bitcode(bitcode, None, 1)
 }
 
-// This test verifies the behavior of measurement in the Pauli-Y basis using basis changes, assertions,
-// and repeated measurements.
-#[test]
-fn test_measure_pauli_y() -> Result<(), String> {
-    let bitcode = include_bytes!("resources/measure_pauli_y.bc");
-    run_bitcode(bitcode, None, 1)
-}
-
 #[test]
 fn run_file_errors_on_invalid_ext() {
     let result = run_file("/some/bad/path", None, 1);

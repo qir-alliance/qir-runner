@@ -884,7 +884,10 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
 mod tests {
     use std::{ffi::c_void, ptr::null_mut};
 
-    use crate::qubit_is_zero;
+    use crate::{
+        __quantum__qis__assertmeasurementprobability__body, __quantum__qis__measure__body,
+        __quantum__qis__s__adj, __quantum__qis__z__body, qubit_is_zero,
+    };
 
     use super::{
         __quantum__qis__cnot__body, __quantum__qis__dumpmachine__body, __quantum__qis__h__body,
@@ -892,9 +895,16 @@ mod tests {
         __quantum__qis__x__body, __quantum__rt__qubit_allocate,
         __quantum__rt__qubit_allocate_array, __quantum__rt__qubit_release,
         __quantum__rt__qubit_release_array, __quantum__rt__result_equal,
-        __quantum__rt__result_get_one,
+        __quantum__rt__result_get_one, __quantum__rt__result_get_zero,
     };
-    use qir_stdlib::arrays::__quantum__rt__array_get_element_ptr_1d;
+    use qir_stdlib::{
+        arrays::{
+            __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
+            __quantum__rt__array_update_reference_count,
+        },
+        strings::__quantum__rt__pauli_to_string,
+        Pauli,
+    };
 
     #[test]
     fn basic_test_static() {
@@ -952,5 +962,74 @@ mod tests {
         assert!(
             qubit_is_zero(q0) != __quantum__rt__result_equal(r, __quantum__rt__result_get_one())
         );
+    }
+
+    #[allow(clippy::cast_ptr_alignment)]
+    #[test]
+    fn test_measure_pauli_y() {
+        let qubits = __quantum__rt__qubit_allocate_array(1);
+        unsafe {
+            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
+            let paulis = __quantum__rt__array_create_1d(1, 1);
+            let p = __quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>();
+            *p = Pauli::Y;
+
+            __quantum__qis__h__body(q);
+            __quantum__qis__s__adj(q);
+            __quantum__qis__h__body(q);
+
+            __quantum__qis__assertmeasurementprobability__body(
+                paulis,
+                qubits,
+                __quantum__rt__result_get_zero(),
+                1.0,
+                __quantum__rt__pauli_to_string(Pauli::Y),
+                1e-10,
+            );
+
+            let res = __quantum__qis__measure__body(paulis, qubits);
+            assert!(__quantum__rt__result_equal(
+                __quantum__rt__result_get_zero(),
+                res,
+            ));
+
+            __quantum__qis__assertmeasurementprobability__body(
+                paulis,
+                qubits,
+                __quantum__rt__result_get_zero(),
+                1.0,
+                __quantum__rt__pauli_to_string(Pauli::Y),
+                1e-10,
+            );
+
+            __quantum__qis__z__body(q);
+
+            __quantum__qis__assertmeasurementprobability__body(
+                paulis,
+                qubits,
+                __quantum__rt__result_get_one(),
+                1.0,
+                __quantum__rt__pauli_to_string(Pauli::Y),
+                1e-10,
+            );
+
+            let res = __quantum__qis__measure__body(paulis, qubits);
+            assert!(__quantum__rt__result_equal(
+                __quantum__rt__result_get_one(),
+                res,
+            ));
+
+            __quantum__qis__assertmeasurementprobability__body(
+                paulis,
+                qubits,
+                __quantum__rt__result_get_one(),
+                1.0,
+                __quantum__rt__pauli_to_string(Pauli::Y),
+                1e-10,
+            );
+
+            __quantum__rt__array_update_reference_count(paulis, -1);
+            __quantum__rt__qubit_release_array(qubits);
+        }
     }
 }
