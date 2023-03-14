@@ -974,10 +974,12 @@ mod tests {
             let p = __quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>();
             *p = Pauli::Y;
 
+            // Put the qubit into the |i⟩ state.
             __quantum__qis__h__body(q);
             __quantum__qis__s__adj(q);
             __quantum__qis__h__body(q);
 
+            // The qubit must have 100% probability of measuring Zero in the Pauli-Y basis when in |i⟩.
             __quantum__qis__assertmeasurementprobability__body(
                 paulis,
                 qubits,
@@ -987,12 +989,14 @@ mod tests {
                 1e-10,
             );
 
+            // Measurement must agree with probabilities and return Zero.
             let res = __quantum__qis__measure__body(paulis, qubits);
             assert!(__quantum__rt__result_equal(
                 __quantum__rt__result_get_zero(),
                 res,
             ));
 
+            // After measurement the qubit should be in the same |i⟩ state.
             __quantum__qis__assertmeasurementprobability__body(
                 paulis,
                 qubits,
@@ -1002,8 +1006,10 @@ mod tests {
                 1e-10,
             );
 
+            // Z gate rotates to the |-i⟩ state.
             __quantum__qis__z__body(q);
 
+            // The qubit must have 100% probability of measureing One in the Pauli-Y basis when in |-i⟩.
             __quantum__qis__assertmeasurementprobability__body(
                 paulis,
                 qubits,
@@ -1013,12 +1019,14 @@ mod tests {
                 1e-10,
             );
 
+            // Measurement must agree with probabilities and return One.
             let res = __quantum__qis__measure__body(paulis, qubits);
             assert!(__quantum__rt__result_equal(
                 __quantum__rt__result_get_one(),
                 res,
             ));
 
+            // After measurement the qubit should be in the same |-i⟩ state.
             __quantum__qis__assertmeasurementprobability__body(
                 paulis,
                 qubits,
