@@ -131,7 +131,7 @@ fn unmap_paulis(state: &mut SimulatorState, combined_list: Vec<(Pauli, usize)>) 
             Pauli::X => state.sim.h(qubit),
             Pauli::Y => {
                 state.sim.h(qubit);
-                state.sim.s(qubit);
+                state.sim.sadj(qubit);
                 state.sim.h(qubit);
             }
             _ => (),
