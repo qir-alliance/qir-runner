@@ -256,6 +256,12 @@ controlled_qubit_gate!(
     2
 );
 controlled_qubit_gate!(
+    /// QIR API for performing the CY gate with the given qubits.
+    __quantum__qis__cy__body,
+    QuantumSim::mcy,
+    1
+);
+controlled_qubit_gate!(
     /// QIR API for performing the CZ gate with the given qubits.
     __quantum__qis__cz__body,
     QuantumSim::mcz,
@@ -424,6 +430,62 @@ multicontrolled_qubit_rotation!(
     __quantum__qis__rz__ctl,
     QuantumSim::mcrz
 );
+
+/// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__rxx__body(
+    theta: c_double,
+    qubit1: *mut c_void,
+    qubit2: *mut c_void,
+) {
+    __quantum__qis__h__body(qubit1);
+
+    __quantum__qis__h__body(qubit2);
+
+    __quantum__qis__rzz__body(theta, qubit1, qubit2);
+
+    __quantum__qis__h__body(qubit2);
+
+    __quantum__qis__h__body(qubit1);
+}
+
+/// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__ryy__body(
+    theta: c_double,
+    qubit1: *mut c_void,
+    qubit2: *mut c_void,
+) {
+    __quantum__qis__h__body(qubit1);
+    __quantum__qis__s__body(qubit1);
+    __quantum__qis__h__body(qubit1);
+
+    __quantum__qis__h__body(qubit2);
+    __quantum__qis__s__body(qubit2);
+    __quantum__qis__h__body(qubit2);
+
+    __quantum__qis__rzz__body(theta, qubit1, qubit2);
+
+    __quantum__qis__h__body(qubit2);
+    __quantum__qis__s__adj(qubit2);
+    __quantum__qis__h__body(qubit2);
+
+    __quantum__qis__h__body(qubit1);
+    __quantum__qis__s__adj(qubit1);
+    __quantum__qis__h__body(qubit1);
+}
+
+/// QIR API for applying a joint rotation Pauli-Z rotation with the given angle for the two target qubit.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__rzz__body(
+    theta: c_double,
+    qubit1: *mut c_void,
+    qubit2: *mut c_void,
+) {
+    __quantum__qis__cx__body(qubit2, qubit1);
+    __quantum__qis__rz__body(theta, qubit1);
+    __quantum__qis__cx__body(qubit2, qubit1);
+}
 
 /// QIR API for applying a rotation about the given Pauli axis with the given angle and qubit.
 #[no_mangle]
@@ -886,10 +948,13 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
 
 #[cfg(test)]
 mod tests {
-    use std::{ffi::c_void, ptr::null_mut};
+    use std::{f64::consts::PI, ffi::c_void, ptr::null_mut};
 
     use crate::{
-        __quantum__qis__s__adj, map_to_z_basis, qubit_is_zero, unmap_from_z_basis, SIM_STATE,
+        __quantum__qis__cx__body, __quantum__qis__cz__body, __quantum__qis__rx__body,
+        __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body,
+        __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__s__adj,
+        __quantum__qis__s__body, map_to_z_basis, qubit_is_zero, unmap_from_z_basis, SIM_STATE,
     };
 
     use super::{
@@ -1070,5 +1135,100 @@ mod tests {
             __quantum__rt__array_update_reference_count(paulis, -1);
             __quantum__rt__qubit_release_array(qubits);
         }
+    }
+
+    #[test]
+    fn test_joint_zz() {
+        let check_qubit = __quantum__rt__qubit_allocate();
+        let q0 = __quantum__rt__qubit_allocate();
+        let q1 = __quantum__rt__qubit_allocate();
+
+        __quantum__qis__h__body(check_qubit);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__cx__body(check_qubit, q1);
+
+        __quantum__qis__rzz__body(PI / 2.0, q0, q1);
+        __quantum__qis__rz__body(-PI / 2.0, q0);
+        __quantum__qis__rz__body(-PI / 2.0, q1);
+
+        __quantum__qis__cz__body(q0, q1);
+
+        __quantum__qis__cx__body(check_qubit, q1);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__h__body(check_qubit);
+
+        assert!(qubit_is_zero(check_qubit));
+        assert!(qubit_is_zero(q0));
+        assert!(qubit_is_zero(q1));
+    }
+
+    #[test]
+    fn test_joint_yy() {
+        let check_qubit = __quantum__rt__qubit_allocate();
+        let q0 = __quantum__rt__qubit_allocate();
+        let q1 = __quantum__rt__qubit_allocate();
+
+        __quantum__qis__h__body(check_qubit);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__cx__body(check_qubit, q1);
+
+        __quantum__qis__h__body(q0);
+        __quantum__qis__s__adj(q0);
+        __quantum__qis__h__body(q0);
+        __quantum__qis__h__body(q1);
+        __quantum__qis__s__adj(q1);
+        __quantum__qis__h__body(q1);
+
+        __quantum__qis__ryy__body(PI / 2.0, q0, q1);
+        __quantum__qis__ry__body(-PI / 2.0, q0);
+        __quantum__qis__ry__body(-PI / 2.0, q1);
+
+        __quantum__qis__h__body(q1);
+        __quantum__qis__s__body(q1);
+        __quantum__qis__h__body(q1);
+        __quantum__qis__h__body(q0);
+        __quantum__qis__s__body(q0);
+        __quantum__qis__h__body(q0);
+
+        __quantum__qis__cz__body(q0, q1);
+
+        __quantum__qis__cx__body(check_qubit, q1);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__h__body(check_qubit);
+
+        assert!(qubit_is_zero(check_qubit));
+        assert!(qubit_is_zero(q0));
+        assert!(qubit_is_zero(q1));
+    }
+
+    #[test]
+    fn test_joint_xx() {
+        let check_qubit = __quantum__rt__qubit_allocate();
+        let q0 = __quantum__rt__qubit_allocate();
+        let q1 = __quantum__rt__qubit_allocate();
+
+        __quantum__qis__h__body(check_qubit);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__cx__body(check_qubit, q1);
+
+        __quantum__qis__h__body(q0);
+        __quantum__qis__h__body(q1);
+
+        __quantum__qis__rxx__body(PI / 2.0, q0, q1);
+        __quantum__qis__rx__body(-PI / 2.0, q0);
+        __quantum__qis__rx__body(-PI / 2.0, q1);
+
+        __quantum__qis__h__body(q0);
+        __quantum__qis__h__body(q1);
+
+        __quantum__qis__cz__body(q0, q1);
+
+        __quantum__qis__cx__body(check_qubit, q1);
+        __quantum__qis__cx__body(check_qubit, q0);
+        __quantum__qis__h__body(check_qubit);
+
+        assert!(qubit_is_zero(check_qubit));
+        assert!(qubit_is_zero(q0));
+        assert!(qubit_is_zero(q1));
     }
 }
