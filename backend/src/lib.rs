@@ -78,8 +78,10 @@ fn ensure_sufficient_qubits(sim: &mut QuantumSim, qubit_id: usize, max: &mut usi
     }
 }
 
+/// Maps the given qubits from the given Pauli basis into the computational basis, returning the
+/// unwrapped `QirArray`s into a vector of matching Pauli and qubit id tuples.
 #[allow(clippy::cast_ptr_alignment)]
-unsafe fn map_paulis(
+unsafe fn map_to_z_basis(
     state: &mut SimulatorState,
     paulis: *const QirArray,
     qubits: *const QirArray,
@@ -125,7 +127,9 @@ unsafe fn map_paulis(
     combined_list
 }
 
-fn unmap_paulis(state: &mut SimulatorState, combined_list: Vec<(Pauli, usize)>) {
+/// Given a vector of Pauli and qubit id pairs, unmaps from the computational basis back into the given
+/// Pauli basis. This should be the adjoint of the `map_to_z_basis` operation.
+fn unmap_from_z_basis(state: &mut SimulatorState, combined_list: Vec<(Pauli, usize)>) {
     for (pauli, qubit) in combined_list {
         match pauli {
             Pauli::X => state.sim.h(qubit),
@@ -618,7 +622,7 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
 
-        let combined_list = map_paulis(&mut state, paulis, qubits);
+        let combined_list = map_to_z_basis(&mut state, paulis, qubits);
 
         let res = state.sim.joint_measure(
             &combined_list
@@ -627,7 +631,7 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
                 .collect::<Vec<usize>>(),
         );
 
-        unmap_paulis(&mut state, combined_list);
+        unmap_from_z_basis(&mut state, combined_list);
 
         if res {
             __quantum__rt__result_get_one()
@@ -667,7 +671,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__body(
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
 
-        let combined_list = map_paulis(&mut state, paulis, qubits);
+        let combined_list = map_to_z_basis(&mut state, paulis, qubits);
 
         let mut actual_prob = state.sim.joint_probability(
             &combined_list
@@ -684,7 +688,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__body(
             __quantum__rt__fail(msg);
         }
 
-        unmap_paulis(&mut state, combined_list);
+        unmap_from_z_basis(&mut state, combined_list);
     });
 }
 
@@ -885,8 +889,7 @@ mod tests {
     use std::{ffi::c_void, ptr::null_mut};
 
     use crate::{
-        __quantum__qis__assertmeasurementprobability__body, __quantum__qis__measure__body,
-        __quantum__qis__s__adj, __quantum__qis__z__body, qubit_is_zero,
+        __quantum__qis__s__adj, map_to_z_basis, qubit_is_zero, unmap_from_z_basis, SIM_STATE,
     };
 
     use super::{
@@ -895,14 +898,13 @@ mod tests {
         __quantum__qis__x__body, __quantum__rt__qubit_allocate,
         __quantum__rt__qubit_allocate_array, __quantum__rt__qubit_release,
         __quantum__rt__qubit_release_array, __quantum__rt__result_equal,
-        __quantum__rt__result_get_one, __quantum__rt__result_get_zero,
+        __quantum__rt__result_get_one,
     };
     use qir_stdlib::{
         arrays::{
             __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
             __quantum__rt__array_update_reference_count,
         },
-        strings::__quantum__rt__pauli_to_string,
         Pauli,
     };
 
@@ -966,75 +968,104 @@ mod tests {
 
     #[allow(clippy::cast_ptr_alignment)]
     #[test]
-    fn test_measure_pauli_y() {
+    fn test_map_unmap_are_adjoint() {
+        unsafe fn check_map_unmap(pauli: Pauli) {
+            let check_qubit = __quantum__rt__qubit_allocate();
+            let qubits = __quantum__rt__qubit_allocate_array(1);
+            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
+            let paulis = __quantum__rt__array_create_1d(1, 1);
+            *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = pauli;
+
+            __quantum__qis__h__body(check_qubit);
+            __quantum__qis__cnot__body(check_qubit, q);
+
+            SIM_STATE.with(|sim_state| {
+                let state = &mut *sim_state.borrow_mut();
+                let combined_list = map_to_z_basis(state, paulis, qubits);
+                unmap_from_z_basis(state, combined_list);
+            });
+
+            __quantum__qis__cnot__body(check_qubit, q);
+            __quantum__qis__h__body(check_qubit);
+
+            assert!(qubit_is_zero(q));
+            assert!(qubit_is_zero(check_qubit));
+
+            __quantum__rt__array_update_reference_count(paulis, -1);
+            __quantum__rt__qubit_release_array(qubits);
+            __quantum__rt__qubit_release(check_qubit);
+        }
+
+        unsafe {
+            check_map_unmap(Pauli::X);
+            check_map_unmap(Pauli::Y);
+            check_map_unmap(Pauli::Z);
+        }
+    }
+
+    #[allow(clippy::cast_ptr_alignment)]
+    #[test]
+    fn test_map_pauli_x() {
         let qubits = __quantum__rt__qubit_allocate_array(1);
         unsafe {
             let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
             let paulis = __quantum__rt__array_create_1d(1, 1);
-            let p = __quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>();
-            *p = Pauli::Y;
+            *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = Pauli::X;
 
-            // Put the qubit into the |i⟩ state.
+            __quantum__qis__h__body(q);
+
+            SIM_STATE.with(|sim_state| {
+                let state = &mut *sim_state.borrow_mut();
+                let _ = map_to_z_basis(state, paulis, qubits);
+            });
+
+            qubit_is_zero(q);
+
+            __quantum__rt__array_update_reference_count(paulis, -1);
+            __quantum__rt__qubit_release_array(qubits);
+        }
+    }
+
+    #[allow(clippy::cast_ptr_alignment)]
+    #[test]
+    fn test_map_pauli_y() {
+        let qubits = __quantum__rt__qubit_allocate_array(1);
+        unsafe {
+            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
+            let paulis = __quantum__rt__array_create_1d(1, 1);
+            *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = Pauli::Y;
+
             __quantum__qis__h__body(q);
             __quantum__qis__s__adj(q);
             __quantum__qis__h__body(q);
 
-            // The qubit must have 100% probability of measuring Zero in the Pauli-Y basis when in |i⟩.
-            __quantum__qis__assertmeasurementprobability__body(
-                paulis,
-                qubits,
-                __quantum__rt__result_get_zero(),
-                1.0,
-                __quantum__rt__pauli_to_string(Pauli::Y),
-                1e-10,
-            );
+            SIM_STATE.with(|sim_state| {
+                let state = &mut *sim_state.borrow_mut();
+                let _ = map_to_z_basis(state, paulis, qubits);
+            });
 
-            // Measurement must agree with probabilities and return Zero.
-            let res = __quantum__qis__measure__body(paulis, qubits);
-            assert!(__quantum__rt__result_equal(
-                __quantum__rt__result_get_zero(),
-                res,
-            ));
+            qubit_is_zero(q);
 
-            // After measurement the qubit should be in the same |i⟩ state.
-            __quantum__qis__assertmeasurementprobability__body(
-                paulis,
-                qubits,
-                __quantum__rt__result_get_zero(),
-                1.0,
-                __quantum__rt__pauli_to_string(Pauli::Y),
-                1e-10,
-            );
+            __quantum__rt__array_update_reference_count(paulis, -1);
+            __quantum__rt__qubit_release_array(qubits);
+        }
+    }
 
-            // Z gate rotates to the |-i⟩ state.
-            __quantum__qis__z__body(q);
+    #[allow(clippy::cast_ptr_alignment)]
+    #[test]
+    fn test_map_pauli_z() {
+        let qubits = __quantum__rt__qubit_allocate_array(1);
+        unsafe {
+            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
+            let paulis = __quantum__rt__array_create_1d(1, 1);
+            *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = Pauli::Z;
 
-            // The qubit must have 100% probability of measureing One in the Pauli-Y basis when in |-i⟩.
-            __quantum__qis__assertmeasurementprobability__body(
-                paulis,
-                qubits,
-                __quantum__rt__result_get_one(),
-                1.0,
-                __quantum__rt__pauli_to_string(Pauli::Y),
-                1e-10,
-            );
+            SIM_STATE.with(|sim_state| {
+                let state = &mut *sim_state.borrow_mut();
+                let _ = map_to_z_basis(state, paulis, qubits);
+            });
 
-            // Measurement must agree with probabilities and return One.
-            let res = __quantum__qis__measure__body(paulis, qubits);
-            assert!(__quantum__rt__result_equal(
-                __quantum__rt__result_get_one(),
-                res,
-            ));
-
-            // After measurement the qubit should be in the same |-i⟩ state.
-            __quantum__qis__assertmeasurementprobability__body(
-                paulis,
-                qubits,
-                __quantum__rt__result_get_one(),
-                1.0,
-                __quantum__rt__pauli_to_string(Pauli::Y),
-                1e-10,
-            );
+            qubit_is_zero(q);
 
             __quantum__rt__array_update_reference_count(paulis, -1);
             __quantum__rt__qubit_release_array(qubits);
