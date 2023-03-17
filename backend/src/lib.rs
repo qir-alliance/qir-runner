@@ -967,20 +967,17 @@ mod tests {
     use std::{f64::consts::PI, ffi::c_void, ptr::null_mut};
 
     use crate::{
-        __quantum__qis__cx__body, __quantum__qis__cz__body, __quantum__qis__mresetz__body,
+        __quantum__qis__cnot__body, __quantum__qis__cx__body, __quantum__qis__cz__body,
+        __quantum__qis__dumpmachine__body, __quantum__qis__h__body, __quantum__qis__m__body,
+        __quantum__qis__mresetz__body, __quantum__qis__mz__body, __quantum__qis__read_result__body,
         __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body,
         __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body,
-        __quantum__qis__s__adj, __quantum__qis__s__body, map_to_z_basis, qubit_is_zero,
-        unmap_from_z_basis, SIM_STATE, result_bool::__quantum__rt__result_get_zero,
-    };
-
-    use super::{
-        __quantum__qis__cnot__body, __quantum__qis__dumpmachine__body, __quantum__qis__h__body,
-        __quantum__qis__m__body, __quantum__qis__mz__body, __quantum__qis__read_result__body,
-        __quantum__qis__x__body, __quantum__rt__qubit_allocate,
-        __quantum__rt__qubit_allocate_array, __quantum__rt__qubit_release,
-        __quantum__rt__qubit_release_array, __quantum__rt__result_equal,
-        __quantum__rt__result_get_one,
+        __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
+        __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
+        __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
+        __quantum__rt__result_equal, map_to_z_basis, qubit_is_zero,
+        result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
+        unmap_from_z_basis, SIM_STATE,
     };
     use qir_stdlib::{
         arrays::{
