@@ -615,6 +615,22 @@ pub extern "C" fn __quantum__qis__reset__body(qubit: *mut c_void) {
     });
 }
 
+/// QIR API for measuring the given qubit and then resetting it in the computational basis.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void) -> *mut c_void {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
+
+        if state.sim.measure(qubit as usize) {
+            state.sim.x(qubit as usize);
+            __quantum__rt__result_get_one()
+        } else {
+            __quantum__rt__result_get_zero()
+        }
+    })
+}
+
 /// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_void) {
@@ -951,10 +967,11 @@ mod tests {
     use std::{f64::consts::PI, ffi::c_void, ptr::null_mut};
 
     use crate::{
-        __quantum__qis__cx__body, __quantum__qis__cz__body, __quantum__qis__rx__body,
-        __quantum__qis__rxx__body, __quantum__qis__ry__body, __quantum__qis__ryy__body,
-        __quantum__qis__rz__body, __quantum__qis__rzz__body, __quantum__qis__s__adj,
-        __quantum__qis__s__body, map_to_z_basis, qubit_is_zero, unmap_from_z_basis, SIM_STATE,
+        __quantum__qis__cx__body, __quantum__qis__cz__body, __quantum__qis__mresetz__body,
+        __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body,
+        __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body,
+        __quantum__qis__s__adj, __quantum__qis__s__body, map_to_z_basis, qubit_is_zero,
+        unmap_from_z_basis, SIM_STATE, result_bool::__quantum__rt__result_get_zero,
     };
 
     use super::{
@@ -1230,5 +1247,22 @@ mod tests {
         assert!(qubit_is_zero(check_qubit));
         assert!(qubit_is_zero(q0));
         assert!(qubit_is_zero(q1));
+    }
+
+    #[test]
+    fn test_mresetz() {
+        let qubit = __quantum__rt__qubit_allocate();
+        assert!(qubit_is_zero(qubit));
+        assert!(__quantum__rt__result_equal(
+            __quantum__rt__result_get_zero(),
+            __quantum__qis__mresetz__body(qubit)
+        ));
+        assert!(qubit_is_zero(qubit));
+        __quantum__qis__x__body(qubit);
+        assert!(__quantum__rt__result_equal(
+            __quantum__rt__result_get_one(),
+            __quantum__qis__mresetz__body(qubit)
+        ));
+        assert!(qubit_is_zero(qubit));
     }
 }
