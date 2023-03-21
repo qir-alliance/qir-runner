@@ -1008,9 +1008,9 @@ mod tests {
         __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, capture_state, get_captured_state, map_to_z_basis,
-        qubit_is_zero, result_bool::__quantum__rt__result_get_one,
-        result_bool::__quantum__rt__result_get_zero, unmap_from_z_basis, SIM_STATE, clear_captured_state,
+        __quantum__rt__result_equal, capture_state, clear_captured_state, get_captured_state,
+        map_to_z_basis, qubit_is_zero, result_bool::__quantum__rt__result_get_one,
+        result_bool::__quantum__rt__result_get_zero, unmap_from_z_basis, SIM_STATE,
     };
     use num_traits::ToPrimitive;
     use qir_stdlib::{
