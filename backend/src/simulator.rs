@@ -69,6 +69,29 @@ impl QuantumSim {
         }
     }
 
+    pub(crate) fn state_snapshot(&mut self) -> Vec<(BigUint, Complex64)> {
+        // Swap all the entries in the state to be ordered by qubit identifier. This makes
+        // interpreting the state easier for external consumers that don't have access to the id map.
+        let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
+        self.flush_queue(&sorted_keys, FlushLevel::HRxRy);
+
+        sorted_keys.sort_unstable();
+        sorted_keys.iter().enumerate().for_each(|(index, &key)| {
+            if index != self.id_map[&key] {
+                self.swap_qubit_state(self.id_map[&key], index);
+                let swapped_key = *self
+                    .id_map
+                    .iter()
+                    .find(|(_, &value)| value == index)
+                    .unwrap()
+                    .0;
+                *(self.id_map.get_mut(&swapped_key).unwrap()) = self.id_map[&key];
+                *(self.id_map.get_mut(&key).unwrap()) = index;
+            }
+        });
+        self.state.clone().drain().collect()
+    }
+
     /// Allocates a fresh qubit, returning its identifier. Note that this will use the lowest available
     /// identifier, and may result in qubits being allocated "in the middle" of an existing register
     /// if those identifiers are available.

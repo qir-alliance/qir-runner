@@ -18,6 +18,7 @@ mod simulator;
 
 use bitvec::prelude::*;
 use nearly_zero::NearlyZero;
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use simulator::QuantumSim;
 use std::cell::RefCell;
@@ -45,13 +46,15 @@ struct SimulatorState {
     pub sim: QuantumSim,
     pub res: BitVec,
     pub max_qubit_id: usize,
+    pub dumps: Vec<Vec<(BigUint, Complex64)>>,
 }
 
 thread_local! {
     static SIM_STATE: RefCell<SimulatorState> = RefCell::new(SimulatorState {
         sim: QuantumSim::default(),
         res: bitvec![],
-        max_qubit_id: 0
+        max_qubit_id: 0,
+        dumps: vec![],
     });
 }
 
@@ -68,6 +71,7 @@ pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
         state.sim = QuantumSim::default();
         state.res = bitvec![];
         state.max_qubit_id = 0;
+        state.dumps.clear();
     });
 }
 
@@ -946,6 +950,35 @@ pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const C
     }
 }
 
+/// Rust API for triggering a state capture. This will cache a snapshot of the current quantum simulator state
+/// into thread local storage, which can later be queried via [`get_captured_state`].
+pub fn capture_state() {
+    SIM_STATE.with(|sim_state| {
+        let mut state = sim_state.borrow_mut();
+        let snapshot = state.sim.state_snapshot();
+        state.dumps.push(snapshot);
+    });
+}
+
+/// Rust API for getting a copy of any captured quantum states. The state must previously have been captured
+/// via calls to [`capture_state`]. All states captured are returned in order they were captured. Captured
+/// state can be cleared via [`clear_captured_state`].
+#[must_use]
+pub fn get_captured_state() -> Vec<Vec<(BigUint, Complex64)>> {
+    SIM_STATE.with(|sim_state| {
+        let state = sim_state.borrow_mut();
+        state.dumps.clone()
+    })
+}
+
+/// Rust API for clearing the currently cached captured states.
+pub fn clear_captured_state() {
+    SIM_STATE.with(|sim_state| {
+        let mut state = sim_state.borrow_mut();
+        state.dumps.clear();
+    });
+}
+
 /// QIR API for dumping full internal simulator state.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
@@ -975,10 +1008,11 @@ mod tests {
         __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, map_to_z_basis, qubit_is_zero,
-        result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
-        unmap_from_z_basis, SIM_STATE,
+        __quantum__rt__result_equal, capture_state, get_captured_state, map_to_z_basis,
+        qubit_is_zero, result_bool::__quantum__rt__result_get_one,
+        result_bool::__quantum__rt__result_get_zero, unmap_from_z_basis, SIM_STATE, clear_captured_state,
     };
+    use num_traits::ToPrimitive;
     use qir_stdlib::{
         arrays::{
             __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
@@ -1043,6 +1077,32 @@ mod tests {
         assert!(
             qubit_is_zero(q0) != __quantum__rt__result_equal(r, __quantum__rt__result_get_one())
         );
+    }
+
+    #[test]
+    fn test_capture_state() {
+        let qubit = __quantum__rt__qubit_allocate();
+        capture_state();
+        __quantum__qis__x__body(qubit);
+        capture_state();
+        __quantum__qis__h__body(qubit);
+        capture_state();
+        __quantum__qis__h__body(qubit);
+        __quantum__qis__x__body(qubit);
+        capture_state();
+        let caps = get_captured_state();
+        assert_eq!(caps.len(), 4);
+        assert_eq!(caps[0].len(), 1);
+        assert_eq!(caps[0][0].0.to_usize().unwrap(), 0);
+        assert_eq!(caps[1].len(), 1);
+        assert_eq!(caps[1][0].0.to_usize().unwrap(), 1);
+        assert_eq!(caps[2].len(), 2);
+        assert!((caps[2][0].1.re - std::f64::consts::FRAC_1_SQRT_2) < std::f64::EPSILON);
+        assert_eq!(caps[3].len(), 1);
+        assert_eq!(caps[0][0].0.to_usize().unwrap(), 0);
+        assert_eq!(get_captured_state().len(), 4);
+        clear_captured_state();
+        assert!(get_captured_state().is_empty());
     }
 
     #[allow(clippy::cast_ptr_alignment)]
