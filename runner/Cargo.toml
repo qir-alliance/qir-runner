@@ -13,6 +13,6 @@ features = ["llvm14-0"]
 [dependencies]
 qir-stdlib = { path = "../stdlib", features = ["range-support"] }
 qir-backend = { path = "../backend" }
-clap = "4.1.13"
+clap = "4.2.0"
 msvc_spectre_libs = { version = "0.1", features = ["error"] }
 
