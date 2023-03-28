@@ -18,6 +18,7 @@ mod simulator;
 
 use bitvec::prelude::*;
 use nearly_zero::NearlyZero;
+use num_bigint::BigUint;
 use num_complex::Complex64;
 use simulator::QuantumSim;
 use std::cell::RefCell;
@@ -946,6 +947,15 @@ pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const C
     }
 }
 
+/// Rust API for getting a snapshot of current quantum state.
+#[must_use]
+pub fn capture_quantum_state() -> Vec<(BigUint, Complex64)> {
+    SIM_STATE.with(|sim_state| {
+        let mut state = sim_state.borrow_mut();
+        state.sim.get_state()
+    })
+}
+
 /// QIR API for dumping full internal simulator state.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
@@ -975,10 +985,11 @@ mod tests {
         __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, map_to_z_basis, qubit_is_zero,
+        __quantum__rt__result_equal, capture_quantum_state, map_to_z_basis, qubit_is_zero,
         result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
         unmap_from_z_basis, SIM_STATE,
     };
+    use num_bigint::BigUint;
     use qir_stdlib::{
         arrays::{
             __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
@@ -1261,5 +1272,26 @@ mod tests {
             __quantum__qis__mresetz__body(qubit)
         ));
         assert!(qubit_is_zero(qubit));
+    }
+
+    #[test]
+    fn test_capture_quantum_state() {
+        let qubit = __quantum__rt__qubit_allocate();
+        let state = capture_quantum_state();
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, BigUint::from(0u32));
+        __quantum__qis__x__body(qubit);
+        let state = capture_quantum_state();
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, BigUint::from(1u32));
+        __quantum__qis__h__body(qubit);
+        let state = capture_quantum_state();
+        assert_eq!(state.len(), 2);
+        assert_eq!(state[0].1, -state[1].1);
+        __quantum__qis__h__body(qubit);
+        __quantum__qis__x__body(qubit);
+        let state = capture_quantum_state();
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, BigUint::from(0u32));
     }
 }
