@@ -1263,6 +1263,38 @@
 <a href="#1263" id="1263">1263</a>
 <a href="#1264" id="1264">1264</a>
 <a href="#1265" id="1265">1265</a>
+<a href="#1266" id="1266">1266</a>
+<a href="#1267" id="1267">1267</a>
+<a href="#1268" id="1268">1268</a>
+<a href="#1269" id="1269">1269</a>
+<a href="#1270" id="1270">1270</a>
+<a href="#1271" id="1271">1271</a>
+<a href="#1272" id="1272">1272</a>
+<a href="#1273" id="1273">1273</a>
+<a href="#1274" id="1274">1274</a>
+<a href="#1275" id="1275">1275</a>
+<a href="#1276" id="1276">1276</a>
+<a href="#1277" id="1277">1277</a>
+<a href="#1278" id="1278">1278</a>
+<a href="#1279" id="1279">1279</a>
+<a href="#1280" id="1280">1280</a>
+<a href="#1281" id="1281">1281</a>
+<a href="#1282" id="1282">1282</a>
+<a href="#1283" id="1283">1283</a>
+<a href="#1284" id="1284">1284</a>
+<a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
+<a href="#1288" id="1288">1288</a>
+<a href="#1289" id="1289">1289</a>
+<a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
+<a href="#1293" id="1293">1293</a>
+<a href="#1294" id="1294">1294</a>
+<a href="#1295" id="1295">1295</a>
+<a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1283,6 +1315,7 @@
 
 <span class="kw">use </span>bitvec::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>nearly_zero::NearlyZero;
+<span class="kw">use </span>num_bigint::BigUint;
 <span class="kw">use </span>num_complex::Complex64;
 <span class="kw">use </span>simulator::QuantumSim;
 <span class="kw">use </span>std::cell::RefCell;
@@ -2211,6 +2244,15 @@
     }
 }
 
+<span class="doccomment">/// Rust API for getting a snapshot of current quantum state.
+</span><span class="attr">#[must_use]
+</span><span class="kw">pub fn </span>capture_quantum_state() -&gt; Vec&lt;(BigUint, Complex64)&gt; {
+    SIM_STATE.with(|sim_state| {
+        <span class="kw">let </span><span class="kw-2">mut </span>state = sim_state.borrow_mut();
+        state.sim.get_state()
+    })
+}
+
 <span class="doccomment">/// QIR API for dumping full internal simulator state.
 </span><span class="attr">#[no_mangle]
 </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__dumpmachine__body(location: <span class="kw-2">*mut </span>c_void) {
@@ -2240,10 +2282,11 @@
         __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, map_to_z_basis, qubit_is_zero,
+        __quantum__rt__result_equal, capture_quantum_state, map_to_z_basis, qubit_is_zero,
         result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
         unmap_from_z_basis, SIM_STATE,
     };
+    <span class="kw">use </span>num_bigint::BigUint;
     <span class="kw">use </span>qir_stdlib::{
         arrays::{
             __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
@@ -2526,6 +2569,27 @@
             __quantum__qis__mresetz__body(qubit)
         ));
         <span class="macro">assert!</span>(qubit_is_zero(qubit));
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_capture_quantum_state() {
+        <span class="kw">let </span>qubit = __quantum__rt__qubit_allocate();
+        <span class="kw">let </span>state = capture_quantum_state();
+        <span class="macro">assert_eq!</span>(state.len(), <span class="number">1</span>);
+        <span class="macro">assert_eq!</span>(state[<span class="number">0</span>].<span class="number">0</span>, BigUint::from(<span class="number">0u32</span>));
+        __quantum__qis__x__body(qubit);
+        <span class="kw">let </span>state = capture_quantum_state();
+        <span class="macro">assert_eq!</span>(state.len(), <span class="number">1</span>);
+        <span class="macro">assert_eq!</span>(state[<span class="number">0</span>].<span class="number">0</span>, BigUint::from(<span class="number">1u32</span>));
+        __quantum__qis__h__body(qubit);
+        <span class="kw">let </span>state = capture_quantum_state();
+        <span class="macro">assert_eq!</span>(state.len(), <span class="number">2</span>);
+        <span class="macro">assert_eq!</span>(state[<span class="number">0</span>].<span class="number">1</span>, -state[<span class="number">1</span>].<span class="number">1</span>);
+        __quantum__qis__h__body(qubit);
+        __quantum__qis__x__body(qubit);
+        <span class="kw">let </span>state = capture_quantum_state();
+        <span class="macro">assert_eq!</span>(state.len(), <span class="number">1</span>);
+        <span class="macro">assert_eq!</span>(state[<span class="number">0</span>].<span class="number">0</span>, BigUint::from(<span class="number">0u32</span>));
     }
 }
 </code></pre></div>
