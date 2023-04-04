@@ -1544,4 +1544,21 @@ mod tests {
             3,
         );
     }
+
+    #[test]
+    fn test_rz_phase_convention() {
+        let mut sim = QuantumSim::default();
+        let q0 = sim.allocate();
+        sim.z(q0);
+        let z_state = sim.get_state();
+        let mut sim = QuantumSim::default();
+        let q0 = sim.allocate();
+        sim.rz(PI, q0);
+        let rzpi_state = sim.get_state();
+        assert_eq!(z_state.len(), 1);
+        assert_eq!(rzpi_state.len(), 1);
+        assert_eq!(z_state[0].0, rzpi_state[0].0);
+        assert!(almost_equal(z_state[0].1.re, rzpi_state[0].1.re));
+        assert!(almost_equal(z_state[0].1.im, rzpi_state[0].1.im));
+    }
 }
