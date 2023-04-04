@@ -780,7 +780,10 @@ impl QuantumSim {
     pub(crate) fn rz(&mut self, theta: f64, target: usize) {
         self.flush_queue(&[target], FlushLevel::HRxRy);
         self.controlled_gate(&[], target, |(index, val), target| {
-            Self::rz_transform((index, val), theta, target)
+            // By convention, avoid introducing the global phase of i when performing Rz rotation,
+            // so use phase transform instead of rz_transform.
+            let phase = Complex64::new(theta.cos(), theta.sin());
+            Self::phase_transform(phase, (index, val), target)
         });
     }
 
@@ -882,7 +885,8 @@ impl QuantumSim {
     fn mcrotation(&mut self, ctls: &[usize], theta: f64, target: usize, sign_flip: bool) {
         // Calculate the matrix entries for the rotation by the given angle, respecting the sign flip.
         let m00 = Complex64::new(f64::cos(theta / 2.0), 0.0);
-        let m01 = Complex64::new(0.0, f64::sin(theta / -2.0))
+        let phase = Complex64::new(0.0, f64::sin(theta / -2.0));
+        let m01 = phase
             * if sign_flip {
                 -Complex64::i()
             } else {
@@ -890,14 +894,20 @@ impl QuantumSim {
             };
 
         if m00.is_nearly_zero() {
-            // This is just a Pauli rotation.
+            // This is just a Pauli rotation with a phase.
+            if let Some((first, rest)) = ctls.split_first() {
+                self.mcphase(rest, phase, *first);
+            }
             if sign_flip {
                 self.mcy(ctls, target);
             } else {
                 self.mcx(ctls, target);
             }
         } else if m01.is_nearly_zero() {
-            // This is just identity, so we can no-op.
+            // This is just application of a phase.
+            if let Some((first, rest)) = ctls.split_first() {
+                self.mcphase(rest, m00, *first);
+            }
         } else {
             let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
             let mut new_state = SparseState::default();
