@@ -93,7 +93,7 @@ impl QuantumSim {
             }
         });
 
-        let mut state: Vec<(BigUint, Complex64)> = self.state.clone().drain().collect();
+        let mut state = self.state.clone().drain().collect::<Vec<_>>();
         state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         (state, sorted_keys.len())
     }
