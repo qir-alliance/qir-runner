@@ -69,8 +69,10 @@ impl QuantumSim {
         }
     }
 
+    /// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
+    /// the total number of currently allocated qubits to help in interpreting the sparse state.
     #[must_use]
-    pub(crate) fn get_state(&mut self) -> Vec<(BigUint, Complex64)> {
+    pub(crate) fn get_state(&mut self) -> (Vec<(BigUint, Complex64)>, usize) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
         let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
@@ -91,7 +93,9 @@ impl QuantumSim {
             }
         });
 
-        self.state.clone().drain().collect()
+        let mut state: Vec<(BigUint, Complex64)> = self.state.clone().drain().collect();
+        state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        (state, sorted_keys.len())
     }
 
     /// Allocates a fresh qubit, returning its identifier. Note that this will use the lowest available
