@@ -947,9 +947,11 @@ pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const C
     }
 }
 
-/// Rust API for getting a snapshot of current quantum state.
+/// Rust API for getting a snapshot of current quantum state. The state is a sorted copy of
+/// the current sparse state represented by a vector of pairs of indices and complex numbers along
+/// with the total number of currently allocated qubits to help in interpreting the state.
 #[must_use]
-pub fn capture_quantum_state() -> Vec<(BigUint, Complex64)> {
+pub fn capture_quantum_state() -> (Vec<(BigUint, Complex64)>, usize) {
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
         state.sim.get_state()
@@ -1277,20 +1279,31 @@ mod tests {
     #[test]
     fn test_capture_quantum_state() {
         let qubit = __quantum__rt__qubit_allocate();
-        let state = capture_quantum_state();
+        let (state, qubit_count) = capture_quantum_state();
+        assert_eq!(qubit_count, 1);
         assert_eq!(state.len(), 1);
         assert_eq!(state[0].0, BigUint::from(0u32));
         __quantum__qis__x__body(qubit);
-        let state = capture_quantum_state();
+        let (state, qubit_count) = capture_quantum_state();
+        assert_eq!(qubit_count, 1);
         assert_eq!(state.len(), 1);
         assert_eq!(state[0].0, BigUint::from(1u32));
         __quantum__qis__h__body(qubit);
-        let state = capture_quantum_state();
+        let qubit2 = __quantum__rt__qubit_allocate();
+        let (state, qubit_count) = capture_quantum_state();
+        assert_eq!(qubit_count, 2);
         assert_eq!(state.len(), 2);
         assert_eq!(state[0].1, -state[1].1);
         __quantum__qis__h__body(qubit);
         __quantum__qis__x__body(qubit);
-        let state = capture_quantum_state();
+        let (state, qubit_count) = capture_quantum_state();
+        assert_eq!(qubit_count, 2);
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, BigUint::from(0u32));
+        __quantum__rt__qubit_release(qubit);
+        __quantum__rt__qubit_release(qubit2);
+        let (state, qubit_count) = capture_quantum_state();
+        assert_eq!(qubit_count, 0);
         assert_eq!(state.len(), 1);
         assert_eq!(state[0].0, BigUint::from(0u32));
     }
