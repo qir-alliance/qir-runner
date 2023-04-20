@@ -83,6 +83,7 @@ pub unsafe extern "C" fn __quantum__rt__fail(str: *const CString) {
     panic!("{}", (*str).to_str().expect("Unable to convert string"));
 }
 
+#[cfg(feature = "message-support")]
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__message(str: *const CString) {
     println!("{}", (*str).to_str().expect("Unable to convert string"));
