@@ -140,20 +140,28 @@ impl QuantumSim {
             .remove(&id)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {id}."));
 
-        // Measure and collapse the state for this qubit.
-        let res = self.measure_impl(loc);
+        if self.id_map.is_empty() {
+            // When no qubits are allocated, we can reset the sparse state to a clean ground, so
+            // any accumulated phase dissappears.
+            let mut initial_state = FxHashMap::default();
+            initial_state.insert(BigUint::zero(), Complex64::one());
+            self.state = initial_state;
+        } else {
+            // Measure and collapse the state for this qubit.
+            let res = self.measure_impl(loc);
 
-        // If the result of measurement was true then we must set the bit for this qubit in every key
-        // to zero to "reset" the qubit.
-        if res {
-            self.state = self
-                .state
-                .drain()
-                .fold(FxHashMap::default(), |mut accum, (mut k, v)| {
-                    k.set_bit(loc as u64, false);
-                    accum.insert(k, v);
-                    accum
-                });
+            // If the result of measurement was true then we must set the bit for this qubit in every key
+            // to zero to "reset" the qubit.
+            if res {
+                self.state =
+                    self.state
+                        .drain()
+                        .fold(FxHashMap::default(), |mut accum, (mut k, v)| {
+                            k.set_bit(loc as u64, false);
+                            accum.insert(k, v);
+                            accum
+                        });
+            }
         }
     }
 
