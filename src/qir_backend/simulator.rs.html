@@ -1539,6 +1539,14 @@
 <a href="#1539" id="1539">1539</a>
 <a href="#1540" id="1540">1540</a>
 <a href="#1541" id="1541">1541</a>
+<a href="#1542" id="1542">1542</a>
+<a href="#1543" id="1543">1543</a>
+<a href="#1544" id="1544">1544</a>
+<a href="#1545" id="1545">1545</a>
+<a href="#1546" id="1546">1546</a>
+<a href="#1547" id="1547">1547</a>
+<a href="#1548" id="1548">1548</a>
+<a href="#1549" id="1549">1549</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1681,20 +1689,28 @@
             .remove(<span class="kw-2">&amp;</span>id)
             .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {id}.&quot;</span>));
 
-        <span class="comment">// Measure and collapse the state for this qubit.
-        </span><span class="kw">let </span>res = <span class="self">self</span>.measure_impl(loc);
+        <span class="kw">if </span><span class="self">self</span>.id_map.is_empty() {
+            <span class="comment">// When no qubits are allocated, we can reset the sparse state to a clean ground, so
+            // any accumulated phase dissappears.
+            </span><span class="kw">let </span><span class="kw-2">mut </span>initial_state = FxHashMap::default();
+            initial_state.insert(BigUint::zero(), Complex64::one());
+            <span class="self">self</span>.state = initial_state;
+        } <span class="kw">else </span>{
+            <span class="comment">// Measure and collapse the state for this qubit.
+            </span><span class="kw">let </span>res = <span class="self">self</span>.measure_impl(loc);
 
-        <span class="comment">// If the result of measurement was true then we must set the bit for this qubit in every key
-        // to zero to &quot;reset&quot; the qubit.
-        </span><span class="kw">if </span>res {
-            <span class="self">self</span>.state = <span class="self">self
-                </span>.state
-                .drain()
-                .fold(FxHashMap::default(), |<span class="kw-2">mut </span>accum, (<span class="kw-2">mut </span>k, v)| {
-                    k.set_bit(loc <span class="kw">as </span>u64, <span class="bool-val">false</span>);
-                    accum.insert(k, v);
-                    accum
-                });
+            <span class="comment">// If the result of measurement was true then we must set the bit for this qubit in every key
+            // to zero to &quot;reset&quot; the qubit.
+            </span><span class="kw">if </span>res {
+                <span class="self">self</span>.state =
+                    <span class="self">self</span>.state
+                        .drain()
+                        .fold(FxHashMap::default(), |<span class="kw-2">mut </span>accum, (<span class="kw-2">mut </span>k, v)| {
+                            k.set_bit(loc <span class="kw">as </span>u64, <span class="bool-val">false</span>);
+                            accum.insert(k, v);
+                            accum
+                        });
+            }
         }
     }
 
