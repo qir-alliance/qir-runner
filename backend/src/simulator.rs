@@ -82,13 +82,11 @@ impl QuantumSim {
         sorted_keys.iter().enumerate().for_each(|(index, &key)| {
             if index != self.id_map[&key] {
                 self.swap_qubit_state(self.id_map[&key], index);
-                let swapped_key = *self
-                    .id_map
-                    .iter()
-                    .find(|(_, &value)| value == index)
-                    .unwrap()
-                    .0;
-                *(self.id_map.get_mut(&swapped_key).unwrap()) = self.id_map[&key];
+                if let Some((&swapped_key, _)) =
+                    self.id_map.iter().find(|(_, &value)| value == index)
+                {
+                    *(self.id_map.get_mut(&swapped_key).unwrap()) = self.id_map[&key];
+                }
                 *(self.id_map.get_mut(&key).unwrap()) = index;
             }
         });
@@ -177,13 +175,11 @@ impl QuantumSim {
         sorted_keys.iter().enumerate().for_each(|(index, &key)| {
             if index != self.id_map[&key] {
                 self.swap_qubit_state(self.id_map[&key], index);
-                let swapped_key = *self
-                    .id_map
-                    .iter()
-                    .find(|(_, &value)| value == index)
-                    .unwrap()
-                    .0;
-                *(self.id_map.get_mut(&swapped_key).unwrap()) = self.id_map[&key];
+                if let Some((&swapped_key, _)) =
+                    self.id_map.iter().find(|(_, &value)| value == index)
+                {
+                    *(self.id_map.get_mut(&swapped_key).unwrap()) = self.id_map[&key];
+                }
                 *(self.id_map.get_mut(&key).unwrap()) = index;
             }
         });
@@ -1268,6 +1264,17 @@ mod tests {
             }
         }
         assert_eq!(val1, val2);
+    }
+
+    /// Verify that dump after swap on released qubits doesn't crash.
+    #[test]
+    fn test_swap_dump() {
+        let mut sim = QuantumSim::new();
+        let q = sim.allocate();
+        let inner_q = sim.allocate();
+        sim.swap_qubit_ids(q, inner_q);
+        sim.release(inner_q);
+        sim.dump();
     }
 
     /// Utility for testing operation equivalence.
