@@ -343,18 +343,30 @@ impl QuantumSim {
         self.h_flag.set_bit(qubit1 as u64, h_val2);
         self.h_flag.set_bit(qubit2 as u64, h_val1);
 
-        if let Some(rx_val) = self.rx_queue.get(&qubit1) {
-            self.rx_queue.insert(qubit2, *rx_val);
+        let x_angle1 = self.rx_queue.get(&qubit1).copied();
+        let x_angle2 = self.rx_queue.get(&qubit2).copied();
+        if let Some(angle) = x_angle1 {
+            self.rx_queue.insert(qubit2, angle);
+        } else {
+            self.rx_queue.remove(&qubit2);
         }
-        if let Some(rx_val) = self.rx_queue.get(&qubit1) {
-            self.rx_queue.insert(qubit1, *rx_val);
+        if let Some(angle) = x_angle2 {
+            self.rx_queue.insert(qubit1, angle);
+        } else {
+            self.rx_queue.remove(&qubit1);
         }
 
-        if let Some(ry_val) = self.ry_queue.get(&qubit1) {
-            self.ry_queue.insert(qubit2, *ry_val);
+        let y_angle1 = self.ry_queue.get(&qubit1).copied();
+        let y_angle2 = self.ry_queue.get(&qubit2).copied();
+        if let Some(ry_val) = y_angle1 {
+            self.ry_queue.insert(qubit2, ry_val);
+        } else {
+            self.ry_queue.remove(&qubit2);
         }
-        if let Some(ry_val) = self.ry_queue.get(&qubit1) {
-            self.ry_queue.insert(qubit1, *ry_val);
+        if let Some(ry_val) = y_angle2 {
+            self.ry_queue.insert(qubit1, ry_val);
+        } else {
+            self.ry_queue.remove(&qubit1);
         }
 
         let qubit1_mapped = *self
@@ -953,7 +965,9 @@ impl QuantumSim {
 
     /// Single qubit Rx gate.
     pub(crate) fn rx(&mut self, theta: f64, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
+        if self.h_flag.bit(target as u64) || self.ry_queue.contains_key(&target) {
+            self.flush_queue(&[target], FlushLevel::HRxRy);
+        }
         if let Some(entry) = self.rx_queue.get_mut(&target) {
             *entry += theta;
             if entry.is_nearly_zero() {
@@ -1277,6 +1291,20 @@ mod tests {
         sim.dump();
     }
 
+    /// Verify that swap preserves queued rotations.
+    #[test]
+    fn test_swap_rotations() {
+        let mut sim = QuantumSim::new();
+        let (q1, q2) = (sim.allocate(), sim.allocate());
+        sim.rx(PI / 7.0, q1);
+        sim.ry(PI / 7.0, q2);
+        sim.swap_qubit_ids(q1, q2);
+        sim.rx(-PI / 7.0, q2);
+        sim.ry(-PI / 7.0, q1);
+        assert!(sim.joint_probability(&[q1]).is_nearly_zero());
+        assert!(sim.joint_probability(&[q2]).is_nearly_zero());
+    }
+
     /// Utility for testing operation equivalence.
     fn assert_operation_equal_referenced<F1, F2>(mut op: F1, mut reference: F2, count: usize)
     where
@@ -1305,7 +1333,7 @@ mod tests {
                 qs.push(q);
             }
 
-            // To test queuing, try the op after running each of the different intermediate operationsthat
+            // To test queuing, try the op after running each of the different intermediate operations that
             // can be queued.
             match inner_op {
                 QueuedOp::NoOp => (),
