@@ -362,7 +362,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             if func.get_params().len() == 1 {
                 execution_engine.add_global_mapping(
                     func,
-                    qir_backend::legacy::__quantum__rt__result_record_output as usize,
+                    qir_backend::legacy_output::__quantum__rt__result_record_output as usize,
                 );
                 declarations.remove("__quantum__rt__result_record_output");
                 Some(true)

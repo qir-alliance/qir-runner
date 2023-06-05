@@ -804,7 +804,7 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
     );
 }
 
-pub mod legacy {
+pub mod legacy_output {
     use std::ffi::c_void;
 
     use crate::{

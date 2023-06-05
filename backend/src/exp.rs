@@ -44,13 +44,11 @@ pub unsafe extern "C" fn __quantum__qis__exp__body(
 
         let paulis_size = __quantum__rt__array_get_size_1d(paulis);
         let paulis: Vec<Pauli> = (0..paulis_size)
-            .into_iter()
             .map(|index| *__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>())
             .collect();
 
         let qubits_size = __quantum__rt__array_get_size_1d(qubits);
         let targets: Vec<usize> = (0..qubits_size)
-            .into_iter()
             .map(|index| {
                 let qubit_id = *__quantum__rt__array_get_element_ptr_1d(qubits, index)
                     .cast::<*mut c_void>() as usize;
@@ -110,7 +108,6 @@ pub unsafe extern "C" fn __quantum__qis__exp__ctl(
 
         let paulis_size = __quantum__rt__array_get_size_1d(args.paulis);
         let paulis: Vec<Pauli> = (0..paulis_size)
-            .into_iter()
             .map(|index| {
                 *__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::<Pauli>()
             })
@@ -118,7 +115,6 @@ pub unsafe extern "C" fn __quantum__qis__exp__ctl(
 
         let qubits_size = __quantum__rt__array_get_size_1d(args.qubits);
         let targets: Vec<usize> = (0..qubits_size)
-            .into_iter()
             .map(|index| {
                 let qubit_id = *__quantum__rt__array_get_element_ptr_1d(args.qubits, index)
                     .cast::<*mut c_void>() as usize;
@@ -236,35 +232,33 @@ impl QuantumSim {
             let id_coeff = 2.0 * id_coeff - pauli_coeff;
             if pauli_coeff.is_nearly_zero() {
                 // pauli_coeff is zero, so use only the states multiplied by id_coeff.
-                self.state.drain().into_iter().fold(
-                    SparseState::default(),
-                    |mut accum, (index, value)| {
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, value)| {
                         if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
                             accum.insert(index, value * id_coeff);
                         }
                         accum
-                    },
-                )
+                    })
             } else if id_coeff.is_nearly_zero() {
                 // id_coeff is zero, so use only the states multiplied by pauli_coeff.
-                self.state.drain().into_iter().fold(
-                    SparseState::default(),
-                    |mut accum, (index, value)| {
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, value)| {
                         if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
                             accum.insert(index, value * pauli_coeff);
                         }
                         accum
-                    },
-                )
+                    })
             } else {
                 // Both coefficients are non-zero, so modify each of the state records.
-                self.state.drain().into_iter().fold(
-                    SparseState::default(),
-                    |mut accum, (index, val)| {
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, val)| {
                         if ctls.iter().all(|c| index.bit(*c)) {
                             accum.insert(
                                 index.clone(),
@@ -278,8 +272,7 @@ impl QuantumSim {
                             accum.insert(index, val);
                         }
                         accum
-                    },
-                )
+                    })
             }
         } else {
             // The operation includes some non-Pauli-Z rotations.
