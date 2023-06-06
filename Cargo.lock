@@ -682,7 +682,7 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitvec",
  "criterion",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "qir-runner"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "clap 4.3.2",
  "inkwell",
@@ -708,7 +708,7 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "llvm-tools",
  "num-bigint",
