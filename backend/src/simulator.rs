@@ -475,20 +475,20 @@ impl QuantumSim {
     {
         let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
 
-        self.state = self.state.drain().into_iter().fold(
-            SparseState::default(),
-            |mut accum, (index, value)| {
-                let (k, v) = if ctls.iter().all(|c| index.bit(*c)) {
-                    op((index, value), target)
-                } else {
-                    (index, value)
-                };
-                if !v.is_nearly_zero() {
-                    accum.insert(k, v);
-                }
-                accum
-            },
-        );
+        self.state =
+            self.state
+                .drain()
+                .fold(SparseState::default(), |mut accum, (index, value)| {
+                    let (k, v) = if ctls.iter().all(|c| index.bit(*c)) {
+                        op((index, value), target)
+                    } else {
+                        (index, value)
+                    };
+                    if !v.is_nearly_zero() {
+                        accum.insert(k, v);
+                    }
+                    accum
+                });
     }
 
     /// Performs the Pauli-X transformation on a single state.
