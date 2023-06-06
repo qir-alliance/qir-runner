@@ -1305,6 +1305,32 @@ mod tests {
         assert!(sim.joint_probability(&[q2]).is_nearly_zero());
     }
 
+    /// Verify that two queued Rx rotations that sum to zero are treated as
+    /// a no-op.
+    #[test]
+    fn test_rx_queue_nearly_zero() {
+        let mut sim = QuantumSim::new();
+        let q = sim.allocate();
+        sim.rx(PI / 4.0, q);
+        assert_eq!(sim.state.len(), 1);
+        sim.rx(-PI / 4.0, q);
+        assert_eq!(sim.state.len(), 1);
+        assert!(sim.joint_probability(&[q]).is_nearly_zero());
+    }
+
+    /// Verify that two queued Ry rotations that sum to zero are treated as
+    /// a no-op.
+    #[test]
+    fn test_ry_queue_nearly_zero() {
+        let mut sim = QuantumSim::new();
+        let q = sim.allocate();
+        sim.ry(PI / 4.0, q);
+        assert_eq!(sim.state.len(), 1);
+        sim.ry(-PI / 4.0, q);
+        assert_eq!(sim.state.len(), 1);
+        assert!(sim.joint_probability(&[q]).is_nearly_zero());
+    }
+
     /// Utility for testing operation equivalence.
     fn assert_operation_equal_referenced<F1, F2>(mut op: F1, mut reference: F2, count: usize)
     where
