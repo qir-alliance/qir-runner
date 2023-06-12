@@ -17,7 +17,7 @@ env:
 jobs:
   fmt:
     name: Code Style
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Install LLVM and Clang
@@ -45,7 +45,7 @@ jobs:
 
   benches:
     name: Benches
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Install LLVM and Clang
@@ -61,7 +61,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Install LLVM and Clang
@@ -78,7 +78,7 @@ jobs:
 
   nightly:
     name: Build Nightly
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Install LLVM and Clang
@@ -105,6 +105,7 @@ jobs:
       matrix:
         config:
           - { os: "ubuntu-20.04", arch: "amd64" }
+          - { os: "ubuntu-22.04", arch: "amd64" }
           - { os: "windows-2019", arch: "amd64" }
           - { os: "macos-11", arch: "amd64" }
     steps:
@@ -144,7 +145,7 @@ jobs:
           path: LICENSE
 
   docs:
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     needs: fmt
     steps:
       - uses: actions/checkout@v3
