@@ -1625,7 +1625,7 @@
 /// `QuantumSim` represents an independant simulation.
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>QuantumSim {
     <span class="doccomment">/// The structure that describes the current quantum state.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) state: FxHashMap&lt;BigUint, Complex64&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) state: SparseState,
 
     <span class="doccomment">/// The mapping from qubit identifiers to internal state locations.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) id_map: FxHashMap&lt;usize, usize&gt;,
@@ -1667,7 +1667,7 @@
     <span class="doccomment">/// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     </span><span class="attr">#[must_use]
     </span><span class="kw">fn </span>new() -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span><span class="kw-2">mut </span>initial_state = FxHashMap::default();
+        <span class="kw">let </span><span class="kw-2">mut </span>initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
@@ -1751,7 +1751,7 @@
         <span class="kw">if </span><span class="self">self</span>.id_map.is_empty() {
             <span class="comment">// When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
-            </span><span class="kw">let </span><span class="kw-2">mut </span>initial_state = FxHashMap::default();
+            </span><span class="kw">let </span><span class="kw-2">mut </span>initial_state = SparseState::default();
             initial_state.insert(BigUint::zero(), Complex64::one());
             <span class="self">self</span>.state = initial_state;
         } <span class="kw">else </span>{
@@ -1764,7 +1764,7 @@
                 <span class="self">self</span>.state =
                     <span class="self">self</span>.state
                         .drain()
-                        .fold(FxHashMap::default(), |<span class="kw-2">mut </span>accum, (<span class="kw-2">mut </span>k, v)| {
+                        .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (<span class="kw-2">mut </span>k, v)| {
                             k.set_bit(loc <span class="kw">as </span>u64, <span class="bool-val">false</span>);
                             accum.insert(k, v);
                             accum
@@ -1924,7 +1924,7 @@
             accum | (BigUint::one() &lt;&lt; loc)
         });
 
-        <span class="kw">let </span><span class="kw-2">mut </span>new_state = FxHashMap::default();
+        <span class="kw">let </span><span class="kw-2">mut </span>new_state = SparseState::default();
         <span class="kw">let </span><span class="kw-2">mut </span>scaling_denominator = <span class="number">0.0</span>;
         <span class="kw">for </span>(k, v) <span class="kw">in </span><span class="self">self</span>.state.drain() {
             <span class="kw">if </span>((<span class="kw-2">&amp;</span>k &amp; <span class="kw-2">&amp;</span>mask).count_ones() &amp; <span class="number">1 </span>&gt; <span class="number">0</span>) == val {
@@ -2005,7 +2005,7 @@
         </span><span class="self">self</span>.state = <span class="self">self
             </span>.state
             .drain()
-            .fold(FxHashMap::default(), |<span class="kw-2">mut </span>accum, (k, v)| {
+            .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (k, v)| {
                 <span class="kw">if </span>k.bit(q1) == k.bit(q2) {
                     accum.insert(k, v);
                 } <span class="kw">else </span>{
