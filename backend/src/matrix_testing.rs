@@ -7,9 +7,9 @@ use num_complex::Complex64;
 use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
-use rustc_hash::FxHashMap;
 
 use crate::nearly_zero::NearlyZero;
+use crate::simulator::SparseState;
 use crate::simulator::{FlushLevel, QuantumSim};
 
 impl QuantumSim {
@@ -80,7 +80,7 @@ impl QuantumSim {
         self.state = self
             .state
             .drain()
-            .fold(FxHashMap::default(), |mut accum, (index, val)| {
+            .fold(SparseState::default(), |mut accum, (index, val)| {
                 let i = &index / op_size;
                 let l = (&index % op_size)
                     .to_usize()

@@ -15,7 +15,7 @@ pub type SparseState = FxHashMap<BigUint, Complex64>;
 /// `QuantumSim` represents an independant simulation.
 pub(crate) struct QuantumSim {
     /// The structure that describes the current quantum state.
-    pub(crate) state: FxHashMap<BigUint, Complex64>,
+    pub(crate) state: SparseState,
 
     /// The mapping from qubit identifiers to internal state locations.
     pub(crate) id_map: FxHashMap<usize, usize>,
@@ -57,7 +57,7 @@ impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
     fn new() -> Self {
-        let mut initial_state = FxHashMap::default();
+        let mut initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
@@ -141,7 +141,7 @@ impl QuantumSim {
         if self.id_map.is_empty() {
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
-            let mut initial_state = FxHashMap::default();
+            let mut initial_state = SparseState::default();
             initial_state.insert(BigUint::zero(), Complex64::one());
             self.state = initial_state;
         } else {
@@ -154,7 +154,7 @@ impl QuantumSim {
                 self.state =
                     self.state
                         .drain()
-                        .fold(FxHashMap::default(), |mut accum, (mut k, v)| {
+                        .fold(SparseState::default(), |mut accum, (mut k, v)| {
                             k.set_bit(loc as u64, false);
                             accum.insert(k, v);
                             accum
@@ -314,7 +314,7 @@ impl QuantumSim {
             accum | (BigUint::one() << loc)
         });
 
-        let mut new_state = FxHashMap::default();
+        let mut new_state = SparseState::default();
         let mut scaling_denominator = 0.0;
         for (k, v) in self.state.drain() {
             if ((&k & &mask).count_ones() & 1 > 0) == val {
@@ -395,7 +395,7 @@ impl QuantumSim {
         self.state = self
             .state
             .drain()
-            .fold(FxHashMap::default(), |mut accum, (k, v)| {
+            .fold(SparseState::default(), |mut accum, (k, v)| {
                 if k.bit(q1) == k.bit(q2) {
                     accum.insert(k, v);
                 } else {
