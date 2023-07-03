@@ -17,9 +17,6 @@ pub mod exp;
 #[cfg(test)]
 mod matrix_testing;
 
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
 use crate::nearly_zero::NearlyZero;
 use num_bigint::BigUint;
 use num_complex::Complex64;
