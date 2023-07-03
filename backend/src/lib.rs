@@ -13,14 +13,10 @@ pub mod result_bool;
 
 pub mod exp;
 
-mod nearly_zero;
-mod simulator;
-
 use bitvec::prelude::*;
-use nearly_zero::NearlyZero;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use simulator::QuantumSim;
+use quantum_sparse_sim::QuantumSim;
 use std::cell::RefCell;
 use std::convert::TryInto;
 use std::ffi::c_char;
@@ -36,11 +32,6 @@ pub use qir_stdlib::{
     arrays::*, bigints::*, callables::*, math::*, output_recording::*, range_support::*,
     strings::*, tuples::*, *,
 };
-
-// Additional test infrastructure is available in matrix_testing that allows comparing the transformations
-// implemented here with direct matrix application to the state vector.
-#[cfg(test)]
-mod matrix_testing;
 
 struct SimulatorState {
     pub sim: QuantumSim,
@@ -58,7 +49,10 @@ thread_local! {
 
 /// Sets the seed for the pseudo-random number generator used during measurements.
 pub fn set_rng_seed(seed: u64) {
-    simulator::set_rng_seed(seed);
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        state.sim.set_rng_seed(seed);
+    });
 }
 
 /// Initializes the execution environment.
@@ -726,10 +720,7 @@ pub fn qubit_is_zero(qubit: *mut c_void) -> bool {
         let state = &mut *sim_state.borrow_mut();
         ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
 
-        state
-            .sim
-            .joint_probability(&[qubit as usize])
-            .is_nearly_zero()
+        state.sim.qubit_is_zero(qubit as usize)
     })
 }
 

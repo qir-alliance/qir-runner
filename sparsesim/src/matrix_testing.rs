@@ -8,9 +8,7 @@ use num_traits::One;
 use num_traits::ToPrimitive;
 use num_traits::Zero;
 
-use crate::nearly_zero::NearlyZero;
-use crate::simulator::SparseState;
-use crate::simulator::{FlushLevel, QuantumSim};
+use crate::{nearly_zero::NearlyZero, FlushLevel, QuantumSim, SparseState};
 
 impl QuantumSim {
     /// Applies the given unitary to the given targets, extending the unitary to accomodate controls if any.
