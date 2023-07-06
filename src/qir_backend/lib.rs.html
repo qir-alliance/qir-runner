@@ -1299,15 +1299,6 @@
 <a href="#1299" id="1299">1299</a>
 <a href="#1300" id="1300">1300</a>
 <a href="#1301" id="1301">1301</a>
-<a href="#1302" id="1302">1302</a>
-<a href="#1303" id="1303">1303</a>
-<a href="#1304" id="1304">1304</a>
-<a href="#1305" id="1305">1305</a>
-<a href="#1306" id="1306">1306</a>
-<a href="#1307" id="1307">1307</a>
-<a href="#1308" id="1308">1308</a>
-<a href="#1309" id="1309">1309</a>
-<a href="#1310" id="1310">1310</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1323,14 +1314,10 @@
 
 <span class="kw">pub mod </span>exp;
 
-<span class="kw">mod </span>nearly_zero;
-<span class="kw">mod </span>simulator;
-
 <span class="kw">use </span>bitvec::prelude::<span class="kw-2">*</span>;
-<span class="kw">use </span>nearly_zero::NearlyZero;
 <span class="kw">use </span>num_bigint::BigUint;
 <span class="kw">use </span>num_complex::Complex64;
-<span class="kw">use </span>simulator::QuantumSim;
+<span class="kw">use </span>quantum_sparse_sim::QuantumSim;
 <span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::convert::TryInto;
 <span class="kw">use </span>std::ffi::c_char;
@@ -1346,11 +1333,6 @@
     arrays::<span class="kw-2">*</span>, bigints::<span class="kw-2">*</span>, callables::<span class="kw-2">*</span>, math::<span class="kw-2">*</span>, output_recording::<span class="kw-2">*</span>, range_support::<span class="kw-2">*</span>,
     strings::<span class="kw-2">*</span>, tuples::<span class="kw-2">*</span>, <span class="kw-2">*</span>,
 };
-
-<span class="comment">// Additional test infrastructure is available in matrix_testing that allows comparing the transformations
-// implemented here with direct matrix application to the state vector.
-</span><span class="attr">#[cfg(test)]
-</span><span class="kw">mod </span>matrix_testing;
 
 <span class="kw">struct </span>SimulatorState {
     <span class="kw">pub </span>sim: QuantumSim,
@@ -1368,7 +1350,10 @@
 
 <span class="doccomment">/// Sets the seed for the pseudo-random number generator used during measurements.
 </span><span class="kw">pub fn </span>set_rng_seed(seed: u64) {
-    simulator::set_rng_seed(seed);
+    SIM_STATE.with(|sim_state| {
+        <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
+        state.sim.set_rng_seed(seed);
+    });
 }
 
 <span class="doccomment">/// Initializes the execution environment.
@@ -2036,10 +2021,7 @@
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
 
-        state
-            .sim
-            .joint_probability(<span class="kw-2">&amp;</span>[qubit <span class="kw">as </span>usize])
-            .is_nearly_zero()
+        state.sim.qubit_is_zero(qubit <span class="kw">as </span>usize)
     })
 }
 
