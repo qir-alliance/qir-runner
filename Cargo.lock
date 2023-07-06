@@ -685,13 +685,11 @@ version = "0.4.0"
 dependencies = [
  "bitvec",
  "criterion",
- "ndarray",
  "num-bigint",
  "num-complex",
- "num-traits",
  "qir-stdlib",
+ "quantum-sparse-sim",
  "rand",
- "rustc-hash",
 ]
 
 [[package]]
@@ -712,6 +710,19 @@ dependencies = [
  "llvm-tools",
  "num-bigint",
  "rand",
+]
+
+[[package]]
+name = "quantum-sparse-sim"
+version = "0.4.0"
+dependencies = [
+ "ndarray",
+ "num-bigint",
+ "num-complex",
+ "num-traits",
+ "qir-stdlib",
+ "rand",
+ "rustc-hash",
 ]
 
 [[package]]
