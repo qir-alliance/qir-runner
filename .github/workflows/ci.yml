@@ -129,7 +129,8 @@ jobs:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: |
             target/release/libqir_stdlib.a
-            stdlib/include/*
+            stdlib/include/qir_stdlib.def
+            stdlib/include/qir_stdlib.h
             runner/NOTICE.txt
             LICENSE
       - name: Artifacts executable
