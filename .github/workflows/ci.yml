@@ -123,6 +123,15 @@ jobs:
         run: cargo build -vv --release
       - name: Test
         run: cargo test -vv --release -- --nocapture
+      - name: qir-stdlib Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
+          path: |
+            target/release/libqir_stdlib.a
+            stdlib/include/*
+            runner/NOTICE.txt
+            LICENSE
       - name: Artifacts executable
         uses: actions/upload-artifact@v3
         with:
