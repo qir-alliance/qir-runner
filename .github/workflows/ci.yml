@@ -135,7 +135,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
-          path: target/release/libqir_stdlib.lib
+          path: target/release/qir_stdlib.lib
       - name: qir-stdlib Artifact (Definition file)
         if: ${{ matrix.config.os == 'windows-2019' }}
         uses: actions/upload-artifact@v3
