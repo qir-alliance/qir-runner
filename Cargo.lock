@@ -527,9 +527,9 @@ dependencies = [
 
 [[package]]
 name = "msvc_spectre_libs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb99fe7d32f24bd2116ef2c1b05745f0070c8676ce4c91a24ba3a5e1ccbbc9f6"
+checksum = "6431d928428b689805ff8b2a0687760c3d1aa9845d165535a619e1c028bfbbb1"
 dependencies = [
  "cc",
 ]
