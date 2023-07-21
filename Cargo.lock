@@ -166,22 +166,23 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.11"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1640e5cc7fb47dbb8338fd471b105e7ed6c3cb2aeb00c2e067127ffd3764a05d"
+checksum = "5b0827b011f6f8ab38590295339817b0d26f344aa4932c3ced71b45b0c54b4a9"
 dependencies = [
  "clap_builder",
 ]
 
 [[package]]
 name = "clap_builder"
-version = "4.3.11"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98c59138d527eeaf9b53f35a77fcc1fad9d883116070c63d5de1c7dc7b00c72b"
+checksum = "9441b403be87be858db6a23edb493e7f694761acdc3343d5a0fcaafd304cbc9e"
 dependencies = [
  "anstream",
  "anstyle",
  "clap_lex 0.5.0",
+ "once_cell",
  "strsim",
 ]
 
@@ -526,9 +527,9 @@ dependencies = [
 
 [[package]]
 name = "msvc_spectre_libs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb99fe7d32f24bd2116ef2c1b05745f0070c8676ce4c91a24ba3a5e1ccbbc9f6"
+checksum = "6431d928428b689805ff8b2a0687760c3d1aa9845d165535a619e1c028bfbbb1"
 dependencies = [
  "cc",
 ]
@@ -696,7 +697,7 @@ dependencies = [
 name = "qir-runner"
 version = "0.4.0"
 dependencies = [
- "clap 4.3.11",
+ "clap 4.3.17",
  "inkwell",
  "msvc_spectre_libs",
  "qir-backend",
