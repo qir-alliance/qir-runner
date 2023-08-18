@@ -610,20 +610,30 @@ pub extern "C" fn __quantum__qis__reset__body(qubit: *mut c_void) {
     });
 }
 
-/// QIR API for measuring the given qubit and then resetting it in the computational basis.
+/// QIR API for measuring the given qubit and storing the measured value with the given result identifier,
+/// then resetting it in the computational basis.
 #[no_mangle]
-pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void) -> *mut c_void {
+pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void, result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
+        let res_id = result as usize;
         ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
 
-        if state.sim.measure(qubit as usize) {
-            state.sim.x(qubit as usize);
-            __quantum__rt__result_get_one()
-        } else {
-            __quantum__rt__result_get_zero()
+        if state.res.len() < res_id + 1 {
+            state.res.resize(res_id + 1, false);
         }
-    })
+
+        let res = state.sim.measure(qubit as usize);
+
+        if res {
+            state.sim.x(qubit as usize);
+        }
+
+        *state
+            .res
+            .get_mut(res_id)
+            .expect("Result with given id missing after expansion.") = res;
+    });
 }
 
 /// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
@@ -979,8 +989,7 @@ mod tests {
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
         __quantum__rt__result_equal, capture_quantum_state, map_to_z_basis, qubit_is_zero,
-        result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
-        unmap_from_z_basis, SIM_STATE,
+        result_bool::__quantum__rt__result_get_one, unmap_from_z_basis, SIM_STATE,
     };
     use num_bigint::BigUint;
     use qir_stdlib::{
@@ -1253,17 +1262,15 @@ mod tests {
     #[test]
     fn test_mresetz() {
         let qubit = __quantum__rt__qubit_allocate();
+        let r0 = std::ptr::null_mut();
+        let r1 = 1 as *mut c_void;
         assert!(qubit_is_zero(qubit));
-        assert!(__quantum__rt__result_equal(
-            __quantum__rt__result_get_zero(),
-            __quantum__qis__mresetz__body(qubit)
-        ));
+        __quantum__qis__mresetz__body(qubit, r0);
+        assert!(!__quantum__qis__read_result__body(r0));
         assert!(qubit_is_zero(qubit));
         __quantum__qis__x__body(qubit);
-        assert!(__quantum__rt__result_equal(
-            __quantum__rt__result_get_one(),
-            __quantum__qis__mresetz__body(qubit)
-        ));
+        __quantum__qis__mresetz__body(qubit, r1);
+        assert!(__quantum__qis__read_result__body(r1));
         assert!(qubit_is_zero(qubit));
     }
 
