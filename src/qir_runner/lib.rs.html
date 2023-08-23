@@ -463,6 +463,24 @@
 <a href="#463" id="463">463</a>
 <a href="#464" id="464">464</a>
 <a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
+<a href="#481" id="481">481</a>
+<a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -772,8 +790,8 @@
     <span class="macro">bind!</span>(__quantum__qis__isnan__body, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__qis__isnegativeinfinity__body, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__qis__log__body, <span class="number">1</span>);
-    <span class="macro">bind!</span>(__quantum__qis__m__body, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__qis__measure__body, <span class="number">2</span>);
+    <span class="macro">bind!</span>(__quantum__qis__mresetz__body, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__qis__mz__body, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__qis__nan__body, <span class="number">0</span>);
     <span class="macro">bind!</span>(__quantum__qis__r__adj, <span class="number">3</span>);
@@ -841,6 +859,24 @@
             <span class="prelude-val">None
         </span>},
     );
+
+    <span class="comment">// calls to __quantum__qis__m__body may use either dynamic or static results, so bind to the right
+    // implementation based on number of arguments.
+    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="string">&quot;__quantum__qis__m__body&quot;</span>) {
+        <span class="kw">if </span>func.get_params().len() == <span class="number">2 </span>{
+            execution_engine
+                .add_global_mapping(func, qir_backend::__quantum__qis__mz__body <span class="kw">as </span>usize);
+        } <span class="kw">else if </span>func.get_params().len() == <span class="number">1 </span>{
+            execution_engine
+                .add_global_mapping(func, qir_backend::__quantum__qis__m__body <span class="kw">as </span>usize);
+        } <span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+                <span class="string">&quot;Function &#39;__quantum__qis__m__body&#39; has mismatched parameters: expected 1 or 2, found {}&quot;</span>,
+                func.get_params().len()
+            ));
+        }
+        declarations.remove(<span class="string">&quot;__quantum__qis__m__body&quot;</span>);
+    }
 
     <span class="macro">bind!</span>(__quantum__rt__array_get_element_ptr_1d, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__rt__array_get_size_1d, <span class="number">1</span>);

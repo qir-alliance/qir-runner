@@ -1299,6 +1299,13 @@
 <a href="#1299" id="1299">1299</a>
 <a href="#1300" id="1300">1300</a>
 <a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a>
+<a href="#1305" id="1305">1305</a>
+<a href="#1306" id="1306">1306</a>
+<a href="#1307" id="1307">1307</a>
+<a href="#1308" id="1308">1308</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1911,20 +1918,30 @@
     });
 }
 
-<span class="doccomment">/// QIR API for measuring the given qubit and then resetting it in the computational basis.
+<span class="doccomment">/// QIR API for measuring the given qubit and storing the measured value with the given result identifier,
+/// then resetting it in the computational basis.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__mresetz__body(qubit: <span class="kw-2">*mut </span>c_void) -&gt; <span class="kw-2">*mut </span>c_void {
+</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__mresetz__body(qubit: <span class="kw-2">*mut </span>c_void, result: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
+        <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
         ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
 
-        <span class="kw">if </span>state.sim.measure(qubit <span class="kw">as </span>usize) {
-            state.sim.x(qubit <span class="kw">as </span>usize);
-            __quantum__rt__result_get_one()
-        } <span class="kw">else </span>{
-            __quantum__rt__result_get_zero()
+        <span class="kw">if </span>state.res.len() &lt; res_id + <span class="number">1 </span>{
+            state.res.resize(res_id + <span class="number">1</span>, <span class="bool-val">false</span>);
         }
-    })
+
+        <span class="kw">let </span>res = state.sim.measure(qubit <span class="kw">as </span>usize);
+
+        <span class="kw">if </span>res {
+            state.sim.x(qubit <span class="kw">as </span>usize);
+        }
+
+        <span class="kw-2">*</span>state
+            .res
+            .get_mut(res_id)
+            .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>) = res;
+    });
 }
 
 <span class="doccomment">/// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
@@ -2280,8 +2297,7 @@
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
         __quantum__rt__result_equal, capture_quantum_state, map_to_z_basis, qubit_is_zero,
-        result_bool::__quantum__rt__result_get_one, result_bool::__quantum__rt__result_get_zero,
-        unmap_from_z_basis, SIM_STATE,
+        result_bool::__quantum__rt__result_get_one, unmap_from_z_basis, SIM_STATE,
     };
     <span class="kw">use </span>num_bigint::BigUint;
     <span class="kw">use </span>qir_stdlib::{
@@ -2554,17 +2570,15 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_mresetz() {
         <span class="kw">let </span>qubit = __quantum__rt__qubit_allocate();
+        <span class="kw">let </span>r0 = std::ptr::null_mut();
+        <span class="kw">let </span>r1 = <span class="number">1 </span><span class="kw">as </span><span class="kw-2">*mut </span>c_void;
         <span class="macro">assert!</span>(qubit_is_zero(qubit));
-        <span class="macro">assert!</span>(__quantum__rt__result_equal(
-            __quantum__rt__result_get_zero(),
-            __quantum__qis__mresetz__body(qubit)
-        ));
+        __quantum__qis__mresetz__body(qubit, r0);
+        <span class="macro">assert!</span>(!__quantum__qis__read_result__body(r0));
         <span class="macro">assert!</span>(qubit_is_zero(qubit));
         __quantum__qis__x__body(qubit);
-        <span class="macro">assert!</span>(__quantum__rt__result_equal(
-            __quantum__rt__result_get_one(),
-            __quantum__qis__mresetz__body(qubit)
-        ));
+        __quantum__qis__mresetz__body(qubit, r1);
+        <span class="macro">assert!</span>(__quantum__qis__read_result__body(r1));
         <span class="macro">assert!</span>(qubit_is_zero(qubit));
     }
 
