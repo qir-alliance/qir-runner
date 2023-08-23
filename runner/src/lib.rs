@@ -307,8 +307,8 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__isnan__body, 1);
     bind!(__quantum__qis__isnegativeinfinity__body, 1);
     bind!(__quantum__qis__log__body, 1);
-    bind!(__quantum__qis__m__body, 1);
     bind!(__quantum__qis__measure__body, 2);
+    bind!(__quantum__qis__mresetz__body, 2);
     bind!(__quantum__qis__mz__body, 2);
     bind!(__quantum__qis__nan__body, 0);
     bind!(__quantum__qis__r__adj, 3);
@@ -376,6 +376,24 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             None
         },
     );
+
+    // calls to __quantum__qis__m__body may use either dynamic or static results, so bind to the right
+    // implementation based on number of arguments.
+    if let Some(func) = declarations.get("__quantum__qis__m__body") {
+        if func.get_params().len() == 2 {
+            execution_engine
+                .add_global_mapping(func, qir_backend::__quantum__qis__mz__body as usize);
+        } else if func.get_params().len() == 1 {
+            execution_engine
+                .add_global_mapping(func, qir_backend::__quantum__qis__m__body as usize);
+        } else {
+            return Err(format!(
+                "Function '__quantum__qis__m__body' has mismatched parameters: expected 1 or 2, found {}",
+                func.get_params().len()
+            ));
+        }
+        declarations.remove("__quantum__qis__m__body");
+    }
 
     bind!(__quantum__rt__array_get_element_ptr_1d, 2);
     bind!(__quantum__rt__array_get_size_1d, 1);
