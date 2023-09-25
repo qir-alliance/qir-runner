@@ -99,6 +99,24 @@ mod cji_tests {
     }
 
     #[test]
+    fn test_rxx_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRxx"), 1)
+    }
+
+    #[test]
+    fn test_ryy_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRyy"), 1)
+    }
+
+    #[test]
+    fn test_rzz_with_cji() -> Result<(), String> {
+        let bitcode = include_bytes!("resources/cji.bc");
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyRzz"), 1)
+    }
+
+    #[test]
     fn test_r_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
         run_bitcode(bitcode, Some("DecompositionTests__VerifyR"), 1)
