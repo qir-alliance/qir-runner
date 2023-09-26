@@ -319,10 +319,13 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__reset__body, 1);
     bind!(__quantum__qis__rx__body, 2);
     bind!(__quantum__qis__rx__ctl, 2);
+    bind!(__quantum__qis__rxx__body, 3);
     bind!(__quantum__qis__ry__body, 2);
     bind!(__quantum__qis__ry__ctl, 2);
+    bind!(__quantum__qis__ryy__body, 3);
     bind!(__quantum__qis__rz__body, 2);
     bind!(__quantum__qis__rz__ctl, 2);
+    bind!(__quantum__qis__rzz__body, 3);
     bind!(__quantum__qis__s__adj, 1);
     bind!(__quantum__qis__s__body, 1);
     bind!(__quantum__qis__s__ctl, 2);
