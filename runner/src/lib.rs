@@ -70,7 +70,7 @@ fn run_module(module: &Module, entry_point: Option<&str>, shots: u32) -> Result<
         return Err("Target doesn't have a target machine.".to_owned());
     }
 
-    inkwell::support::load_library_permanently("");
+    inkwell::support::load_library_permanently(Path::new(""));
 
     let execution_engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
