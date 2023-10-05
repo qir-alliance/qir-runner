@@ -556,7 +556,7 @@
         <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;Target doesn&#39;t have a target machine.&quot;</span>.to_owned());
     }
 
-    inkwell::support::load_library_permanently(<span class="string">&quot;&quot;</span>);
+    inkwell::support::load_library_permanently(Path::new(<span class="string">&quot;&quot;</span>));
 
     <span class="kw">let </span>execution_engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
