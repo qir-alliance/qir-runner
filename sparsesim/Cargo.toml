@@ -10,7 +10,7 @@ qir-stdlib = { path = "../stdlib", optional = true }
 rand = "0.8.5"
 rustc-hash = "1.1.0"
 num-complex = "0.4"
-num-traits = "0.2.16"
+num-traits = "0.2.17"
 num-bigint = { version = "0.4.4", default-features = false }
 ndarray = "0.15.4"
 
