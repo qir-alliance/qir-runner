@@ -16,3 +16,6 @@ qir-backend = { path = "../backend" }
 clap = { version = "4.5.4", features = [ "cargo" ] }
 msvc_spectre_libs = { version = "0.1", features = ["error"] }
 
+[[bin]]
+name = "qir-runner"
+path = "src/main.rs"
