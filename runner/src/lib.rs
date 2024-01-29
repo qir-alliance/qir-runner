@@ -4,6 +4,9 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused)]
 
+mod cli;
+pub use cli::main;
+
 pub use qir_backend::{
     arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
     result_bool::*, strings::*, tuples::*, *,
