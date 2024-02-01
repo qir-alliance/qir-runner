@@ -36,23 +36,22 @@ where
                     eprint!("{msg}");
                     Ok(())
                 }
-                _ => {
-                    Err(msg)
-                }
+                _ => Err(msg),
             }
         }
-        Ok(matches) => {
-            if let Ok(Some(seed)) = matches.try_get_one::<u64>("rngseed") {
-                qir_backend::set_rng_seed(*seed);
-            }
-
-            crate::run_file(
-                matches.get_one::<PathBuf>("file").unwrap(),
-                matches
-                    .get_one::<String>("entrypoint")
-                    .map(std::string::String::as_str),
-                *matches.get_one::<u32>("shots").unwrap(),
-            )
-        }
+        Ok(matches) => crate::run_file(
+            matches
+                .get_one::<PathBuf>("file")
+                .expect("File path is required"),
+            matches
+                .get_one::<String>("entrypoint")
+                .map(std::string::String::as_str),
+            *matches
+                .get_one::<u32>("shots")
+                .expect("Shots is required or should have a default value"),
+            matches
+                .try_get_one::<u64>("rngseed")
+                .map_or(None, |x| x.copied()),
+        ),
     }
 }
