@@ -37,7 +37,11 @@ pub fn run_file(
     path: impl AsRef<Path>,
     entry_point: Option<&str>,
     shots: u32,
+    rng_seed: Option<u64>,
 ) -> Result<(), String> {
+    if let Some(seed) = rng_seed {
+        qir_backend::set_rng_seed(seed);
+    }
     let context = Context::create();
     let module = load_file(path, &context)?;
     run_module(&module, entry_point, shots)

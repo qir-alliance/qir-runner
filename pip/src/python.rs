@@ -7,15 +7,16 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 #[pyfunction]
-#[pyo3(text_signature = "(path, entry_point, shots)")]
+#[pyo3(text_signature = "(path, entry_point, shots, rng_seed)")]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn run_file(
     _py: Python,
     path: String,
     entry_point: Option<String>,
     shots: Option<u32>,
+    rng_seed: Option<u64>,
 ) -> PyResult<()> {
-    runner::run_file(path, entry_point.as_deref(), shots.unwrap_or(1))
+    runner::run_file(path, entry_point.as_deref(), shots.unwrap_or(1), rng_seed)
         .map_err(|msg| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))?;
     Ok(())
 }
