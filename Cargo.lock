@@ -573,7 +573,7 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bitvec",
  "criterion",
@@ -586,7 +586,7 @@ dependencies = [
 
 [[package]]
 name = "qir-runner"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "clap",
  "inkwell",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "llvm-tools",
  "num-bigint",
@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "quantum-sparse-sim"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "ndarray",
  "num-bigint",
