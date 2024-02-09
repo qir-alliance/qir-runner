@@ -25,6 +25,8 @@ pub extern "C" fn __quantum__rt__result_update_reference_count(_res: *mut c_void
     // no-op
 }
 
+/// # Panics
+/// This function panics if the memory cannot be allocated for the result string.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__result_to_string(res: *mut c_void) -> *const CString {
     unsafe {
