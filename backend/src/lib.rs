@@ -612,7 +612,8 @@ pub extern "C" fn __quantum__qis__reset__body(qubit: *mut c_void) {
 
 /// QIR API for measuring the given qubit and storing the measured value with the given result identifier,
 /// then resetting it in the computational basis.
-#[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the result that was just collected is not found in the BitVec, which should not happen."
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result that was just collected is not found in the BitVec, which should not happen."
 #[no_mangle]
 pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void, result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
@@ -638,7 +639,8 @@ pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void, result: *mut
 }
 
 /// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
-#[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 #[no_mangle]
 pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
@@ -660,7 +662,8 @@ pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_vo
 
 /// QIR API that reads the Boolean value corresponding to the given result identifier, where true
 /// indicates a |1⟩ state and false indicates a |0⟩ state.
-#[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 #[no_mangle]
 pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool {
     SIM_STATE.with(|sim_state| {
@@ -816,7 +819,8 @@ pub mod legacy_output {
         SIM_STATE,
     };
 
-    #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+    #[allow(clippy::missing_panics_doc)]
+    // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void) {
         SIM_STATE.with(|sim_state| {
@@ -839,7 +843,8 @@ pub mod legacy_output {
 }
 
 /// QIR API for recording the given result into the program output.
-#[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 #[no_mangle]
 pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
     SIM_STATE.with(|sim_state| {

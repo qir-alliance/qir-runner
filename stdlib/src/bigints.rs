@@ -185,10 +185,7 @@ mod tests {
         unsafe {
             let bigint_1 =
                 __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
-            assert_eq!(
-                *bigint_1,
-                (9_223_372_036_854_775_807_i64).into()
-            );
+            assert_eq!(*bigint_1, (9_223_372_036_854_775_807_i64).into());
             __quantum__rt__bigint_update_reference_count(bigint_1, -1);
         }
     }
