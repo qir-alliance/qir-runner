@@ -69,8 +69,7 @@ pub unsafe extern "C" fn __quantum__rt__array_concatenate(
     new_array.data.resize(array1.data.len(), 0_u8);
     new_array.data.copy_from_slice(array1.data.as_slice());
 
-    let mut copy = Vec::new();
-    copy.resize(array2.data.len(), 0_u8);
+    let mut copy = vec![0; array2.data.len()];
     copy.copy_from_slice(array2.data.as_slice());
 
     new_array.data.append(&mut copy);
