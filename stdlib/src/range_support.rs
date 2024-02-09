@@ -51,8 +51,7 @@ pub unsafe extern "C" fn quantum__rt__array_slice_1d(
         let index = i
             .try_into()
             .expect("Item index too large for `usize` type on this platform.");
-        let mut copy = Vec::new();
-        copy.resize(array.elem_size, 0_u8);
+        let mut copy = vec![0; array.elem_size];
         copy.copy_from_slice(&array.data[index..index + array.elem_size]);
         slice.data.append(&mut copy);
     }

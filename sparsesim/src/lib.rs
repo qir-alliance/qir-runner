@@ -88,6 +88,7 @@ impl QuantumSim {
 
     /// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
     /// the total number of currently allocated qubits to help in interpreting the sparse state.
+    #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the keys are not present in the map, which should not happen."
     #[must_use]
     pub fn get_state(&mut self) -> (Vec<(BigUint, Complex64)>, usize) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
@@ -188,6 +189,7 @@ impl QuantumSim {
 
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
+    #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the keys are not present in the map, which should not happen."
     pub fn dump(&mut self) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
@@ -446,7 +448,7 @@ impl QuantumSim {
 
     pub(crate) fn check_for_duplicates(ids: &[usize]) {
         let mut unique = FxHashSet::default();
-        for id in ids.iter() {
+        for id in ids {
             assert!(
                 unique.insert(id),
                 "Duplicate qubit id '{id}' found in application."
@@ -617,6 +619,7 @@ impl QuantumSim {
     }
 
     /// Multi-controlled Y gate.
+    #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if ctrls are empty, which is handled at the top of the function."
     pub fn mcy(&mut self, ctls: &[usize], target: usize) {
         if ctls.is_empty() {
             self.y(target);

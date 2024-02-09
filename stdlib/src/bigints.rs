@@ -172,7 +172,7 @@ mod tests {
     fn test_bigint_create_from_int() {
         let bigint_0 = __quantum__rt__bigint_create_i64(42);
         unsafe {
-            assert_eq!(*bigint_0, (42).try_into().unwrap());
+            assert_eq!(*bigint_0, (42).into());
             // Note that the test must decrement the reference count on any created items to ensure
             // they are cleaned up and tests can pass with address sanitizer.
             __quantum__rt__bigint_update_reference_count(bigint_0, -1);
@@ -185,10 +185,7 @@ mod tests {
         unsafe {
             let bigint_1 =
                 __quantum__rt__bigint_create_array(bytes.len().try_into().unwrap(), bytes.as_ptr());
-            assert_eq!(
-                *bigint_1,
-                (9_223_372_036_854_775_807_i64).try_into().unwrap()
-            );
+            assert_eq!(*bigint_1, (9_223_372_036_854_775_807_i64).into());
             __quantum__rt__bigint_update_reference_count(bigint_1, -1);
         }
     }
@@ -199,19 +196,19 @@ mod tests {
         let bigint_1 = __quantum__rt__bigint_create_i64(3);
         unsafe {
             let bigint_2 = __quantum__rt__bigint_add(bigint_0, bigint_1);
-            assert_eq!(*bigint_2, (45).try_into().unwrap());
+            assert_eq!(*bigint_2, (45).into());
             let bigint_3 = __quantum__rt__bigint_subtract(bigint_2, bigint_1);
-            assert_eq!(*bigint_3, (42).try_into().unwrap());
+            assert_eq!(*bigint_3, (42).into());
             let bigint_4 = __quantum__rt__bigint_divide(bigint_3, bigint_1);
-            assert_eq!(*bigint_4, (14).try_into().unwrap());
+            assert_eq!(*bigint_4, (14).into());
             let bigint_5 = __quantum__rt__bigint_multiply(bigint_4, bigint_1);
-            assert_eq!(*bigint_5, (42).try_into().unwrap());
+            assert_eq!(*bigint_5, (42).into());
             let bigint_6 = __quantum__rt__bigint_modulus(bigint_5, bigint_1);
-            assert_eq!(*bigint_6, (0).try_into().unwrap());
+            assert_eq!(*bigint_6, (0).into());
             let bigint_7 = __quantum__rt__bigint_negate(bigint_5);
-            assert_eq!(*bigint_7, (-42).try_into().unwrap());
+            assert_eq!(*bigint_7, (-42).into());
             let bigint_8 = __quantum__rt__bigint_power(bigint_7, 3);
-            assert_eq!(*bigint_8, (-74088).try_into().unwrap());
+            assert_eq!(*bigint_8, (-74088).into());
             __quantum__rt__bigint_update_reference_count(bigint_8, -1);
             __quantum__rt__bigint_update_reference_count(bigint_7, -1);
             __quantum__rt__bigint_update_reference_count(bigint_6, -1);
@@ -230,17 +227,17 @@ mod tests {
         let bigint_1 = __quantum__rt__bigint_create_i64(3);
         unsafe {
             let bigint_2 = __quantum__rt__bigint_bitand(bigint_0, bigint_1);
-            assert_eq!(*bigint_2, (2).try_into().unwrap());
+            assert_eq!(*bigint_2, (2).into());
             let bigint_3 = __quantum__rt__bigint_bitor(bigint_0, bigint_1);
-            assert_eq!(*bigint_3, (43).try_into().unwrap());
+            assert_eq!(*bigint_3, (43).into());
             let bigint_4 = __quantum__rt__bigint_bitxor(bigint_0, bigint_3);
-            assert_eq!(*bigint_4, (1).try_into().unwrap());
+            assert_eq!(*bigint_4, (1).into());
             let bigint_5 = __quantum__rt__bigint_bitnot(bigint_4);
-            assert_eq!(*bigint_5, (-2).try_into().unwrap());
+            assert_eq!(*bigint_5, (-2).into());
             let bigint_6 = __quantum__rt__bigint_shiftleft(bigint_0, 2);
-            assert_eq!(*bigint_6, (168).try_into().unwrap());
+            assert_eq!(*bigint_6, (168).into());
             let bigint_7 = __quantum__rt__bigint_shiftright(bigint_6, 3);
-            assert_eq!(*bigint_7, (21).try_into().unwrap());
+            assert_eq!(*bigint_7, (21).into());
             __quantum__rt__bigint_update_reference_count(bigint_7, -1);
             __quantum__rt__bigint_update_reference_count(bigint_6, -1);
             __quantum__rt__bigint_update_reference_count(bigint_5, -1);
