@@ -662,8 +662,9 @@ impl QuantumSim {
     pub fn mcphase(&mut self, ctls: &[usize], phase: Complex64, target: usize) {
         self.flush_queue(ctls, FlushLevel::HRxRy);
         self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, |(index, val), target| {
-            Self::phase_transform(phase, (index, val), target)
+        self.controlled_gate(ctls, target, |(index, val), _| {
+            let val = val * phase;
+            (index, val)
         });
     }
 
