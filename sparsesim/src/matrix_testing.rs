@@ -213,7 +213,7 @@ pub fn rz(theta: f64) -> Array2<Complex64> {
 pub fn g(theta: f64) -> Array2<Complex64> {
     let neg_exp_theta = Complex64::exp(Complex64::new(0.0, -theta / 2.0));
     array![
-        [neg_exp_theta, Complex64::zero()],
+        [Complex64::one(), Complex64::zero()],
         [Complex64::zero(), neg_exp_theta]
     ]
 }
