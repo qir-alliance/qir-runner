@@ -131,7 +131,7 @@ unsafe fn run_entry_point(
     execution_engine: &ExecutionEngine,
     entry_point: FunctionValue,
 ) -> Result<(), String> {
-    if entry_point.count_params() == 0 && entry_point.get_type().get_return_type().is_none() {
+    if entry_point.count_params() == 0 {
         execution_engine.run_function(entry_point, &[]);
         Ok(())
     } else {
