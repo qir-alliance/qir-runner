@@ -213,7 +213,7 @@ pub fn rz(theta: f64) -> Array2<Complex64> {
 pub fn g(theta: f64) -> Array2<Complex64> {
     let neg_exp_theta = Complex64::exp(Complex64::new(0.0, -theta / 2.0));
     array![
-        [neg_exp_theta, Complex64::zero()],
+        [Complex64::one(), Complex64::zero()],
         [Complex64::zero(), neg_exp_theta]
     ]
 }
@@ -385,36 +385,37 @@ mod tests {
     {
         let mut sim = QuantumSim::default();
 
-        // Allocte the control we use to verify behavior.
-        let ctl = sim.allocate();
-        sim.h(ctl);
-
+        // Allocate the controls we use to verify behavior.
         // Allocate the requested number of targets, entangling the control with them.
+        let mut ctls = vec![];
         let mut qs = vec![];
         for _ in 0..count {
+            let ctl = sim.allocate();
             let q = sim.allocate();
+            sim.h(ctl);
             sim.mcx(&[ctl], q);
             qs.push(q);
+            ctls.push(ctl);
         }
 
         op(&mut sim, &qs);
         reference(&mut sim, &qs);
 
         // Undo the entanglement.
-        for q in &qs {
-            sim.mcx(&[ctl], *q);
+        for (q, ctl) in qs.iter().zip(&ctls) {
+            sim.mcx(&[*ctl], *q);
+            sim.h(*ctl);
         }
-        sim.h(ctl);
+
+        sim.dump();
 
         // We know the operations are equal if the qubits are left in the zero state.
-        assert!(sim.joint_probability(&[ctl]).is_nearly_zero());
-        for q in qs {
-            assert!(sim.joint_probability(&[q]).is_nearly_zero());
+        for (q, ctl) in qs.iter().zip(&ctls) {
+            assert!(sim.joint_probability(&[*q]).is_nearly_zero());
+            assert!(sim.joint_probability(&[*ctl]).is_nearly_zero());
         }
 
         // Sparse state vector should have one entry for |0⟩.
-        // Dump the state first to force a flush of any queued operations.
-        sim.dump();
         assert_eq!(sim.state.len(), 1);
     }
 
