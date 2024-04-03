@@ -385,7 +385,7 @@ mod tests {
     {
         let mut sim = QuantumSim::default();
 
-        // Allocte the controls we use to verify behavior.
+        // Allocate the controls we use to verify behavior.
         // Allocate the requested number of targets, entangling the control with them.
         let mut ctls = vec![];
         let mut qs = vec![];
