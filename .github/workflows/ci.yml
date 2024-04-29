@@ -9,6 +9,7 @@ on:
       - main
       - release/*
       - feature/*
+  workflow_dispatch:
 
 env:
   RUSTDOCFLAGS: -Dwarnings
