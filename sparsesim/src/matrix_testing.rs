@@ -417,6 +417,8 @@ mod tests {
 
         // Sparse state vector should have one entry for |0⟩.
         assert_eq!(sim.state.len(), 1);
+        // If the operations are equal including the phase, the entry should be 1.
+        assert!((sim.state.values().next().unwrap() - Complex64::one()).is_nearly_zero());
     }
 
     #[test]
@@ -550,6 +552,19 @@ mod tests {
     }
 
     #[test]
+    fn test_rz_pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rz(PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rz(PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
     fn test_rx() {
         assert_operation_equal_referenced(
             |sim, qs| {
@@ -563,6 +578,19 @@ mod tests {
     }
 
     #[test]
+    fn test_rx_pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rx(PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rx(PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
     fn test_ry() {
         assert_operation_equal_referenced(
             |sim, qs| {
@@ -570,6 +598,19 @@ mod tests {
             },
             |sim, qs| {
                 sim.apply(&adjoint(&ry(PI / 7.0)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_ry_pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.ry(PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&ry(PI)), &[qs[0]], None);
             },
             1,
         );
