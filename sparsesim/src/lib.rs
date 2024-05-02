@@ -21,9 +21,10 @@ use crate::nearly_zero::NearlyZero;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, Zero};
+use qir_stdlib::output_recording::OUTPUT;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2};
+use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, io::Write};
 
 pub type SparseState = FxHashMap<BigUint, Complex64>;
 
@@ -222,20 +223,36 @@ impl QuantumSim {
     /// be called internally from other functions to aid in debugging and does not perform any modification
     /// of the internal structures.
     fn dump_impl(&self, print_id_map: bool) {
-        if print_id_map {
-            println!("MAP: {:?}", self.id_map);
-        };
-        print!("STATE: [ ");
-        let mut sorted_keys = self.state.keys().collect::<Vec<_>>();
-        sorted_keys.sort_unstable();
-        for key in sorted_keys {
-            print!(
-                "|{}\u{27e9}: {}, ",
-                key,
-                self.state.get(key).map_or_else(Complex64::zero, |v| *v)
-            );
-        }
-        println!("]");
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            if print_id_map {
+                output
+                    .write_all(&format!("MAP: {:?}", self.id_map).as_bytes())
+                    .expect("Failed to write output");
+                output.write_newline();
+            };
+            output
+                .write("STATE: [ ".as_bytes())
+                .expect("Failed to write output");
+            let mut sorted_keys = self.state.keys().collect::<Vec<_>>();
+            sorted_keys.sort_unstable();
+            for key in sorted_keys {
+                output
+                    .write_all(
+                        &format!(
+                            "|{}\u{27e9}: {}, ",
+                            key,
+                            self.state.get(key).map_or_else(Complex64::zero, |v| *v)
+                        )
+                        .as_bytes(),
+                    )
+                    .expect("Failed to write output");
+            }
+            output
+                .write("]".as_bytes())
+                .expect("Failed to write output");
+            output.write_newline();
+        });
     }
 
     /// Checks the probability of parity measurement in the computational basis for the given set of

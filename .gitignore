@@ -12,3 +12,5 @@ Cargo.lock
 
 # Workspace specific VSCode settings
 .vscode/settings.json
+
+.venv/
