@@ -957,15 +957,15 @@ impl QuantumSim {
             }
             // Rx/Ry are different from X/Y by a global phase of -i, so apply that here for mathematical correctness.
             let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
-            self.state = self
-                .state
-                .drain()
-                .fold(SparseState::default(), |mut accum, (index, value)| {
-                    if ctls.iter().all(|c| index.bit(*c)) {
-                        accum.insert(index, value * -Complex64::i());
-                    }
-                    accum
-                });
+            self.state =
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, value)| {
+                        if ctls.iter().all(|c| index.bit(*c)) {
+                            accum.insert(index, value * -Complex64::i());
+                        }
+                        accum
+                    });
         } else if m01.is_nearly_zero() {
             // This is just identity, so we can no-op.
         } else {
