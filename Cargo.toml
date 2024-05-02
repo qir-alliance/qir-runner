@@ -6,6 +6,7 @@ members = [
     "stdlib",
     "pip",
 ]
+resolver = "2"
 
 [profile.release]
 debug = 1

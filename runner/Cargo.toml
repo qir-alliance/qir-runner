@@ -1,5 +1,5 @@
 [package]
-name = "qir-runner"
+name = "runner"
 version = "0.6.0"
 edition = "2021"
 license = "MIT"

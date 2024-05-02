@@ -670,17 +670,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qir-runner"
-version = "0.6.0"
-dependencies = [
- "clap",
- "inkwell",
- "msvc_spectre_libs",
- "qir-backend",
- "qir-stdlib",
-]
-
-[[package]]
 name = "qir-stdlib"
 version = "0.6.0"
 dependencies = [
@@ -821,7 +810,7 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
 name = "runner"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "clap",
  "inkwell",
