@@ -22,6 +22,7 @@ use std::convert::TryInto;
 use std::ffi::c_char;
 use std::ffi::c_double;
 use std::ffi::{c_void, CString};
+use std::io::Write;
 use std::mem::size_of;
 
 use result_bool::{
@@ -866,11 +867,6 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
     });
 }
 
-#[cfg(windows)]
-const LINE_ENDING: &[u8] = b"\r\n";
-#[cfg(not(windows))]
-const LINE_ENDING: &[u8] = b"\n";
-
 fn output(
     ty: &str,
     val: &dyn std::fmt::Display,
@@ -983,7 +979,13 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
         let mut state = sim_state.borrow_mut();
 
         if !state.res.is_empty() {
-            println!("Global Results: {}", state.res);
+            OUTPUT.with(|output| {
+                let mut output = output.borrow_mut();
+                output
+                    .write_fmt(format_args!("Global Results: {}", state.res))
+                    .expect("Failed to write global results");
+                output.write_newline();
+            });
         }
         state.sim.dump();
     });

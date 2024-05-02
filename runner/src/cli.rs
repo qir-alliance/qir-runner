@@ -52,6 +52,7 @@ where
             matches
                 .try_get_one::<u64>("rngseed")
                 .map_or(None, |x| x.copied()),
+            &mut std::io::stdout(),
         ),
     }
 }
