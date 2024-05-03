@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
+use runner::OUTPUT;
 
 struct OptionalCallbackReceiver<'a> {
     callback: Option<PyObject>,
@@ -16,8 +17,8 @@ struct OptionalCallbackReceiver<'a> {
 pub(crate) struct Output(String);
 
 #[pymethods]
-/// An output returned from the Q# interpreter.
-/// Outputs can be a state dumps or messages. These are normally printed to the console.
+/// An output returned from the QIR execution.
+/// These are normally printed to the console.
 impl Output {
     fn __repr__(&self) -> String {
         self.0.clone()
@@ -68,6 +69,10 @@ pub(crate) fn run_file(
     rng_seed: Option<u64>,
     callback: Option<PyObject>,
 ) -> PyResult<()> {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output.use_std_out(callback.is_none());
+    });
     let mut receiver = OptionalCallbackReceiver { callback, py };
     runner::run_file(
         path,

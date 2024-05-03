@@ -4,7 +4,7 @@
 use std::{
     ffi::{c_char, c_double, CString},
     fmt::Display,
-    io::Write,
+    io::{Read, Write},
 };
 
 use crate::strings::double_to_string;
@@ -39,6 +39,29 @@ impl Write for OutputRecorder {
     }
 }
 
+impl Read for OutputRecorder {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.buffer.as_slice().read(buf)
+    }
+}
+
+struct DefaultReaderWriter(Vec<u8>);
+impl Write for DefaultReaderWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.write(buf)?;
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
+}
+
+impl Read for DefaultReaderWriter {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.0.as_slice().read(buf)
+    }
+}
+
 impl Default for OutputRecorder {
     fn default() -> Self {
         OutputRecorder {
@@ -70,7 +93,18 @@ thread_local! {
     pub static OUTPUT: std::cell::RefCell<Box<OutputRecorder>> = std::cell::RefCell::new(Box::new(OutputRecorder::default()));
 }
 
-fn output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> {
+pub fn record_output_str(val: &str) -> std::io::Result<()> {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output
+            .write_all(val.as_bytes())
+            .expect("Failed to write output");
+        output.write_newline();
+    });
+    Ok(())
+}
+
+pub fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> {
     OUTPUT.with(|output| {
         let mut output = output.borrow_mut();
         output
@@ -95,7 +129,7 @@ fn output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> 
 /// the output schema, the label is included in the output or omitted.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char) {
-    output("ARRAY", &val, tag).expect("Failed to write array output");
+    record_output("ARRAY", &val, tag).expect("Failed to write array output");
 }
 
 /// Inserts a marker in the generated output that indicates the
@@ -104,33 +138,34 @@ pub extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char)
 /// the output schema, the label is included in the output or omitted.
 #[no_mangle]
 pub extern "C" fn __quantum__rt__tuple_record_output(val: i64, tag: *mut c_char) {
-    output("TUPLE", &val, tag).expect("Failed to write tuple output");
+    record_output("TUPLE", &val, tag).expect("Failed to write tuple output");
 }
 
 #[no_mangle]
 pub extern "C" fn __quantum__rt__int_record_output(val: i64, tag: *mut c_char) {
-    output("INT", &val, tag).expect("Failed to write int output");
+    record_output("INT", &val, tag).expect("Failed to write int output");
 }
 
 #[no_mangle]
 pub extern "C" fn __quantum__rt__double_record_output(val: c_double, tag: *mut c_char) {
-    output("DOUBLE", &double_to_string(val), tag).expect("Failed to write double output");
+    record_output("DOUBLE", &double_to_string(val), tag).expect("Failed to write double output");
 }
 
 #[no_mangle]
 pub extern "C" fn __quantum__rt__bool_record_output(val: bool, tag: *mut c_char) {
-    output("BOOL", &val, tag).expect("Failed to write bool output");
+    record_output("BOOL", &val, tag).expect("Failed to write bool output");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__message_record_output(str: *const CString) {
-    println!(
+    record_output_str(&format!(
         "INFO\t{}",
         (*str)
             .to_str()
             .expect("Unable to convert input string")
             .escape_default()
-    );
+    ))
+    .expect("Failed to write message output");
 }
 
 pub mod legacy {
@@ -138,39 +173,42 @@ pub mod legacy {
 
     use crate::strings::double_to_string;
 
+    use super::record_output_str;
+
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__array_start_record_output() {
-        println!("RESULT\tARRAY_START");
+        record_output_str("RESULT\tARRAY_START").expect("Failed to write array start output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__array_end_record_output() {
-        println!("RESULT\tARRAY_END");
+        record_output_str("RESULT\tARRAY_END").expect("Failed to write array end output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__tuple_start_record_output() {
-        println!("RESULT\tTUPLE_START");
+        record_output_str("RESULT\tTUPLE_START").expect("Failed to write tuple start output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__tuple_end_record_output() {
-        println!("RESULT\tTUPLE_END");
+        record_output_str("RESULT\tTUPLE_END").expect("Failed to write tuple end output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__int_record_output(val: i64) {
-        println!("RESULT\t{val}");
+        record_output_str(&format!("RESULT\t{val}")).expect("Failed to write int output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__double_record_output(val: c_double) {
-        println!("RESULT\t{}", double_to_string(val));
+        record_output_str(&format!("RESULT\t{}", double_to_string(val)))
+            .expect("Failed to write double output");
     }
 
     #[allow(non_snake_case)]
     pub extern "C" fn __quantum__rt__bool_record_output(val: bool) {
-        println!("RESULT\t{val}");
+        record_output_str(&format!("RESULT\t{val}")).expect("Failed to write bool output");
     }
 
     #[allow(non_snake_case)]
@@ -229,9 +267,14 @@ mod tests {
     }
     fn assert_untagged_output_match(ty: &str, val: &dyn Display, expected_str: &str) {
         OUTPUT.with(|output| output.borrow_mut().use_std_out(false));
-        output(ty, &val, null_mut()).unwrap();
-        let actual =
-            OUTPUT.with(|output| get_byte_vec_as_string(output.borrow_mut().drain().as_slice()));
+        record_output(ty, &val, null_mut()).unwrap();
+
+        let actual = OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            let output = output.drain();
+            get_byte_vec_as_string(output.as_slice())
+        });
+
         OUTPUT.with(|output| output.borrow_mut().use_std_out(true));
         let expected = get_string_with_line_ending(expected_str);
         assert_eq!(actual, expected);
