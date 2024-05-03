@@ -815,6 +815,8 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
 pub mod legacy_output {
     use std::ffi::c_void;
 
+    use qir_stdlib::output_recording::record_output_str;
+
     use crate::{
         result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
         SIM_STATE,
@@ -838,7 +840,8 @@ pub mod legacy_output {
                     .expect("Result with given id missing after expansion.")
             };
 
-            println!("RESULT\t{}", if b { "1" } else { "0" });
+            record_output_str(&format!("RESULT\t{}", if b { "1" } else { "0" }))
+                .expect("Failed to write result output");
         });
     }
 }
@@ -863,25 +866,8 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
         };
 
         let val: i64 = i64::from(b);
-        output("RESULT", &val, tag, &mut std::io::stdout()).expect("Failed to write result output");
+        record_output("RESULT", &val, tag).expect("Failed to write result output");
     });
-}
-
-fn output(
-    ty: &str,
-    val: &dyn std::fmt::Display,
-    tag: *mut c_char,
-    output: &mut impl std::io::Write,
-) -> std::io::Result<()> {
-    output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
-    if !tag.is_null() {
-        output.write_all(b"\t")?;
-        unsafe {
-            output.write_all(CString::from_raw(tag).as_bytes())?;
-        }
-    }
-    output.write_all(LINE_ENDING)?;
-    Ok(())
 }
 
 /// QIR API that allocates the next available qubit in the simulation.

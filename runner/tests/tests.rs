@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qir_runner::{run_bitcode, run_file};
+use runner::{run_bitcode, run_file};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -147,7 +147,12 @@ mod cji_tests {
 #[test]
 fn test_full_qir_simple() -> Result<(), String> {
     let bitcode = include_bytes!("resources/full-qir.bc");
-    run_bitcode(bitcode, Some("QIR_App_Test__Simple"), 1)
+    run_bitcode(
+        bitcode,
+        Some("QIR_App_Test__Simple"),
+        1,
+        &mut std::io::sink(),
+    )
 }
 
 // This test confirms selection of the other named entry point from a file with two entry points
@@ -158,7 +163,12 @@ fn test_full_qir_simple() -> Result<(), String> {
 #[test]
 fn test_full_qir_other() -> Result<(), String> {
     let bitcode = include_bytes!("resources/full-qir.bc");
-    run_bitcode(bitcode, Some("QIR_App_Test__Other"), 1)
+    run_bitcode(
+        bitcode,
+        Some("QIR_App_Test__Other"),
+        1,
+        &mut std::io::sink(),
+    )
 }
 
 // This tests a simple Bernstein-Vazirani algorithm looking for the encoded pattern |110⟩ in a qubit array.
@@ -168,7 +178,7 @@ fn test_full_qir_other() -> Result<(), String> {
 #[test]
 fn test_bernstein_vazirani() -> Result<(), String> {
     let bitcode = include_bytes!("resources/bv.bc");
-    run_bitcode(bitcode, None, 1)
+    run_bitcode(bitcode, None, 1, &mut std::io::sink())
 }
 
 // This tests support for range operations `__quantum__rt__array_slice_1d` and `__quantum__rt__range_to_string`
@@ -180,7 +190,7 @@ fn test_bernstein_vazirani() -> Result<(), String> {
 #[test]
 fn test_ranges() -> Result<(), String> {
     let bitcode = include_bytes!("resources/ranges.bc");
-    run_bitcode(bitcode, None, 1)
+    run_bitcode(bitcode, None, 1, &mut std::io::sink())
 }
 
 // This test runs a sample Shor's algorithm for integer factorization. It makes use of quantum execution
@@ -189,19 +199,19 @@ fn test_ranges() -> Result<(), String> {
 #[test]
 fn test_shor() -> Result<(), String> {
     let bitcode = include_bytes!("resources/shor.bc");
-    run_bitcode(bitcode, None, 1)
+    run_bitcode(bitcode, None, 1, &mut std::io::sink())
 }
 
 #[test]
 fn run_file_errors_on_invalid_ext() {
-    let result = run_file("/some/bad/path", None, 1);
+    let result = run_file("/some/bad/path", None, 1, None, &mut std::io::sink());
     assert!(result.is_err());
     assert_eq!("Unsupported file extension 'None'.", result.unwrap_err());
 }
 
 #[test]
 fn run_file_errors_on_missing_file() {
-    let result = run_file("/some/bad/path.ll", None, 1);
+    let result = run_file("/some/bad/path.ll", None, 1, None, &mut std::io::sink());
     assert!(result.is_err());
     assert_eq!(
         "no such file or directory",
@@ -212,7 +222,7 @@ fn run_file_errors_on_missing_file() {
 #[test]
 fn run_file_errors_on_missing_binding() {
     let bitcode = include_bytes!("resources/missing-intrinsic.bc");
-    let result = run_bitcode(bitcode, None, 1);
+    let result = run_bitcode(bitcode, None, 1, &mut std::io::sink());
     assert!(result.is_err());
     assert_eq!(
         "failed to link some declared functions: __quantum__qis__mycustomintrinsic__body",
@@ -223,7 +233,7 @@ fn run_file_errors_on_missing_binding() {
 #[test]
 fn mixed_output_recording_calls_fail() {
     let bitcode = include_bytes!("resources/mixed_output.bc");
-    let result = run_bitcode(bitcode, None, 1);
+    let result = run_bitcode(bitcode, None, 1, &mut std::io::sink());
     assert!(result.is_err());
     assert_eq!(
         "function '__quantum__rt__array_record_output' has mismatched parameters: expected 2, found 1",

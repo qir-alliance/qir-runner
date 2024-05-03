@@ -23,7 +23,13 @@ use inkwell::{
     values::FunctionValue,
     OptimizationLevel,
 };
-use std::{collections::HashMap, ffi::OsStr, io::Write, path::Path, ptr::null_mut};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    io::{Read, Write},
+    path::Path,
+    ptr::null_mut,
+};
 
 /// # Errors
 ///
@@ -135,13 +141,16 @@ fn run_module(
 
         __quantum__rt__initialize(null_mut());
         unsafe { run_entry_point(&execution_engine, entry_point)? }
-        OUTPUT.with(|writer| {
-            let mut writer = writer.borrow_mut();
-            let msg = writer.drain();
+
+        // Write the saved output records to the output_writer
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
             output_writer
-                .write(msg.as_slice())
+                .write_all(output.drain().as_slice())
                 .expect("Failed to write output");
         });
+
+        // Write the end of the shot
         output_writer
             .write_all("END\t0".as_bytes())
             .expect("Failed to write output");

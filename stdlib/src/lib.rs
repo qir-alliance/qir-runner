@@ -86,7 +86,14 @@ pub unsafe extern "C" fn __quantum__rt__fail(str: *const CString) {
 #[cfg(feature = "message-support")]
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__message(str: *const CString) {
-    println!("{}", (*str).to_str().expect("Unable to convert string"));
+    crate::output_recording::record_output_str(&format!(
+        "INFO\t{}",
+        (*str)
+            .to_str()
+            .expect("Unable to convert input string")
+            .escape_default()
+    ))
+    .expect("Failed to write message output");
 }
 
 #[cfg(test)]
