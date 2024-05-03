@@ -740,7 +740,6 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "num-traits",
- "qir-stdlib",
  "rand",
  "rustc-hash",
 ]
