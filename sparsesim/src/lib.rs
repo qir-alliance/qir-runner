@@ -7,8 +7,8 @@
 //! This libary implements sparse state simulation, based on the design from
 //! <a href="https://arxiv.org/abs/2105.01533">Leveraging state sparsity for more efficient quantum simulations</a>.
 
-mod nearly_zero;
 pub mod exp;
+mod nearly_zero;
 
 // Additional test infrastructure is available in matrix_testing that allows comparing the transformations
 // implemented here with direct matrix application to the state vector.

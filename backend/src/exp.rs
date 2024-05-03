@@ -28,7 +28,6 @@ fn map_pauli(pauli: Pauli) -> SparsePauli {
     }
 }
 
-
 /// QIR API for applying an exponential of a multi-qubit rotation about the given Pauli axes with the given angle and qubits.
 /// # Safety
 ///
@@ -45,7 +44,9 @@ pub unsafe extern "C" fn __quantum__qis__exp__body(
 
         let paulis_size = __quantum__rt__array_get_size_1d(paulis);
         let paulis: Vec<SparsePauli> = (0..paulis_size)
-            .map(|index| map_pauli(*__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>()))
+            .map(|index| {
+                map_pauli(*__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>())
+            })
             .collect();
 
         let qubits_size = __quantum__rt__array_get_size_1d(qubits);
@@ -110,7 +111,9 @@ pub unsafe extern "C" fn __quantum__qis__exp__ctl(
         let paulis_size = __quantum__rt__array_get_size_1d(args.paulis);
         let paulis: Vec<SparsePauli> = (0..paulis_size)
             .map(|index| {
-                map_pauli(*__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::<Pauli>())
+                map_pauli(
+                    *__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::<Pauli>(),
+                )
             })
             .collect();
 
