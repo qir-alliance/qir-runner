@@ -157,64 +157,64 @@ jobs:
       # qir-stdlib Artifact
       - name: qir-stdlib Artifact (Library)
         if: ${{ matrix.config.os != 'windows-2019' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: target/release/libqir_stdlib.a
       - name: qir-stdlib Artifact (Library on Windows)
         if: ${{ matrix.config.os == 'windows-2019' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: target/release/qir_stdlib.lib
       - name: qir-stdlib Artifact (Definition file)
         if: ${{ matrix.config.os == 'windows-2019' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: stdlib/include/qir_stdlib.def
       - name: qir-stdlib Artifact (Header file)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: stdlib/include/qir_stdlib.h
       - name: qir-stdlib Artifact (Notice file)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: runner/NOTICE.txt
       - name: qir-stdlib Artifact (License file)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: LICENSE
       # qir-runner Artifact
       - name: Artifacts executable
         if: ${{ matrix.config.os != 'windows-2019' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: target/release/qir-runner
       - name: Artifacts executable (Windows)
         if: ${{ matrix.config.os == 'windows-2019' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: target/release/qir-runner.exe
       - name: Artifacts Notice file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: runner/NOTICE.txt
       - name: Artifacts License file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: qir-runner-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
           path: LICENSE
       - name: Wheel Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-artifacts-${{ matrix.config.os }}
+          name: wheel-artifacts-${{ matrix.config.os }}-${{ matrix.config.arch }}
           path: target/wheels/*
   merge:
     runs-on: ubuntu-latest
