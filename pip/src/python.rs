@@ -96,7 +96,7 @@ pub(crate) fn run(
         rng_seed,
         &mut receiver,
     )
-    .map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
+    .map_err(PyErr::new::<PyRuntimeError, _>)?;
     Ok(())
 }
 
@@ -107,13 +107,13 @@ pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
         Some(args) => {
             // when invoked from python, but not from the command line
             let args: Vec<OsString> = args.into_iter().map(|s| s.into()).collect::<Vec<_>>();
-            runner::main(Some(args)).map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
+            runner::main(Some(args)).map_err(PyErr::new::<PyRuntimeError, _>)?;
         }
         None => {
             // We are being invoked from the command line
             // skip the first arg, which is the name of the python executable
             let args = std::env::args_os().skip(1);
-            runner::main(Some(args)).map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
+            runner::main(Some(args)).map_err(PyErr::new::<PyRuntimeError, _>)?;
         }
     }
 

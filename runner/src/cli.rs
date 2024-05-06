@@ -8,6 +8,10 @@ use clap::{arg, crate_version, value_parser, Command};
 use std::env::{self, ArgsOs};
 use std::{ffi::OsString, path::PathBuf};
 
+/// # Errors
+/// Returns an error if the arguments are invalid.
+/// # Panics
+/// Panics if the arguments cannot be read.
 pub fn main<I, T>(args: Option<I>) -> Result<(), String>
 where
     I: IntoIterator<Item = T>,
@@ -51,7 +55,7 @@ where
                 .expect("Shots is required or should have a default value"),
             matches
                 .try_get_one::<u64>("rngseed")
-                .map_or(None, |x| x.copied()),
+                .map_or(None, Option::<&u64>::copied),
             &mut std::io::stdout(),
         ),
     }

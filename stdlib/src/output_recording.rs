@@ -48,8 +48,7 @@ impl Read for OutputRecorder {
 struct DefaultReaderWriter(Vec<u8>);
 impl Write for DefaultReaderWriter {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.write(buf)?;
-        Ok(buf.len())
+        self.0.write(buf)
     }
     fn flush(&mut self) -> std::io::Result<()> {
         self.0.flush()
@@ -90,9 +89,12 @@ impl OutputRecorder {
 }
 
 thread_local! {
-    pub static OUTPUT: std::cell::RefCell<Box<OutputRecorder>> = std::cell::RefCell::new(Box::new(OutputRecorder::default()));
+    pub static OUTPUT: std::cell::RefCell<Box<OutputRecorder>> = std::cell::RefCell::new(Box::default());
 }
 
+/// Records a string to the output.
+/// # Errors
+/// Returns an error if the write fails.
 pub fn record_output_str(val: &str) -> std::io::Result<()> {
     OUTPUT.with(|output| {
         let mut output = output.borrow_mut();
@@ -104,7 +106,10 @@ pub fn record_output_str(val: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> {
+/// Records a value to the output.
+/// # Errors
+/// Returns an error if the write fails.
+pub unsafe fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> {
     OUTPUT.with(|output| {
         let mut output = output.borrow_mut();
         output
@@ -112,11 +117,9 @@ pub fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::
             .expect("Failed to write output");
         if !tag.is_null() {
             output.write_all(b"\t").expect("Failed to write output");
-            unsafe {
-                output
-                    .write_all(CString::from_raw(tag).as_bytes())
-                    .expect("Failed to write output");
-            }
+            output
+                .write_all(CString::from_raw(tag).as_bytes())
+                .expect("Failed to write output");
         }
         output.write_newline();
     });
@@ -128,7 +131,7 @@ pub fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::
 /// parameter defines a string label for the array. Depending on
 /// the output schema, the label is included in the output or omitted.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char) {
     record_output("ARRAY", &val, tag).expect("Failed to write array output");
 }
 
@@ -137,22 +140,22 @@ pub extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char)
 /// parameter defines a string label for the tuple. Depending on
 /// the output schema, the label is included in the output or omitted.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__tuple_record_output(val: i64, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__tuple_record_output(val: i64, tag: *mut c_char) {
     record_output("TUPLE", &val, tag).expect("Failed to write tuple output");
 }
 
 #[no_mangle]
-pub extern "C" fn __quantum__rt__int_record_output(val: i64, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__int_record_output(val: i64, tag: *mut c_char) {
     record_output("INT", &val, tag).expect("Failed to write int output");
 }
 
 #[no_mangle]
-pub extern "C" fn __quantum__rt__double_record_output(val: c_double, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__double_record_output(val: c_double, tag: *mut c_char) {
     record_output("DOUBLE", &double_to_string(val), tag).expect("Failed to write double output");
 }
 
 #[no_mangle]
-pub extern "C" fn __quantum__rt__bool_record_output(val: bool, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__bool_record_output(val: bool, tag: *mut c_char) {
     record_output("BOOL", &val, tag).expect("Failed to write bool output");
 }
 
@@ -212,12 +215,12 @@ pub mod legacy {
     }
 
     #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__array_record_output(val: i64) {
+    pub unsafe extern "C" fn __quantum__rt__array_record_output(val: i64) {
         super::__quantum__rt__array_record_output(val, null_mut());
     }
 
     #[allow(non_snake_case)]
-    pub extern "C" fn __quantum__rt__tuple_record_output(val: i64) {
+    pub unsafe extern "C" fn __quantum__rt__tuple_record_output(val: i64) {
         super::__quantum__rt__tuple_record_output(val, null_mut());
     }
 }
@@ -267,7 +270,9 @@ mod tests {
     }
     fn assert_untagged_output_match(ty: &str, val: &dyn Display, expected_str: &str) {
         OUTPUT.with(|output| output.borrow_mut().use_std_out(false));
-        record_output(ty, &val, null_mut()).unwrap();
+        unsafe {
+            record_output(ty, &val, null_mut()).expect("Failed to write output");
+        }
 
         let actual = OUTPUT.with(|output| {
             let mut output = output.borrow_mut();

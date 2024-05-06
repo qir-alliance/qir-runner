@@ -127,11 +127,11 @@ fn run_module(
             .expect("Failed to write output");
         for attr in &attrs {
             output_writer
-                .write_all(&format!("METADATA\t{}", attr.0).as_bytes())
+                .write_all(format!("METADATA\t{}", attr.0).as_bytes())
                 .expect("Failed to write output");
             if !attr.1.is_empty() {
                 output_writer
-                    .write_all(&format!("\t{}", attr.1).as_bytes())
+                    .write_all(format!("\t{}", attr.1).as_bytes())
                     .expect("Failed to write output");
             }
             output_writer

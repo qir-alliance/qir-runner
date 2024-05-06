@@ -849,8 +849,10 @@ pub mod legacy_output {
 /// QIR API for recording the given result into the program output.
 #[allow(clippy::missing_panics_doc)]
 // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+/// # Safety
+/// This function will panic if the tag cannot be written to the output buffer.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
@@ -956,6 +958,8 @@ pub fn capture_quantum_state() -> (Vec<(BigUint, Complex64)>, usize) {
 }
 
 /// QIR API for dumping full internal simulator state.
+/// # Panics
+/// This function will panic if the output buffer is not available.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
     if !location.is_null() {
