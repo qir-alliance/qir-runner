@@ -101,7 +101,6 @@ jobs:
   release:
     name: Release
     runs-on: ${{ matrix.config.os }}
-    env: ${{ matrix.config.env }}
     strategy:
       fail-fast: false
       matrix:
@@ -122,6 +121,10 @@ jobs:
           os: ${{ matrix.config.os }}
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
+      - name: Build
+        run: cargo build -vv --release
+      - name: Test
+        run: cargo test -vv --release -- --nocapture
       - uses: actions/checkout@v4
       - name: Set up Python 3.8
         uses: actions/setup-python@v5
@@ -136,17 +139,16 @@ jobs:
         run: |
           python -m pip install -r pip/requirements-manylinux.txt
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
-      - name: Build
-        run: cargo build -vv --release
-      - name: Test
-        run: cargo test -vv --release -- --nocapture
       - name: Package Non-Linux
+        env: ${{ matrix.config.env }}
         run: python -m pip --verbose wheel --wheel-dir target/wheels ./pip
         if: ${{ matrix.config.os != 'ubuntu-20.04' && matrix.config.os != 'ubuntu-22.04' }}
       - name: Package Linux
+        env: ${{ matrix.config.env }}
         run: python -m pip --verbose wheel --wheel-dir target/raw-wheels ./pip
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Auditwheel
+        env: ${{ matrix.config.env }}
         run: auditwheel repair --plat $AUDITWHEEL_TAG --wheel-dir target/wheels target/raw-wheels/*.whl
         if: ${{ matrix.config.os == 'ubuntu-20.04' }}
       - name: Test Wheel
