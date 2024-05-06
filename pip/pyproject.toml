@@ -29,4 +29,4 @@ build-backend = "maturin"
 module-name = "qir_runner._native"
 
 [project.scripts]
-qir-runner = "qir_runner:main"
+qir-runner = "qir_runner._native:main"

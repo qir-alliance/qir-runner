@@ -3,6 +3,7 @@
 
 use std::ffi::OsString;
 
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
@@ -58,22 +59,36 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
     }
 }
 
+/// Runs the supplied QIR (bitcode or textual IR) file.
+/// :param path: (Required) Path to the QIR file to run
+/// :param entry_point: Name of the entry point function to execute.
+///     Default is `None`.
+/// :param shots: The number of times to repeat the execution of
+///     the chosen entry point in the program. Default is 1.
+/// :param rngseed: The value to use when seeding the random number generator
+///     used for quantum simulation.
+/// :param output_fn: A callback function to receive the output of the QIR
+///     runtime functions. Default is `None`. When no callback is provided,
+///     the output is printed to the console.
 #[pyfunction]
-#[pyo3(text_signature = "(path, entry_point, shots, rng_seed)")]
+#[pyo3(text_signature = "(path, entry_point, shots, rng_seed, output_fn)")]
 #[allow(clippy::needless_pass_by_value)]
-pub(crate) fn run_file(
+pub(crate) fn run(
     py: Python,
     path: String,
     entry_point: Option<String>,
     shots: Option<u32>,
     rng_seed: Option<u64>,
-    callback: Option<PyObject>,
+    output_fn: Option<PyObject>,
 ) -> PyResult<()> {
     OUTPUT.with(|output| {
         let mut output = output.borrow_mut();
-        output.use_std_out(callback.is_none());
+        output.use_std_out(output_fn.is_none());
     });
-    let mut receiver = OptionalCallbackReceiver { callback, py };
+    let mut receiver = OptionalCallbackReceiver {
+        callback: output_fn,
+        py,
+    };
     runner::run_file(
         path,
         entry_point.as_deref(),
@@ -81,7 +96,7 @@ pub(crate) fn run_file(
         rng_seed,
         &mut receiver,
     )
-    .map_err(|msg| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))?;
+    .map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
     Ok(())
 }
 
@@ -90,15 +105,15 @@ pub(crate) fn run_file(
 pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
     match args {
         Some(args) => {
+            // when invoked from python, but not from the command line
             let args: Vec<OsString> = args.into_iter().map(|s| s.into()).collect::<Vec<_>>();
-            runner::main(Some(args))
-                .map_err(|msg| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))?;
+            runner::main(Some(args)).map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
         }
         None => {
+            // We are being invoked from the command line
             // skip the first arg, which is the name of the python executable
             let args = std::env::args_os().skip(1);
-            runner::main(Some(args))
-                .map_err(|msg| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(msg))?;
+            runner::main(Some(args)).map_err(|msg| PyErr::new::<PyRuntimeError, _>(msg))?;
         }
     }
 
@@ -107,7 +122,7 @@ pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
 
 #[pymodule]
 fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(run_file, m)?)?;
+    m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add_class::<Output>()?;
 
