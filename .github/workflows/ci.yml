@@ -141,7 +141,7 @@ jobs:
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Package Non-Linux
         env: ${{ matrix.config.env }}
-        run: python -m pip --verbose wheel --wheel-dir target/wheels ./pip
+        run: python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
         if: ${{ matrix.config.os != 'ubuntu-20.04' && matrix.config.os != 'ubuntu-22.04' }}
       - name: Package Linux
         env: ${{ matrix.config.env }}
