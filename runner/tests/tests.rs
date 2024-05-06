@@ -12,132 +12,203 @@ use runner::{run_bitcode, run_file};
 #[cfg(not(debug_assertions))]
 #[cfg(test)]
 mod cji_tests {
-    use qir_runner::run_bitcode;
+    use runner::run_bitcode;
+    use std::io::sink;
 
     #[test]
     fn test_h_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyH"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyH"), 1, &mut sink())
     }
 
     #[test]
     fn test_s_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyS"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyS"), 1, &mut sink())
     }
 
     #[test]
     fn test_t_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyT"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyT"), 1, &mut sink())
     }
 
     #[test]
     fn test_x_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyX"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyX"), 1, &mut sink())
     }
 
     #[test]
     fn test_y_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyY"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyY"), 1, &mut sink())
     }
 
     #[test]
     fn test_z_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyZ"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyZ"), 1, &mut sink())
     }
 
     #[test]
     fn test_cnot_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyCNOT"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyCNOT"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_cx_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyCX"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyCX"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_cy_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyCY"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyCY"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_cz_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyCZ"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyCZ"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_ccnot_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyCCNOT"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyCCNOT"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_rx_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRx"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRx"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_ry_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRy"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRy"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_rz_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRz"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRz"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_rxx_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRxx"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRxx"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_ryy_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRyy"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRyy"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_rzz_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyRzz"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyRzz"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_r_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyR"), 1)
+        run_bitcode(bitcode, Some("DecompositionTests__VerifyR"), 1, &mut sink())
     }
 
     #[test]
     fn test_r1_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyR1"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyR1"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_swap_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifySWAP"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifySWAP"),
+            1,
+            &mut sink(),
+        )
     }
 
     #[test]
     fn test_exp_with_cji() -> Result<(), String> {
         let bitcode = include_bytes!("resources/cji.bc");
-        run_bitcode(bitcode, Some("DecompositionTests__VerifyExp"), 1)
+        run_bitcode(
+            bitcode,
+            Some("DecompositionTests__VerifyExp"),
+            1,
+            &mut sink(),
+        )
     }
 }
 

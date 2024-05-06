@@ -852,7 +852,10 @@ pub mod legacy_output {
 /// # Safety
 /// This function will panic if the tag cannot be written to the output buffer.
 #[no_mangle]
-pub unsafe extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__result_record_output(
+    result: *mut c_void,
+    tag: *mut c_char,
+) {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
