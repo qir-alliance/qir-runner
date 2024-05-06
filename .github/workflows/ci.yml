@@ -145,7 +145,7 @@ jobs:
         if: ${{ matrix.config.os != 'ubuntu-20.04' && matrix.config.os != 'ubuntu-22.04' }}
       - name: Package Linux
         env: ${{ matrix.config.env }}
-        run: python -m pip --verbose wheel --wheel-dir target/raw-wheels ./pip
+        run: LLVM_SYS_140_PREFIX="$LLVM_SYS_140_PREFIX" python -m pip --verbose wheel --verbose --wheel-dir target/raw-wheels ./pip
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Auditwheel
         env: ${{ matrix.config.env }}
