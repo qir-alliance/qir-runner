@@ -38,6 +38,18 @@ jobs:
       - name: cargo doc
         run: cargo doc -vv --all --no-deps
 
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install Python packages
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r pip/requirements-dev.txt
+
+      - name: Python formatting
+        run: python -m black --check pip
+
       - name: Publish Docs as Artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -64,7 +76,7 @@ jobs:
     name: Build
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -147,13 +159,13 @@ jobs:
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Auditwheel
         run: auditwheel repair --plat $AUDITWHEEL_TAG --wheel-dir target/wheels target/raw-wheels/*.whl
-        if: ${{ matrix.config.os == 'ubuntu-20.04' }}
+        if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Test Wheel
         run: |
           python -m pip install -r pip/requirements-test.txt
           python -m pip install --force-reinstall --no-index --find-links=target/wheels qir-runner
           python -m pytest --verbose pip
-        if: ${{ matrix.config.os == 'ubuntu-20.04' }}
+        if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       # qir-stdlib Artifact
       - name: qir-stdlib Artifact (Library)
         if: ${{ matrix.config.os != 'windows-2019' }}
