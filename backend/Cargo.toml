@@ -10,7 +10,7 @@ qir-stdlib = { path = "../stdlib" }
 quantum-sparse-sim = { path = "../sparsesim" }
 rand = "0.8.5"
 num-complex = "0.4"
-num-bigint = { version = "0.4.4", default-features = false }
+num-bigint = { version = "0.4.5", default-features = false }
 bitvec = "1.0.0"
 
 [dev-dependencies]
