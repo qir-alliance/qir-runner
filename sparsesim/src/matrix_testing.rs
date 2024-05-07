@@ -407,7 +407,7 @@ mod tests {
             sim.h(*ctl);
         }
 
-        sim.dump();
+        println!("{}", sim.dump());
 
         // We know the operations are equal if the qubits are left in the zero state.
         for (q, ctl) in qs.iter().zip(&ctls) {

@@ -190,6 +190,7 @@ impl QuantumSim {
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
     #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the keys are not present in the map, which should not happen."
+    #[must_use]
     pub fn dump(&mut self) -> String {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
@@ -1354,7 +1355,7 @@ mod tests {
         let inner_q = sim.allocate();
         sim.swap_qubit_ids(q, inner_q);
         sim.release(inner_q);
-        sim.dump();
+        println!("{}", sim.dump());
     }
 
     /// Verify that swap preserves queued rotations.
@@ -1492,7 +1493,7 @@ mod tests {
 
             // Sparse state vector should have one entry for |0⟩.
             // Dump the state first to force a flush of any queued operations.
-            sim.dump();
+            println!("{}", sim.dump());
             assert_eq!(sim.state.len(), 1);
         }
     }

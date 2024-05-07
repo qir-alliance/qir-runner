@@ -1,7 +1,7 @@
 [package]
 authors = ["Microsoft"]
 name = "pyqir_runner"
-version = "0.0.1"
+version = "0.0.0"
 edition = "2021"
 license = "MIT"
 description = "JIT compiles and executes programs written in QIR (Quantum Intermediate Representation)."

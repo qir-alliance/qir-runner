@@ -980,7 +980,12 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
                 output.write_newline();
             });
         }
-        state.sim.dump();
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            output
+                .write_all(state.sim.dump().as_bytes())
+                .expect("Failed to write simulator state");
+        });
     });
 }
 
