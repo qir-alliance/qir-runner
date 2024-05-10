@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qir_runner import run, OutputHandler
+from qirrunner import run, OutputHandler
 
 
 def test_run_writes_to_callback() -> None:

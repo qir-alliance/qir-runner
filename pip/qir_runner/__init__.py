@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qir_runner._native import run, Output
+from qirrunner._native import run, Output
 
 
 class OutputHandler:

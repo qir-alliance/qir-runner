@@ -694,14 +694,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pyqir_runner"
-version = "0.0.1"
-dependencies = [
- "pyo3",
- "runner",
-]
-
-[[package]]
 name = "python3-dll-a"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -730,6 +722,14 @@ dependencies = [
  "llvm-tools",
  "num-bigint",
  "rand",
+]
+
+[[package]]
+name = "qirrunner"
+version = "0.0.0"
+dependencies = [
+ "pyo3",
+ "runner",
 ]
 
 [[package]]
