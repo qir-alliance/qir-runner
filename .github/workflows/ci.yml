@@ -163,7 +163,7 @@ jobs:
       - name: Test Wheel
         run: |
           python -m pip install -r pip/requirements-test.txt
-          python -m pip install --force-reinstall --no-index --find-links=target/wheels qir-runner
+          python -m pip install --force-reinstall --no-index --find-links=target/wheels qirrunner
           python -m pytest --verbose pip
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       # qir-stdlib Artifact
