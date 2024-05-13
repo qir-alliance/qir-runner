@@ -123,6 +123,15 @@
 <a href="#123" id="123">123</a>
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 </span><span class="attr">#![deny(clippy::all, clippy::pedantic)]
@@ -149,6 +158,8 @@
     mem::{<span class="self">self</span>, ManuallyDrop},
     rc::{Rc, Weak},
 };
+
+<span class="kw">use </span>output_recording::record_output_str;
 
 <span class="doccomment">/// Utility used for managing refcounted items.
 </span><span class="kw">unsafe fn </span>update_counts&lt;T&gt;(raw_rc: <span class="kw-2">*const </span>T, update: i32, is_alias: bool) {
@@ -211,7 +222,14 @@
 <span class="attr">#[cfg(feature = <span class="string">&quot;message-support&quot;</span>)]
 #[no_mangle]
 </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__message(str: <span class="kw-2">*const </span>CString) {
-    <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, (<span class="kw-2">*</span>str).to_str().expect(<span class="string">&quot;Unable to convert string&quot;</span>));
+    record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+        <span class="string">&quot;INFO\t{}&quot;</span>,
+        (<span class="kw-2">*</span>str)
+            .to_str()
+            .expect(<span class="string">&quot;Unable to convert input string&quot;</span>)
+            .escape_default()
+    ))
+    .expect(<span class="string">&quot;Failed to write message output&quot;</span>);
 }
 
 <span class="attr">#[cfg(test)]

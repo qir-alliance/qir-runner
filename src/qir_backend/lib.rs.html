@@ -1344,6 +1344,7 @@
 <span class="kw">use </span>std::ffi::c_char;
 <span class="kw">use </span>std::ffi::c_double;
 <span class="kw">use </span>std::ffi::{c_void, CString};
+<span class="kw">use </span>std::io::Write;
 <span class="kw">use </span>std::mem::size_of;
 
 <span class="kw">use </span>result_bool::{
@@ -2136,6 +2137,8 @@
 <span class="kw">pub mod </span>legacy_output {
     <span class="kw">use </span>std::ffi::c_void;
 
+    <span class="kw">use </span>qir_stdlib::output_recording::record_output_str;
+
     <span class="kw">use crate</span>::{
         result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
         SIM_STATE,
@@ -2159,7 +2162,8 @@
                     .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>)
             };
 
-            <span class="macro">println!</span>(<span class="string">&quot;RESULT\t{}&quot;</span>, <span class="kw">if </span>b { <span class="string">&quot;1&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;0&quot; </span>});
+            record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;RESULT\t{}&quot;</span>, <span class="kw">if </span>b { <span class="string">&quot;1&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;0&quot; </span>}))
+                .expect(<span class="string">&quot;Failed to write result output&quot;</span>);
         });
     }
 }
@@ -2167,8 +2171,13 @@
 <span class="doccomment">/// QIR API for recording the given result into the program output.
 </span><span class="attr">#[allow(clippy::missing_panics_doc)]
 </span><span class="comment">// reason=&quot;Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen.&quot;
+</span><span class="doccomment">/// # Safety
+/// This function will panic if the tag cannot be written to the output buffer.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__result_record_output(result: <span class="kw-2">*mut </span>c_void, tag: <span class="kw-2">*mut </span>c_char) {
+</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__result_record_output(
+    result: <span class="kw-2">*mut </span>c_void,
+    tag: <span class="kw-2">*mut </span>c_char,
+) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>res = <span class="kw-2">&amp;mut </span>sim_state.borrow_mut().res;
         <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
@@ -2184,30 +2193,8 @@
         };
 
         <span class="kw">let </span>val: i64 = i64::from(b);
-        output(<span class="string">&quot;RESULT&quot;</span>, <span class="kw-2">&amp;</span>val, tag, <span class="kw-2">&amp;mut </span>std::io::stdout()).expect(<span class="string">&quot;Failed to write result output&quot;</span>);
+        record_output(<span class="string">&quot;RESULT&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write result output&quot;</span>);
     });
-}
-
-<span class="attr">#[cfg(windows)]
-</span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\r\n&quot;</span>;
-<span class="attr">#[cfg(not(windows))]
-</span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\n&quot;</span>;
-
-<span class="kw">fn </span>output(
-    ty: <span class="kw-2">&amp;</span>str,
-    val: <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::fmt::Display,
-    tag: <span class="kw-2">*mut </span>c_char,
-    output: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>std::io::Write,
-) -&gt; std::io::Result&lt;()&gt; {
-    output.write_fmt(<span class="macro">format_args!</span>(<span class="string">&quot;OUTPUT\t{ty}\t{val}&quot;</span>))<span class="question-mark">?</span>;
-    <span class="kw">if </span>!tag.is_null() {
-        output.write_all(<span class="string">b&quot;\t&quot;</span>)<span class="question-mark">?</span>;
-        <span class="kw">unsafe </span>{
-            output.write_all(CString::from_raw(tag).as_bytes())<span class="question-mark">?</span>;
-        }
-    }
-    output.write_all(LINE_ENDING)<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(())
 }
 
 <span class="doccomment">/// QIR API that allocates the next available qubit in the simulation.
@@ -2296,6 +2283,8 @@
 }
 
 <span class="doccomment">/// QIR API for dumping full internal simulator state.
+/// # Panics
+/// This function will panic if the output buffer is not available.
 </span><span class="attr">#[no_mangle]
 </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__dumpmachine__body(location: <span class="kw-2">*mut </span>c_void) {
     <span class="kw">if </span>!location.is_null() {
@@ -2305,9 +2294,20 @@
         <span class="kw">let </span><span class="kw-2">mut </span>state = sim_state.borrow_mut();
 
         <span class="kw">if </span>!state.res.is_empty() {
-            <span class="macro">println!</span>(<span class="string">&quot;Global Results: {}&quot;</span>, state.res);
+            OUTPUT.with(|output| {
+                <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
+                output
+                    .write_fmt(<span class="macro">format_args!</span>(<span class="string">&quot;Global Results: {}&quot;</span>, state.res))
+                    .expect(<span class="string">&quot;Failed to write global results&quot;</span>);
+                output.write_newline();
+            });
         }
-        state.sim.dump();
+        OUTPUT.with(|output| {
+            <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
+            output
+                .write_all(state.sim.dump().as_bytes())
+                .expect(<span class="string">&quot;Failed to write simulator state&quot;</span>);
+        });
     });
 }
 

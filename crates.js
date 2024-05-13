@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["qir_backend","qir_runner","qir_stdlib","quantum_sparse_sim"];
+window.ALL_CRATES = ["qir_backend","qir_runner","qir_stdlib","qirrunner","quantum_sparse_sim","runner"];
