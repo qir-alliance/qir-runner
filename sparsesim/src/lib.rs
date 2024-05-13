@@ -23,7 +23,7 @@ use num_complex::Complex64;
 use num_traits::{One, Zero};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2};
+use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
 pub type SparseState = FxHashMap<BigUint, Complex64>;
 
@@ -190,7 +190,8 @@ impl QuantumSim {
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
     #[allow(clippy::missing_panics_doc)] // reason="Panics can only occur if the keys are not present in the map, which should not happen."
-    pub fn dump(&mut self) {
+    #[must_use]
+    pub fn dump(&mut self) -> String {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
         let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
@@ -215,27 +216,43 @@ impl QuantumSim {
             }
         });
 
-        self.dump_impl(false);
+        self.dump_impl(false)
     }
 
     /// Utility function that performs the actual output of state (and optionally map) to screen. Can
     /// be called internally from other functions to aid in debugging and does not perform any modification
     /// of the internal structures.
-    fn dump_impl(&self, print_id_map: bool) {
+    fn dump_impl(&self, print_id_map: bool) -> String {
+        #[cfg(windows)]
+        const LINE_ENDING: &[u8] = b"\r\n";
+        #[cfg(not(windows))]
+        const LINE_ENDING: &[u8] = b"\n";
+
+        let mut output = String::new();
+        let nl = String::from_utf8(LINE_ENDING.to_vec()).expect("Failed to create newline string");
         if print_id_map {
-            println!("MAP: {:?}", self.id_map);
+            output
+                .write_str(&format!("MAP: {:?}", self.id_map))
+                .expect("Failed to write output");
+            output.write_str(&nl).expect("Failed to write output");
         };
-        print!("STATE: [ ");
+        output
+            .write_str("STATE: [ ")
+            .expect("Failed to write output");
         let mut sorted_keys = self.state.keys().collect::<Vec<_>>();
         sorted_keys.sort_unstable();
         for key in sorted_keys {
-            print!(
-                "|{}\u{27e9}: {}, ",
-                key,
-                self.state.get(key).map_or_else(Complex64::zero, |v| *v)
-            );
+            output
+                .write_str(&format!(
+                    "|{}\u{27e9}: {}, ",
+                    key,
+                    self.state.get(key).map_or_else(Complex64::zero, |v| *v)
+                ))
+                .expect("Failed to write output");
         }
-        println!("]");
+        output.write_str("]").expect("Failed to write output");
+        output.write_str(&nl).expect("Failed to write output");
+        output
     }
 
     /// Checks the probability of parity measurement in the computational basis for the given set of
@@ -1338,7 +1355,7 @@ mod tests {
         let inner_q = sim.allocate();
         sim.swap_qubit_ids(q, inner_q);
         sim.release(inner_q);
-        sim.dump();
+        println!("{}", sim.dump());
     }
 
     /// Verify that swap preserves queued rotations.
@@ -1476,7 +1493,7 @@ mod tests {
 
             // Sparse state vector should have one entry for |0⟩.
             // Dump the state first to force a flush of any queued operations.
-            sim.dump();
+            println!("{}", sim.dump());
             assert_eq!(sim.state.len(), 1);
         }
     }

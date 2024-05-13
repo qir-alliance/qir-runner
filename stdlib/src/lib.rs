@@ -25,6 +25,8 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use output_recording::record_output_str;
+
 /// Utility used for managing refcounted items.
 unsafe fn update_counts<T>(raw_rc: *const T, update: i32, is_alias: bool) {
     let mut remaining = update;
@@ -86,7 +88,14 @@ pub unsafe extern "C" fn __quantum__rt__fail(str: *const CString) {
 #[cfg(feature = "message-support")]
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__rt__message(str: *const CString) {
-    println!("{}", (*str).to_str().expect("Unable to convert string"));
+    record_output_str(&format!(
+        "INFO\t{}",
+        (*str)
+            .to_str()
+            .expect("Unable to convert input string")
+            .escape_default()
+    ))
+    .expect("Failed to write message output");
 }
 
 #[cfg(test)]

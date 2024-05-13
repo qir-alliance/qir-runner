@@ -22,6 +22,7 @@ use std::convert::TryInto;
 use std::ffi::c_char;
 use std::ffi::c_double;
 use std::ffi::{c_void, CString};
+use std::io::Write;
 use std::mem::size_of;
 
 use result_bool::{
@@ -814,6 +815,8 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
 pub mod legacy_output {
     use std::ffi::c_void;
 
+    use qir_stdlib::output_recording::record_output_str;
+
     use crate::{
         result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
         SIM_STATE,
@@ -837,7 +840,8 @@ pub mod legacy_output {
                     .expect("Result with given id missing after expansion.")
             };
 
-            println!("RESULT\t{}", if b { "1" } else { "0" });
+            record_output_str(&format!("RESULT\t{}", if b { "1" } else { "0" }))
+                .expect("Failed to write result output");
         });
     }
 }
@@ -845,8 +849,13 @@ pub mod legacy_output {
 /// QIR API for recording the given result into the program output.
 #[allow(clippy::missing_panics_doc)]
 // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+/// # Safety
+/// This function will panic if the tag cannot be written to the output buffer.
 #[no_mangle]
-pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: *mut c_char) {
+pub unsafe extern "C" fn __quantum__rt__result_record_output(
+    result: *mut c_void,
+    tag: *mut c_char,
+) {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
         let res_id = result as usize;
@@ -862,30 +871,8 @@ pub extern "C" fn __quantum__rt__result_record_output(result: *mut c_void, tag: 
         };
 
         let val: i64 = i64::from(b);
-        output("RESULT", &val, tag, &mut std::io::stdout()).expect("Failed to write result output");
+        record_output("RESULT", &val, tag).expect("Failed to write result output");
     });
-}
-
-#[cfg(windows)]
-const LINE_ENDING: &[u8] = b"\r\n";
-#[cfg(not(windows))]
-const LINE_ENDING: &[u8] = b"\n";
-
-fn output(
-    ty: &str,
-    val: &dyn std::fmt::Display,
-    tag: *mut c_char,
-    output: &mut impl std::io::Write,
-) -> std::io::Result<()> {
-    output.write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))?;
-    if !tag.is_null() {
-        output.write_all(b"\t")?;
-        unsafe {
-            output.write_all(CString::from_raw(tag).as_bytes())?;
-        }
-    }
-    output.write_all(LINE_ENDING)?;
-    Ok(())
 }
 
 /// QIR API that allocates the next available qubit in the simulation.
@@ -974,6 +961,8 @@ pub fn capture_quantum_state() -> (Vec<(BigUint, Complex64)>, usize) {
 }
 
 /// QIR API for dumping full internal simulator state.
+/// # Panics
+/// This function will panic if the output buffer is not available.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
     if !location.is_null() {
@@ -983,9 +972,20 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
         let mut state = sim_state.borrow_mut();
 
         if !state.res.is_empty() {
-            println!("Global Results: {}", state.res);
+            OUTPUT.with(|output| {
+                let mut output = output.borrow_mut();
+                output
+                    .write_fmt(format_args!("Global Results: {}", state.res))
+                    .expect("Failed to write global results");
+                output.write_newline();
+            });
         }
-        state.sim.dump();
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            output
+                .write_all(state.sim.dump().as_bytes())
+                .expect("Failed to write simulator state");
+        });
     });
 }
 

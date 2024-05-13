@@ -4,6 +4,9 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused)]
 
+mod cli;
+pub use cli::main;
+
 pub use qir_backend::{
     arrays::*, bigints::*, callables::*, exp::*, math::*, output_recording::*, range_support::*,
     result_bool::*, strings::*, tuples::*, *,
@@ -20,7 +23,13 @@ use inkwell::{
     values::FunctionValue,
     OptimizationLevel,
 };
-use std::{collections::HashMap, ffi::OsStr, path::Path, ptr::null_mut};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    io::{Read, Write},
+    path::Path,
+    ptr::null_mut,
+};
 
 /// # Errors
 ///
@@ -34,10 +43,15 @@ pub fn run_file(
     path: impl AsRef<Path>,
     entry_point: Option<&str>,
     shots: u32,
+    rng_seed: Option<u64>,
+    output_writer: &mut impl Write,
 ) -> Result<(), String> {
+    if let Some(seed) = rng_seed {
+        qir_backend::set_rng_seed(seed);
+    }
     let context = Context::create();
     let module = load_file(path, &context)?;
-    run_module(&module, entry_point, shots)
+    run_module(&module, entry_point, shots, output_writer)
 }
 
 /// # Errors
@@ -46,14 +60,24 @@ pub fn run_file(
 /// - `bytes` does not contain a valid bitcode module
 /// - `entry_point` is not found in the QIR
 /// - Entry point has parameters or a non-void return type.
-pub fn run_bitcode(bytes: &[u8], entry_point: Option<&str>, shots: u32) -> Result<(), String> {
+pub fn run_bitcode(
+    bytes: &[u8],
+    entry_point: Option<&str>,
+    shots: u32,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
     let context = Context::create();
     let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
     let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
-    run_module(&module, entry_point, shots)
+    run_module(&module, entry_point, shots, output_writer)
 }
 
-fn run_module(module: &Module, entry_point: Option<&str>, shots: u32) -> Result<(), String> {
+fn run_module(
+    module: &Module,
+    entry_point: Option<&str>,
+    shots: u32,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
     module
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;
@@ -98,18 +122,41 @@ fn run_module(module: &Module, entry_point: Option<&str>, shots: u32) -> Result<
         .collect();
 
     for _ in 1..=shots {
-        println!("START");
+        output_writer
+            .write_all("START\n".as_bytes())
+            .expect("Failed to write output");
         for attr in &attrs {
-            print!("METADATA\t{}", attr.0);
+            output_writer
+                .write_all(format!("METADATA\t{}", attr.0).as_bytes())
+                .expect("Failed to write output");
             if !attr.1.is_empty() {
-                print!("\t{}", attr.1);
+                output_writer
+                    .write_all(format!("\t{}", attr.1).as_bytes())
+                    .expect("Failed to write output");
             }
-            println!();
+            output_writer
+                .write_all(qir_stdlib::output_recording::LINE_ENDING)
+                .expect("Failed to write output");
         }
 
         __quantum__rt__initialize(null_mut());
         unsafe { run_entry_point(&execution_engine, entry_point)? }
-        println!("END\t0");
+
+        // Write the saved output records to the output_writer
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
+            output_writer
+                .write_all(output.drain().as_slice())
+                .expect("Failed to write output");
+        });
+
+        // Write the end of the shot
+        output_writer
+            .write_all("END\t0".as_bytes())
+            .expect("Failed to write output");
+        output_writer
+            .write_all(qir_stdlib::output_recording::LINE_ENDING)
+            .expect("Failed to write output");
     }
     Ok(())
 }

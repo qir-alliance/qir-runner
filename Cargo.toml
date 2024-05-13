@@ -4,7 +4,12 @@ members = [
     "runner",
     "sparsesim",
     "stdlib",
+    "pip",
 ]
+resolver = "2"
 
 [profile.release]
 debug = 1
+
+[workspace.dependencies]
+pyo3 = "0.20"
