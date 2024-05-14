@@ -10,10 +10,16 @@
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, Zero};
-use qir_stdlib::Pauli;
 use std::ops::ControlFlow;
 
 use crate::{nearly_zero::NearlyZero, FlushLevel, QuantumSim, SparseState};
+
+pub enum Pauli {
+    I,
+    X,
+    Z,
+    Y,
+}
 
 impl QuantumSim {
     /// Exp multi-qubit rotation gate.
