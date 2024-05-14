@@ -138,6 +138,20 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -153,10 +167,20 @@
     tuples::{__quantum__rt__tuple_create, __quantum__rt__tuple_update_reference_count},
     Pauli,
 };
+<span class="kw">use </span>quantum_sparse_sim::exp::Pauli <span class="kw">as </span>SparsePauli;
 <span class="kw">use </span>std::{
     mem::size_of,
     os::raw::{c_double, c_void},
 };
+
+<span class="kw">fn </span>map_pauli(pauli: Pauli) -&gt; SparsePauli {
+    <span class="kw">match </span>pauli {
+        Pauli::I =&gt; SparsePauli::I,
+        Pauli::X =&gt; SparsePauli::X,
+        Pauli::Z =&gt; SparsePauli::Z,
+        Pauli::Y =&gt; SparsePauli::Y,
+    }
+}
 
 <span class="doccomment">/// QIR API for applying an exponential of a multi-qubit rotation about the given Pauli axes with the given angle and qubits.
 /// # Safety
@@ -173,8 +197,10 @@
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
 
         <span class="kw">let </span>paulis_size = __quantum__rt__array_get_size_1d(paulis);
-        <span class="kw">let </span>paulis: Vec&lt;Pauli&gt; = (<span class="number">0</span>..paulis_size)
-            .map(|index| <span class="kw-2">*</span>__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::&lt;Pauli&gt;())
+        <span class="kw">let </span>paulis: Vec&lt;SparsePauli&gt; = (<span class="number">0</span>..paulis_size)
+            .map(|index| {
+                map_pauli(<span class="kw-2">*</span>__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::&lt;Pauli&gt;())
+            })
             .collect();
 
         <span class="kw">let </span>qubits_size = __quantum__rt__array_get_size_1d(qubits);
@@ -237,9 +263,11 @@
             .collect();
 
         <span class="kw">let </span>paulis_size = __quantum__rt__array_get_size_1d(args.paulis);
-        <span class="kw">let </span>paulis: Vec&lt;Pauli&gt; = (<span class="number">0</span>..paulis_size)
+        <span class="kw">let </span>paulis: Vec&lt;SparsePauli&gt; = (<span class="number">0</span>..paulis_size)
             .map(|index| {
-                <span class="kw-2">*</span>__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::&lt;Pauli&gt;()
+                map_pauli(
+                    <span class="kw-2">*</span>__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::&lt;Pauli&gt;(),
+                )
             })
             .collect();
 
