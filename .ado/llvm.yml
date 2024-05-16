@@ -55,5 +55,5 @@ steps:
 
 - script: |
     env ARCHFLAGS="${{ parameters.arch_flags }}" cargo install --path llvm-build -vv --features llvm14-0
-    displayName: Build LLVM (Mac)
+  displayName: Build LLVM (Mac)
   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), eq(variables['Agent.OS'], 'Darwin'))
