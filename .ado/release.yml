@@ -82,12 +82,12 @@ jobs:
   - script: |
       cargo build -vv --release
     displayName: Build (non-Mac)
-    condition: ne(succeeded(), variables['Agent.OS'], 'Darwin')
+    condition: and(succeeded(), ne(variables['Agent.OS'], 'Darwin'))
 
   - script: |
       env ARCHFLAGS="$(ARCHFLAGS)" cargo build -vv --release
     displayName: Build (Mac)
-    condition: eq(succeeded(), variables['Agent.OS'], 'Darwin')
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 
 # test the project
 
@@ -111,7 +111,7 @@ jobs:
   - script: |
       python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
     displayName: Create Non-Linux Python wheel
-    condition: ne(succeeded(), variables['Agent.OS'], 'Linux')
+    condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
 
   - script: |
       python -m pip install -r pip/requirements-manylinux.txt
