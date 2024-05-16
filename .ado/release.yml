@@ -1,0 +1,233 @@
+name: qirrunner-publish-$(BuildId)
+
+trigger: none
+pr: none
+
+variables:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN_VERSION: "1.78"
+  QIRLIB_DOWNLOAD_LLVM: "false"
+  QIRLIB_CACHE_DIR: $(Build.SourcesDirectory)/target/llvm14-0
+  LLVM_SYS_140_PREFIX: $(QIRLIB_CACHE_DIR)
+  PYTHON_VERSION: "3.11"
+
+jobs:
+- job: "Build"
+  strategy:
+    matrix:
+      linux_x64:
+        imageName: 'ubuntu-20.04'
+        arch: x86_64
+      mac_x64:
+        imageName: 'macOS-latest'
+        arch: x86_64
+        ARCHFLAGS: '-arch x86_64'
+      mac_aarch64:
+        imageName: 'macOS-latest'
+        arch: aarch64
+        ARCHFLAGS: '-arch arm64'
+      mac_universal:
+        imageName: 'macOS-latest'
+        arch: universal
+        ARCHFLAGS: '-arch arm64 -arch x86_64'
+      windows:
+        imageName: 'windows-latest'
+        arch: x86_64
+  pool:
+    vmImage: $(imageName)
+  variables:
+    arch: $(arch)
+  timeoutInMinutes: 300
+
+  steps:
+  # common init steps
+  - task: RustInstaller@1
+    inputs:
+      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+      cratesIoFeedOverride: $(cratesIoFeedOverride)
+      toolchainFeed: $(toolchainFeed)
+    displayName: Install Rust toolchain
+    condition: ne(variables['Agent.OS'], 'Darwin')
+
+  - task: RustInstaller@1
+    inputs:
+      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+      additionalTargets: aarch64-apple-darwin
+      cratesIoFeedOverride: $(cratesIoFeedOverride)
+      toolchainFeed: $(toolchainFeed)
+    displayName: Install Rust toolchain
+    condition: eq(variables['Agent.OS'], 'Darwin')
+
+  - script: |
+      rustc --version
+      rustc --print target-list
+    displayName: View rust target info
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(PYTHON_VERSION)
+
+# prerequisites for building
+
+  - template: llvm.yml
+    parameters:
+      version: "14"
+      os: $(imageName)
+      arch: $(arch)
+      directory: $(Build.SourcesDirectory)/target/llvm14-0
+      arch_flags: $(ARCHFLAGS)
+
+# build the project
+
+  - script: |
+      cargo build -vv --release
+    displayName: Build (non-Mac)
+    condition: ne(succeeded(), variables['Agent.OS'], 'Darwin')
+
+  - script: |
+      env ARCHFLAGS="$(ARCHFLAGS)" cargo build -vv --release
+    displayName: Build (Mac)
+    condition: eq(succeeded(), variables['Agent.OS'], 'Darwin')
+
+# test the project
+
+  - script: |
+      cargo test -vv --release -- --nocapture
+    displayName: Test (non-Mac)
+    condition: and(succeeded(), ne(variables['Agent.OS'], 'Darwin'))
+
+  - script: |
+      env ARCHFLAGS="$(ARCHFLAGS)" cargo test -vv --release -- --nocapture
+    displayName: Test (Mac x86_64 and universal)
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'aarch64'))
+
+# package the project
+
+  - script: |
+      python -m pip install -U pip
+      python -m pip install -r pip/requirements.txt
+    displayName: Install Python packages
+
+  - script: |
+      python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
+    displayName: Create Non-Linux Python wheel
+    condition: ne(succeeded(), variables['Agent.OS'], 'Linux')
+
+  - script: |
+      python -m pip install -r pip/requirements-manylinux.txt
+      python -m pip --verbose wheel --verbose --wheel-dir target/raw-wheels ./pip
+      auditwheel repair --plat $(AUDITWHEEL_TAG) --wheel-dir target/wheels target/raw-wheels/*.whl
+    displayName: Create Linux Python wheel and run Auditwheel
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
+
+# test the Python packages
+
+  - script: |
+      python -m pip install -r pip/requirements-test.txt
+      python -m pip install --force-reinstall --no-index --find-links=target/wheels qirrunner
+      python -m pytest --verbose pip
+    displayName: Test Python packages
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'aarch64'))
+
+# publish the python artifacts
+
+  - script: |
+      dir target\wheels\*
+    displayName: List Py Packages on Win
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - script: |
+      ls target/wheels/*
+    displayName: List Py Packages on non-Win
+    condition: ne(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: Wheels.Mac.${{ variables['arch'] }}
+    displayName: Upload Python Artifacts Mac
+    condition: eq(variables['Agent.OS'], 'Darwin')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: Wheels.Win.${{ variables['arch'] }}
+    displayName: Upload Python Artifacts Win
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: Wheels.Linux.${{ variables['arch'] }}
+    displayName: Upload Python Artifacts Linux
+    condition: eq(variables['Agent.OS'], 'Linux')
+
+- job: "Merge"
+  dependsOn:
+  - Build
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - download: current
+    artifact: Wheels.Win.x86_64
+    displayName: Download x86_64 Python Artifacts Win
+
+  - download: current
+    artifact: Wheels.Mac.x86_64
+    displayName: Download Python Artifacts Mac
+
+  - download: current
+    artifact: Wheels.Mac.aarch64
+    displayName: Download Python Artifacts Mac
+
+  - download: current
+    artifact: Wheels.Mac.universal
+    displayName: Download Python Artifacts Mac
+
+  - download: current
+    artifact: Wheels.Linux.x86_64
+    displayName: Download x86_64 Python Artifacts Linux
+
+  - script: |
+      mkdir -p                            target/wheels
+      mv ../Wheels.Linux.x86_64/*.whl     target/wheels
+      mv ../Wheels.Win.x86_64/*.whl       target/wheels
+      mv ../Wheels.Mac.x86_64/*.whl       target/wheels
+      mv ../Wheels.Mac.aarch64/*.whl      target/wheels
+      mv ../Wheels.Mac.universal/*.whl    target/wheels
+      ls                                  target/wheels/*
+    displayName: Move Py Artifacts to Publishing Dir
+
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+    artifact: wheels
+    displayName: Upload Python Artifacts
+
+
+- job: "Approval"
+  dependsOn:
+  - Build
+  - Merge
+
+  pool: server
+  timeoutInMinutes: 1440 # job times out in 1 day
+  steps:
+  - task: ManualValidation@0
+    timeoutInMinutes: 1440 # task times out in 1 day
+    inputs:
+      notifyUsers: ''
+      instructions: 'Please verify artifacts and approve the release'
+      onTimeout: 'reject'
+
+
+- job: "Publish_Python_Packages"
+  dependsOn: Approval
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - download: current
+    artifact: wheels
+    displayName: Download Python Artifacts
+
+  - script: |
+      mkdir -p                            target/wheels
+      mv ../wheels/*.whl                  target/wheels
+      ls                                  target/wheels/*
+    displayName: Move Py Artifacts to Publishing Dir
+
+# Add ESRP steps here

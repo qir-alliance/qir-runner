@@ -123,6 +123,7 @@ jobs:
           - { os: "windows-2019", arch: "amd64", env: {} }
           - { os: "macos-11", arch: "amd64", env: { MACOSX_DEPLOYMENT_TARGET: 10.9 } }
           - { os: "macos-14", arch: "arm64", env: {} }
+          - { os: "macos-14", arch: "universal", env: {} }
     steps:
       - uses: actions/checkout@v4
       - name: Setup rust toolchain
