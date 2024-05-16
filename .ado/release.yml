@@ -6,9 +6,6 @@ pr: none
 variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.78"
-  QIRLIB_DOWNLOAD_LLVM: "false"
-  QIRLIB_CACHE_DIR: $(Build.SourcesDirectory)/target/llvm14-0
-  LLVM_SYS_140_PREFIX: $(QIRLIB_CACHE_DIR)
   PYTHON_VERSION: "3.11"
 
 jobs:
