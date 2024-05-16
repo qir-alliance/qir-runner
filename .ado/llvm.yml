@@ -22,7 +22,7 @@ steps:
     cacheHitVar: CACHE_RESTORED
   displayName: Cache LLVM
 
-- script: |
+- pwsh: |
     git config --global core.longpaths true
     Write-Host "##vso[task.setvariable variable=QIRLIB_CACHE_DIR;]${{ parameters.directory }}"
     Write-Host "##vso[task.setvariable variable=LLVM_SYS_140_PREFIX;]${{ parameters.directory }}"
