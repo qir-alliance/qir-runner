@@ -179,7 +179,7 @@ dependencies = [
 [[package]]
 name = "qirlib"
 version = "0.10.0"
-source = "git+https://github.com/qir-alliance/pyqir?rev=f0c78f67896d06c4a6e5cd870d52678533c39423#f0c78f67896d06c4a6e5cd870d52678533c39423"
+source = "git+https://github.com/qir-alliance/pyqir?branch=main#f0c78f67896d06c4a6e5cd870d52678533c39423"
 dependencies = [
  "bitvec",
  "cc",
