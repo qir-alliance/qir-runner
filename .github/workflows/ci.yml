@@ -123,10 +123,15 @@ jobs:
           - { os: "windows-2019", arch: "amd64", env: {} }
           - { os: "macos-11", arch: "amd64", env: { MACOSX_DEPLOYMENT_TARGET: 10.9 } }
           - { os: "macos-14", arch: "arm64", env: {} }
+          - { os: "macos-14", arch: "universal", env: { ARCHFLAGS: "-arch arm64 -arch x86_64" } }
     steps:
       - uses: actions/checkout@v4
       - name: Setup rust toolchain
         run: rustup show
+      - shell: pwsh
+        run: |
+          rustup target add x86_64-apple-darwin
+        if: ${{ (matrix.config.os == 'macos-14') && (matrix.config.arch == 'universal') }}
       - name: Install LLVM
         uses: ./.github/actions/install-llvm
         with:
