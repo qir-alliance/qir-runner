@@ -29,11 +29,6 @@ steps:
     Write-Host "##vso[task.setvariable variable=PYQIR_LLVM_FEATURE_VERSION;]llvm${{ parameters.version }}-0"
   displayName: Configure Environment
 
-- pwsh: |
-    Write-Host "##vso[task.setvariable variable=ARCHFLAGS;]${{ parameters.arch_flags }}"
-  displayName: Configure Mac Environment
-  condition: eq(variables['Agent.OS'], 'Darwin')
-
 # prerequisites for building
 - pwsh: |
     sudo apt-get install -y ninja-build
@@ -58,4 +53,10 @@ steps:
     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
     cargo build --release --features llvm14-0
   displayName: Build LLVM (non-Mac)
-  condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'))
+  condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), ne(variables['Agent.OS'], 'Darwin'))
+
+- pwsh: |
+    cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
+    env ARCHFLAGS="${{ parameters.arch_flags }}" cargo build --release --features llvm14-0
+  displayName: Build LLVM (non-Mac)
+  condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), eq(variables['Agent.OS'], 'Darwin'))
