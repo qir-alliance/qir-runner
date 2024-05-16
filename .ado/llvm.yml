@@ -47,7 +47,8 @@ steps:
 
 # build and install LLVM
 
-- script: |
+- pwsh: |
+    . (Join-Path "$(Build.SourcesDirectory)" "llvm-build" "vcvars.ps1")
     cargo install --path llvm-build -vv --features llvm14-0
   displayName: Build LLVM (non-Mac)
   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), ne(variables['Agent.OS'], 'Darwin'))
