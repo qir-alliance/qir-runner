@@ -239,15 +239,6 @@ fn run_basic_passes_on(module: &Module) -> bool {
     fpm.run_on(module)
 }
 
-// Forward declare IR defined functions to force linking with static library.
-// Note that the types are not needed as linking is only based on function name.
-// These two functions are fills for the old QIR functions that could only be
-// created with inline IR.
-extern "C" {
-    fn quantum__rt__array_slice_1d();
-    fn quantum__rt__range_to_string();
-}
-
 #[allow(clippy::too_many_lines)]
 fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
     let mut uses_legacy = vec![];
