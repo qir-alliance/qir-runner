@@ -252,7 +252,6 @@ fn test_bernstein_vazirani() -> Result<(), String> {
     run_bitcode(bitcode, None, 1, &mut std::io::sink())
 }
 
-
 // This test runs a sample Shor's algorithm for integer factorization. It makes use of quantum execution
 // from backend and BigInt support from stdlib. It prints to stdout the value being factored, progress
 // and number of retries followed by a tuple of the identified prime factors.
