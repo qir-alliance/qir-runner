@@ -31,14 +31,11 @@ steps:
   displayName: Configure Environment
 
 - pwsh: |
-    Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
-  displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET x86_64)
-  condition: and(eq(variables['Agent.OS'], 'Darwin'), eq(${{ parameters.arch }}, 'x86_64'))
-
-- pwsh: |
-    Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
-  displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64/universal)
-  condition: and(eq(variables['Agent.OS'], 'Darwin'), ne(${{ parameters.arch }}, 'x86_64'))
+    ${{ if eq(parameters.arch, 'x86_64') }}:
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
+    ${{ else }}:
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
+  displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET)
 
 # prerequisites for building
 - pwsh: |
