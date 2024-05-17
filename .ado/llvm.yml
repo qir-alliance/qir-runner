@@ -30,13 +30,6 @@ steps:
     Write-Host "##vso[task.setvariable variable=QIRLIB_DOWNLOAD_LLVM;]false"
   displayName: Configure Environment
 
-- pwsh: |
-    ${{ if eq(parameters.arch, 'x86_64') }}:
-      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
-    ${{ else }}:
-      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
-  displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET)
-
 # prerequisites for building
 - pwsh: |
     sudo apt-get install -y ninja-build

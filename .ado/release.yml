@@ -67,6 +67,16 @@ jobs:
 
 # prerequisites for building
 
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
+    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET x86_64)
+    condition: and(eq(variables['Agent.OS'], 'Darwin'), eq(variables['arch'], 'x86_64'))
+
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
+    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64/universal)
+    condition: and(eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'x86_64'))
+
   - template: llvm.yml
     parameters:
       version: "14"
