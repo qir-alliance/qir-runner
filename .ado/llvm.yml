@@ -27,6 +27,7 @@ steps:
     Write-Host "##vso[task.setvariable variable=QIRLIB_CACHE_DIR;]${{ parameters.directory }}"
     Write-Host "##vso[task.setvariable variable=LLVM_SYS_140_PREFIX;]${{ parameters.directory }}"
     Write-Host "##vso[task.setvariable variable=PYQIR_LLVM_FEATURE_VERSION;]llvm${{ parameters.version }}-0"
+    Write-Host "##vso[task.setvariable variable=QIRLIB_DOWNLOAD_LLVM;]false"
   displayName: Configure Environment
 
 # prerequisites for building
@@ -51,12 +52,12 @@ steps:
     $vcvars = Join-Path "$(Build.SourcesDirectory)" "llvm-build" "vcvars.ps1"
     if(Test-Path $vcvars) { . $vcvars } else { throw "$vcvars not found" }
     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
-    cargo build --release --features llvm14-0
+    cargo build --release --features llvm14-0 -vv
   displayName: Build LLVM (non-Mac)
   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), ne(variables['Agent.OS'], 'Darwin'))
 
 - pwsh: |
     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
-    env ARCHFLAGS="${{ parameters.arch_flags }}" cargo build --release --features llvm14-0
-  displayName: Build LLVM (non-Mac)
+    env ARCHFLAGS="${{ parameters.arch_flags }}" cargo build --release --features llvm14-0 -vv
+  displayName: Build LLVM (Mac)
   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), eq(variables['Agent.OS'], 'Darwin'))

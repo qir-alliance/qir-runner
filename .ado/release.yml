@@ -7,6 +7,7 @@ variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.78"
   PYTHON_VERSION: "3.11"
+  AUDITWHEEL_TAG: "manylinux_2_31_x86_64"
 
 jobs:
 - job: "Build"
@@ -52,7 +53,7 @@ jobs:
       additionalTargets: aarch64-apple-darwin
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
-    displayName: Install Rust toolchain
+    displayName: Install Rust toolchain (Mac)
     condition: eq(variables['Agent.OS'], 'Darwin')
 
   - script: |
