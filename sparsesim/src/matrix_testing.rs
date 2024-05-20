@@ -591,6 +591,19 @@ mod tests {
     }
 
     #[test]
+    fn test_rx_2pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rx(2.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rx(2.0 * PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
     fn test_ry() {
         assert_operation_equal_referenced(
             |sim, qs| {
@@ -611,6 +624,19 @@ mod tests {
             },
             |sim, qs| {
                 sim.apply(&adjoint(&ry(PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_ry_2pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.ry(2.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&ry(2.0 * PI)), &[qs[0]], None);
             },
             1,
         );

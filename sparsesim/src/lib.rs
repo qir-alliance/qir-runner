@@ -982,7 +982,17 @@ impl QuantumSim {
                         accum
                     });
         } else if m01.is_nearly_zero() {
-            // This is just identity, so we can no-op.
+            // This is just identity, so we can effectively no-op and just add a phase of -1.
+            let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
+            self.state =
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, value)| {
+                        if ctls.iter().all(|c| index.bit(*c)) {
+                            accum.insert(index, value * -Complex64::one());
+                        }
+                        accum
+                    });
         } else {
             let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
             let mut new_state = SparseState::default();
