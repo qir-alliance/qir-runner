@@ -159,7 +159,7 @@ jobs:
     displayName: Upload Python Artifacts Win
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels/*manylinux*.whl
     artifact: Wheels.Linux.${{ variables['arch'] }}
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
