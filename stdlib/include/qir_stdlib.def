@@ -15,7 +15,6 @@ EXPORTS
     __quantum__rt__array_concatenate
     __quantum__rt__array_get_size_1d
     __quantum__rt__array_get_element_ptr_1d
-    __quantum__rt__array_slice_1d
     __quantum__rt__callable_create
     __quantum__rt__callable_update_reference_count
     __quantum__rt__callable_update_alias_count
@@ -33,7 +32,6 @@ EXPORTS
     __quantum__rt__double_to_string
     __quantum__rt__bool_to_string
     __quantum__rt__pauli_to_string
-    __quantum__rt__range_to_string
     __quantum__rt__string_get_data
     __quantum__rt__string_get_length
     __quantum__rt__tuple_create
