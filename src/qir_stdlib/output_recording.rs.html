@@ -293,11 +293,32 @@
 <a href="#293" id="293">293</a>
 <a href="#294" id="294">294</a>
 <a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 </span><span class="kw">use </span>std::{
-    ffi::{c_char, c_double, CString},
+    ffi::{c_char, c_double, CStr, CString},
     fmt::Display,
     io::{Read, Write},
 };
@@ -413,7 +434,7 @@
         <span class="kw">if </span>!tag.is_null() {
             output.write_all(<span class="string">b&quot;\t&quot;</span>).expect(<span class="string">&quot;Failed to write output&quot;</span>);
             output
-                .write_all(CString::from_raw(tag).as_bytes())
+                .write_all(CStr::from_ptr(tag).to_bytes())
                 .expect(<span class="string">&quot;Failed to write output&quot;</span>);
         }
         output.write_newline();
@@ -563,10 +584,31 @@
         <span class="kw">let </span>val: i64 = <span class="number">42</span>;
         assert_untagged_output_match(<span class="string">&quot;ARRAY&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tARRAY\t42&quot;</span>);
     }
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_output_bool_true_tagged_from_cstring() {
+        <span class="kw">let </span>val: bool = <span class="bool-val">true</span>;
+        <span class="kw">let </span>tag = CString::new(<span class="string">&quot;YEEHAW&quot;</span>).unwrap().into_raw();
+        assert_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, tag, <span class="string">&quot;OUTPUT\tBOOL\ttrue\tYEEHAW&quot;</span>);
+        <span class="comment">// Avoid memory leak
+        </span><span class="kw">unsafe </span>{
+            <span class="kw">let _ </span>= CString::from_raw(tag);
+        }
+    }
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_output_bool_true_tagged_not_from_cstring() {
+        <span class="kw">let </span>val: bool = <span class="bool-val">true</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>tag: [c_char; <span class="number">3</span>] = [<span class="number">0x68</span>, <span class="number">0x69</span>, <span class="number">0</span>];
+        <span class="comment">// With any luck, this will segfault if the tag pointer is incorrectly
+        // passed to CString::from_raw(). (Thankfully, it does on my system.)
+        </span>assert_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, tag.as_mut_ptr(), <span class="string">&quot;OUTPUT\tBOOL\ttrue\thi&quot;</span>);
+    }
     <span class="kw">fn </span>assert_untagged_output_match(ty: <span class="kw-2">&amp;</span>str, val: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Display, expected_str: <span class="kw-2">&amp;</span>str) {
+        assert_output_match(ty, val, null_mut(), expected_str);
+    }
+    <span class="kw">fn </span>assert_output_match(ty: <span class="kw-2">&amp;</span>str, val: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Display, tag: <span class="kw-2">*mut </span>c_char, expected_str: <span class="kw-2">&amp;</span>str) {
         OUTPUT.with(|output| output.borrow_mut().use_std_out(<span class="bool-val">false</span>));
         <span class="kw">unsafe </span>{
-            record_output(ty, <span class="kw-2">&amp;</span>val, null_mut()).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            record_output(ty, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write output&quot;</span>);
         }
 
         <span class="kw">let </span>actual = OUTPUT.with(|output| {
