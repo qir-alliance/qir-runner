@@ -524,13 +524,6 @@
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
 <a href="#526" id="526">526</a>
-<a href="#527" id="527">527</a>
-<a href="#528" id="528">528</a>
-<a href="#529" id="529">529</a>
-<a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -772,13 +765,6 @@
     fpm.run_on(module)
 }
 
-<span class="comment">// Forward declare IR defined functions to force linking with static library.
-// Note that the types are not needed as linking is only based on function name.
-</span><span class="kw">extern </span><span class="string">&quot;C&quot; </span>{
-    <span class="kw">fn </span>__quantum__rt__array_slice_1d();
-    <span class="kw">fn </span>__quantum__rt__range_to_string();
-}
-
 <span class="attr">#[allow(clippy::too_many_lines)]
 </span><span class="kw">fn </span>bind_functions(module: <span class="kw-2">&amp;</span>Module, execution_engine: <span class="kw-2">&amp;</span>ExecutionEngine) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>uses_legacy = <span class="macro">vec!</span>[];
@@ -980,7 +966,7 @@
 
     <span class="macro">bind!</span>(__quantum__rt__array_get_element_ptr_1d, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__rt__array_get_size_1d, <span class="number">1</span>);
-    <span class="macro">bind!</span>(__quantum__rt__array_slice_1d, <span class="number">3</span>);
+    <span class="macro">bind!</span>(quantum__rt__array_slice_1d, <span class="number">3</span>);
     <span class="macro">bind!</span>(__quantum__rt__array_update_alias_count, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__rt__array_update_reference_count, <span class="number">2</span>);
     <span class="macro">bind!</span>(__quantum__rt__bigint_add, <span class="number">2</span>);
@@ -1026,8 +1012,8 @@
     <span class="macro">bind!</span>(__quantum__rt__qubit_release, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__rt__qubit_release_array, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__rt__qubit_to_string, <span class="number">1</span>);
-    <span class="macro">bind!</span>(__quantum__rt__range_to_string, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__rt__result_equal, <span class="number">2</span>);
+    <span class="macro">bind!</span>(quantum__rt__range_to_string, <span class="number">1</span>);
     <span class="macro">bind!</span>(__quantum__rt__result_get_one, <span class="number">0</span>);
     <span class="macro">bind!</span>(__quantum__rt__result_get_zero, <span class="number">0</span>);
     <span class="macro">bind!</span>(__quantum__rt__result_to_string, <span class="number">1</span>);
