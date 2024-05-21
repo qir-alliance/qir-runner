@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use std::{
-    ffi::{c_char, c_double, CString},
+    ffi::{c_char, c_double, CStr, CString},
     fmt::Display,
     io::{Read, Write},
 };
@@ -118,7 +118,7 @@ pub unsafe fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> st
         if !tag.is_null() {
             output.write_all(b"\t").expect("Failed to write output");
             output
-                .write_all(CString::from_raw(tag).as_bytes())
+                .write_all(CStr::from_ptr(tag).to_bytes())
                 .expect("Failed to write output");
         }
         output.write_newline();
@@ -268,10 +268,31 @@ mod tests {
         let val: i64 = 42;
         assert_untagged_output_match("ARRAY", &val, "OUTPUT\tARRAY\t42");
     }
+    #[test]
+    fn test_output_bool_true_tagged_from_cstring() {
+        let val: bool = true;
+        let tag = CString::new("YEEHAW").unwrap().into_raw();
+        assert_output_match("BOOL", &val, tag, "OUTPUT\tBOOL\ttrue\tYEEHAW");
+        // Avoid memory leak
+        unsafe {
+            let _ = CString::from_raw(tag);
+        }
+    }
+    #[test]
+    fn test_output_bool_true_tagged_not_from_cstring() {
+        let val: bool = true;
+        let mut tag: [c_char; 3] = [0x68, 0x69, 0];
+        // With any luck, this will segfault if the tag pointer is incorrectly
+        // passed to CString::from_raw(). (Thankfully, it does on my system.)
+        assert_output_match("BOOL", &val, tag.as_mut_ptr(), "OUTPUT\tBOOL\ttrue\thi");
+    }
     fn assert_untagged_output_match(ty: &str, val: &dyn Display, expected_str: &str) {
+        assert_output_match(ty, val, null_mut(), expected_str);
+    }
+    fn assert_output_match(ty: &str, val: &dyn Display, tag: *mut c_char, expected_str: &str) {
         OUTPUT.with(|output| output.borrow_mut().use_std_out(false));
         unsafe {
-            record_output(ty, &val, null_mut()).expect("Failed to write output");
+            record_output(ty, &val, tag).expect("Failed to write output");
         }
 
         let actual = OUTPUT.with(|output| {
