@@ -6,10 +6,8 @@ pr: none
 variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.78"
-  QIRLIB_DOWNLOAD_LLVM: "false"
-  QIRLIB_CACHE_DIR: $(Build.SourcesDirectory)/target/llvm14-0
-  LLVM_SYS_140_PREFIX: $(QIRLIB_CACHE_DIR)
   PYTHON_VERSION: "3.11"
+  AUDITWHEEL_TAG: "manylinux_2_31_x86_64"
 
 jobs:
 - job: "Build"
@@ -55,7 +53,7 @@ jobs:
       additionalTargets: aarch64-apple-darwin
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
-    displayName: Install Rust toolchain
+    displayName: Install Rust toolchain (Mac)
     condition: eq(variables['Agent.OS'], 'Darwin')
 
   - script: |
@@ -68,6 +66,16 @@ jobs:
       versionSpec: $(PYTHON_VERSION)
 
 # prerequisites for building
+
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
+    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET x86_64)
+    condition: and(eq(variables['Agent.OS'], 'Darwin'), eq(variables['arch'], 'x86_64'))
+
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
+    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64/universal)
+    condition: and(eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'x86_64'))
 
   - template: llvm.yml
     parameters:
@@ -82,12 +90,12 @@ jobs:
   - script: |
       cargo build -vv --release
     displayName: Build (non-Mac)
-    condition: ne(succeeded(), variables['Agent.OS'], 'Darwin')
+    condition: and(succeeded(), ne(variables['Agent.OS'], 'Darwin'))
 
   - script: |
       env ARCHFLAGS="$(ARCHFLAGS)" cargo build -vv --release
     displayName: Build (Mac)
-    condition: eq(succeeded(), variables['Agent.OS'], 'Darwin')
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 
 # test the project
 
@@ -111,7 +119,7 @@ jobs:
   - script: |
       python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
     displayName: Create Non-Linux Python wheel
-    condition: ne(succeeded(), variables['Agent.OS'], 'Linux')
+    condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
 
   - script: |
       python -m pip install -r pip/requirements-manylinux.txt
@@ -231,3 +239,17 @@ jobs:
     displayName: Move Py Artifacts to Publishing Dir
 
 # Add ESRP steps here
+
+  - task: EsrpRelease@4
+    displayName: Publish Py Packages
+    inputs:
+     ConnectedServiceName: 'ESRP_Release'
+     Intent: 'PackageDistribution'
+     ContentType: 'PyPi'
+     FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+     Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
+     Approvers: 'billti@microsoft.com'
+     # Auto-inserted Debugging defaults:
+     ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
+     MainPublisher: 'QuantumDevelpmentKit'          # ESRP Team's Correction (including the critical typo "Develpm").
+     DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
