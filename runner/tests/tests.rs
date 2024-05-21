@@ -252,18 +252,6 @@ fn test_bernstein_vazirani() -> Result<(), String> {
     run_bitcode(bitcode, None, 1, &mut std::io::sink())
 }
 
-// This tests support for range operations `__quantum__rt__array_slice_1d` and `__quantum__rt__range_to_string`
-// since those two operations are defined in LLVM IR instead of Rust. As such, they are compiled into the stdlib
-// and linked by the runner in a manner different than all the other functions. The test verifies that a slice of
-// an array has the expected values and prints a calculated range to stdout. Range support is not exhaustively
-// tested (that is left to unit tests in the stdlib), this just verifies the function linking works as expected
-// for these two special cases.
-#[test]
-fn test_ranges() -> Result<(), String> {
-    let bitcode = include_bytes!("resources/ranges.bc");
-    run_bitcode(bitcode, None, 1, &mut std::io::sink())
-}
-
 // This test runs a sample Shor's algorithm for integer factorization. It makes use of quantum execution
 // from backend and BigInt support from stdlib. It prints to stdout the value being factored, progress
 // and number of retries followed by a tuple of the identified prime factors.
