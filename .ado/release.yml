@@ -118,7 +118,7 @@ jobs:
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
   - script: |
-      env CARGO_BUILD_TARGET="${{ parameters.arch }}-apple-darwin" ARCHFLAGS="$(ARCHFLAGS)" python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
+      env CARGO_BUILD_TARGET="$(arch)-apple-darwin" ARCHFLAGS="$(ARCHFLAGS)" python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
     displayName: Create Mac Python wheel
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 
