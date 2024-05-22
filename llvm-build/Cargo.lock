@@ -178,8 +178,8 @@ dependencies = [
 
 [[package]]
 name = "qirlib"
-version = "0.10.1"
-source = "git+https://github.com/qir-alliance/pyqir?branch=iadavis/llvm-target#398332188881deca3bb81a6026adae3d7a0b3360"
+version = "0.10.2"
+source = "git+https://github.com/qir-alliance/pyqir?branch=main#c02430a5d4f566425f6112576d4109071011ea66"
 dependencies = [
  "bitvec",
  "cc",
