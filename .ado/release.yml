@@ -159,7 +159,7 @@ jobs:
     displayName: Upload Python Artifacts Win
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
-  - publish: $(System.DefaultWorkingDirectory)/target/wheels/*manylinux*.whl
+  - publish: $(System.DefaultWorkingDirectory)/target/wheels
     artifact: Wheels.Linux.${{ variables['arch'] }}
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
@@ -192,13 +192,13 @@ jobs:
     displayName: Download x86_64 Python Artifacts Linux
 
   - script: |
-      mkdir -p                            target/wheels
-      mv ../Wheels.Linux.x86_64/*.whl     target/wheels
-      mv ../Wheels.Win.x86_64/*.whl       target/wheels
-      mv ../Wheels.Mac.x86_64/*.whl       target/wheels
-      mv ../Wheels.Mac.aarch64/*.whl      target/wheels
-      mv ../Wheels.Mac.universal/*.whl    target/wheels
-      ls                                  target/wheels/*
+      mkdir -p                                  target/wheels
+      mv ../Wheels.Linux.x86_64/*manylinux*.whl target/wheels
+      mv ../Wheels.Win.x86_64/*.whl             target/wheels
+      mv ../Wheels.Mac.x86_64/*.whl             target/wheels
+      mv ../Wheels.Mac.aarch64/*.whl            target/wheels
+      mv ../Wheels.Mac.universal/*.whl          target/wheels
+      ls                                        target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
   - publish: $(System.DefaultWorkingDirectory)/target/wheels
