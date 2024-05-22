@@ -16,8 +16,8 @@ steps:
 
 - task: Cache@2
   inputs:
-    key: '"llvm-${{ parameters.version }}-${{ parameters.os }}-${{ parameters.arch }}-0"'
-    restoreKeys: '"llvm-${{ parameters.version }}-${{ parameters.os }}-${{ parameters.arch }}-0"'
+    key: '"llvm-${{ parameters.version }}-${{ parameters.os }}-${{ parameters.arch }}-1"'
+    restoreKeys: '"llvm-${{ parameters.version }}-${{ parameters.os }}-${{ parameters.arch }}-1"'
     path: ${{ parameters.directory }}
     cacheHitVar: CACHE_RESTORED
   displayName: Cache LLVM
@@ -58,6 +58,6 @@ steps:
 
 - pwsh: |
     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
-    env ARCHFLAGS="${{ parameters.arch_flags }}" cargo build --release --features llvm14-0 -vv
+    env CARGO_BUILD_TARGET="${{ parameters.arch }}-apple-darwin" ARCHFLAGS="${{ parameters.arch_flags }}" cargo build --release --features llvm14-0 -vv
   displayName: Build LLVM (Mac)
   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), eq(variables['Agent.OS'], 'Darwin'))

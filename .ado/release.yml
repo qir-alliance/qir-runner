@@ -24,10 +24,6 @@ jobs:
         imageName: 'macOS-latest'
         arch: aarch64
         ARCHFLAGS: '-arch arm64'
-      mac_universal:
-        imageName: 'macOS-latest'
-        arch: universal
-        ARCHFLAGS: '-arch arm64 -arch x86_64'
       windows:
         imageName: 'windows-latest'
         arch: x86_64
@@ -74,7 +70,7 @@ jobs:
 
   - pwsh: |
       Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
-    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64/universal)
+    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64)
     condition: and(eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'x86_64'))
 
   - template: llvm.yml
@@ -106,7 +102,7 @@ jobs:
 
   - script: |
       env ARCHFLAGS="$(ARCHFLAGS)" cargo test -vv --release -- --nocapture
-    displayName: Test (Mac x86_64 and universal)
+    displayName: Test (Mac x86_64)
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'aarch64'))
 
 # package the project
@@ -122,7 +118,7 @@ jobs:
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
   - script: |
-      env ARCHFLAGS="$(ARCHFLAGS)" python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
+      env CARGO_BUILD_TARGET="${{ parameters.arch }}-apple-darwin" ARCHFLAGS="$(ARCHFLAGS)" python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
     displayName: Create Mac Python wheel
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 
@@ -189,10 +185,6 @@ jobs:
     displayName: Download Python Artifacts Mac
 
   - download: current
-    artifact: Wheels.Mac.universal
-    displayName: Download Python Artifacts Mac
-
-  - download: current
     artifact: Wheels.Linux.x86_64
     displayName: Download x86_64 Python Artifacts Linux
 
@@ -202,7 +194,6 @@ jobs:
       mv ../Wheels.Win.x86_64/*.whl             target/wheels
       mv ../Wheels.Mac.x86_64/*.whl             target/wheels
       mv ../Wheels.Mac.aarch64/*.whl            target/wheels
-      mv ../Wheels.Mac.universal/*.whl          target/wheels
       ls                                        target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
