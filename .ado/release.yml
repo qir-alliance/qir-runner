@@ -118,8 +118,13 @@ jobs:
 
   - script: |
       python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
-    displayName: Create Non-Linux Python wheel
-    condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
+    displayName: Create Windows Python wheel
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
+
+  - script: |
+      env ARCHFLAGS="$(ARCHFLAGS)" python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
+    displayName: Create Mac Python wheel
+    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
 
   - script: |
       python -m pip install -r pip/requirements-manylinux.txt
