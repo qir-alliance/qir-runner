@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies.qirlib]
 git = "https://github.com/qir-alliance/pyqir"
-branch = "main"
+branch = "iadavis/llvm-target"
 default-features = false
 features = []
 
