@@ -84,7 +84,7 @@ fn run_module(
 
     run_basic_passes_on(module);
 
-    Target::initialize_all(&InitializationConfig::default())?;
+    Target::initialize_all(&InitializationConfig::default());
     let default_triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&default_triple).map_err(|e| e.to_string())?;
     if !target.has_asm_backend() {
