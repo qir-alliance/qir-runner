@@ -1,6 +1,6 @@
 [package]
 name = "qir-backend"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Microsoft"]
 edition = "2021"
 license = "MIT"
