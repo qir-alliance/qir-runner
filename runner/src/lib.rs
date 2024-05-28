@@ -18,8 +18,8 @@ use inkwell::{
     execution_engine::ExecutionEngine,
     memory_buffer::MemoryBuffer,
     module::Module,
-    passes::{PassManager, PassManagerBuilder},
-    targets::{InitializationConfig, Target, TargetMachine},
+    passes::{PassBuilderOptions, PassManager},
+    targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple},
     values::FunctionValue,
     OptimizationLevel,
 };
@@ -82,8 +82,6 @@ fn run_module(
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;
 
-    run_basic_passes_on(module);
-
     Target::initialize_native(&InitializationConfig::default())?;
     let default_triple = TargetMachine::get_default_triple();
     let target = Target::from_triple(&default_triple).map_err(|e| e.to_string())?;
@@ -93,6 +91,8 @@ fn run_module(
     if !target.has_target_machine() {
         return Err("Target doesn't have a target machine.".to_owned());
     }
+
+    run_basic_passes_on(module, &default_triple, &target)?;
 
     inkwell::support::load_library_permanently(Path::new(""));
 
@@ -229,14 +229,34 @@ fn is_entry_point(function: FunctionValue) -> bool {
             .is_some()
 }
 
-fn run_basic_passes_on(module: &Module) -> bool {
-    let pass_manager_builder = PassManagerBuilder::create();
-    pass_manager_builder.set_optimization_level(OptimizationLevel::None);
-    let fpm = PassManager::create(());
-    fpm.add_global_dce_pass();
-    fpm.add_strip_dead_prototypes_pass();
-    pass_manager_builder.populate_module_pass_manager(&fpm);
-    fpm.run_on(module)
+fn run_basic_passes_on(
+    module: &Module,
+    target_triple: &TargetTriple,
+    target: &Target,
+) -> Result<(), String> {
+    // Description of this syntax:
+    // https://github.com/llvm/llvm-project/blob/2ba08386156ef25913b1bee170d8fe95aaceb234/llvm/include/llvm/Passes/PassBuilder.h#L308-L347
+    const BASIC_PASS_PIPELINE: &str = "globaldce,strip-dead-prototypes";
+
+    // Boilerplate taken from here:
+    // https://github.com/TheDan64/inkwell/blob/5c9f7fcbb0a667f7391b94beb65f1a670ad13221/examples/kaleidoscope/main.rs#L86-L95
+    let target_machine = target
+        .create_target_machine(
+            target_triple,
+            "generic",
+            "",
+            OptimizationLevel::None,
+            RelocMode::Default,
+            CodeModel::Default,
+        )
+        .ok_or("Unable to create TargetMachine from Target")?;
+    module
+        .run_passes(
+            BASIC_PASS_PIPELINE,
+            &target_machine,
+            PassBuilderOptions::create(),
+        )
+        .map_err(|e| e.to_string())
 }
 
 #[allow(clippy::too_many_lines)]
