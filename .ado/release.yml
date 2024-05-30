@@ -85,7 +85,7 @@ jobs:
     condition: succeeded()
 
   - script: |
-      python -m build --verbose --wheel --outdir target/wheels ./pip
+      python -m build --verbose --wheel ./pip
     displayName: Create Non-Linux Python wheel
     condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
 

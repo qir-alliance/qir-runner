@@ -112,7 +112,9 @@ jobs:
           python -m pip install -r pip/requirements-manylinux.txt
         if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
       - name: Package Non-Linux
-        run: python -m build --verbose --wheel --sdist --outdir target/wheels ./pip
+        run: |
+          python -m build --verbose --sdist --outdir target/wheels ./pip
+          python -m build --verbose --wheel ./pip
         if: ${{ matrix.config.os != 'ubuntu-20.04' && matrix.config.os != 'ubuntu-22.04' }}
       - name: Package Linux
         run: |
