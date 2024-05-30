@@ -136,27 +136,33 @@ jobs:
           python -m pytest --verbose pip
         shell: pwsh
       # qir-stdlib Artifact
-      - name: qir-stdlib Artifact (Library)
+      - name: Organize qir-stdlib artifacts (all platforms)
+        run: |
+          New-Item -Path ./target/stdlib -ItemType Directory -Force
+          Copy-Item -Path ./stdlib/include/qir_stdlib.h -Destination ./target/stdlib -Force
+          Copy-Item -Path ./runner/NOTICE.txt -Destination ./target/stdlib -Force
+          Copy-Item -Path LICENSE -Destination ./target/stdlib -Force
+        shell: pwsh
+
+      - name: Organize qir-stdlib artifacts (Linux/Mac)
+        run: |
+          Copy-Item -Path ./target/release/libqir_stdlib.a -Destination ./target/stdlib -Force
+        shell: pwsh
         if: ${{ matrix.config.os != 'windows-2019' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
-          path: |
-            target/release/libqir_stdlib.a
-            stdlib/include/qir_stdlib.h
-            runner/NOTICE.txt
-            LICENSE
-      - name: qir-stdlib Artifact (Definition file)
+
+      - name: Organize qir-stdlib artifacts (Windows)
+        run: |
+          Copy-Item -Path ./target/release/libqir_stdlib.lib -Destination ./target/stdlib -Force
+          Copy-Item -Path ./stdlib/include/libqir_stdlib.def -Destination ./target/stdlib -Force
+        shell: pwsh
         if: ${{ matrix.config.os == 'windows-2019' }}
+
+      - name: qir-stdlib Artifact
         uses: actions/upload-artifact@v4
         with:
           name: qir-stdlib-${{ matrix.config.os }}-${{ matrix.config.arch }}-artifacts
-          path: |
-            target/release/qir_stdlib.lib
-            stdlib/include/qir_stdlib.def
-            stdlib/include/qir_stdlib.h
-            runner/NOTICE.txt
-            LICENSE
+          path: ./target/stdlib/
+
       - name: Wheel Artifacts
         uses: actions/upload-artifact@v4
         with:
