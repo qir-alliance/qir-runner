@@ -524,6 +524,26 @@
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
 <a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -544,8 +564,8 @@
     execution_engine::ExecutionEngine,
     memory_buffer::MemoryBuffer,
     module::Module,
-    passes::{PassManager, PassManagerBuilder},
-    targets::{InitializationConfig, Target, TargetMachine},
+    passes::{PassBuilderOptions, PassManager},
+    targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple},
     values::FunctionValue,
     OptimizationLevel,
 };
@@ -608,8 +628,6 @@
         .verify()
         .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Failed to verify module: {}&quot;</span>, e.to_string()))<span class="question-mark">?</span>;
 
-    run_basic_passes_on(module);
-
     Target::initialize_native(<span class="kw-2">&amp;</span>InitializationConfig::default())<span class="question-mark">?</span>;
     <span class="kw">let </span>default_triple = TargetMachine::get_default_triple();
     <span class="kw">let </span>target = Target::from_triple(<span class="kw-2">&amp;</span>default_triple).map_err(|e| e.to_string())<span class="question-mark">?</span>;
@@ -619,6 +637,8 @@
     <span class="kw">if </span>!target.has_target_machine() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;Target doesn&#39;t have a target machine.&quot;</span>.to_owned());
     }
+
+    run_basic_passes_on(module, <span class="kw-2">&amp;</span>default_triple, <span class="kw-2">&amp;</span>target)<span class="question-mark">?</span>;
 
     inkwell::support::load_library_permanently(Path::new(<span class="string">&quot;&quot;</span>));
 
@@ -755,14 +775,34 @@
             .is_some()
 }
 
-<span class="kw">fn </span>run_basic_passes_on(module: <span class="kw-2">&amp;</span>Module) -&gt; bool {
-    <span class="kw">let </span>pass_manager_builder = PassManagerBuilder::create();
-    pass_manager_builder.set_optimization_level(OptimizationLevel::None);
-    <span class="kw">let </span>fpm = PassManager::create(());
-    fpm.add_global_dce_pass();
-    fpm.add_strip_dead_prototypes_pass();
-    pass_manager_builder.populate_module_pass_manager(<span class="kw-2">&amp;</span>fpm);
-    fpm.run_on(module)
+<span class="kw">fn </span>run_basic_passes_on(
+    module: <span class="kw-2">&amp;</span>Module,
+    target_triple: <span class="kw-2">&amp;</span>TargetTriple,
+    target: <span class="kw-2">&amp;</span>Target,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+    <span class="comment">// Description of this syntax:
+    // https://github.com/llvm/llvm-project/blob/2ba08386156ef25913b1bee170d8fe95aaceb234/llvm/include/llvm/Passes/PassBuilder.h#L308-L347
+    </span><span class="kw">const </span>BASIC_PASS_PIPELINE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;globaldce,strip-dead-prototypes&quot;</span>;
+
+    <span class="comment">// Boilerplate taken from here:
+    // https://github.com/TheDan64/inkwell/blob/5c9f7fcbb0a667f7391b94beb65f1a670ad13221/examples/kaleidoscope/main.rs#L86-L95
+    </span><span class="kw">let </span>target_machine = target
+        .create_target_machine(
+            target_triple,
+            <span class="string">&quot;generic&quot;</span>,
+            <span class="string">&quot;&quot;</span>,
+            OptimizationLevel::None,
+            RelocMode::Default,
+            CodeModel::Default,
+        )
+        .ok_or(<span class="string">&quot;Unable to create TargetMachine from Target&quot;</span>)<span class="question-mark">?</span>;
+    module
+        .run_passes(
+            BASIC_PASS_PIPELINE,
+            <span class="kw-2">&amp;</span>target_machine,
+            PassBuilderOptions::create(),
+        )
+        .map_err(|e| e.to_string())
 }
 
 <span class="attr">#[allow(clippy::too_many_lines)]
