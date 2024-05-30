@@ -154,7 +154,7 @@ jobs:
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
   - publish: $(System.DefaultWorkingDirectory)/target/stdlib
-    artifact: qir-stdlib-${{ variables['Agent.OS'] }}-${{ variables['arch'] }}
+    artifact: qir-stdlib-$(Agent.OS)-${{ variables['arch'] }}
     displayName: Upload stdlib Artifacts
 
 - job: "Merge"
