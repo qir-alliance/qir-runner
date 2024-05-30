@@ -152,8 +152,8 @@ jobs:
 
       - name: Organize qir-stdlib artifacts (Windows)
         run: |
-          Copy-Item -Path ./target/release/libqir_stdlib.lib -Destination ./target/stdlib -Force
-          Copy-Item -Path ./stdlib/include/libqir_stdlib.def -Destination ./target/stdlib -Force
+          Copy-Item -Path ./target/release/qir_stdlib.lib -Destination ./target/stdlib -Force
+          Copy-Item -Path ./stdlib/include/qir_stdlib.def -Destination ./target/stdlib -Force
         shell: pwsh
         if: ${{ matrix.config.os == 'windows-2019' }}
 
