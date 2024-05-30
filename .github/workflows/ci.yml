@@ -132,8 +132,9 @@ jobs:
         run: python -m pip uninstall -y qirrunner
       - name: Test sdist
         run: |
-          python -m pip install ./target/wheels/qirrunner*.tar.gz
+          python -m pip install (Resolve-Path ./target/wheels/qirrunner*.tar.gz)
           python -m pytest --verbose pip
+        shell: pwsh
       # qir-stdlib Artifact
       - name: qir-stdlib Artifact (Library)
         if: ${{ matrix.config.os != 'windows-2019' }}
