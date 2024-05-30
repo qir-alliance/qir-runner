@@ -71,7 +71,8 @@ jobs:
       python -m pip install -U pip
       python -m pip install -r pip/requirements.txt
       python -m pip install -r pip/requirements-manylinux.txt
-      python -m pip --verbose wheel --verbose --wheel-dir target/raw-wheels ./pip
+      python -m build --verbose --wheel --outdir target/raw-wheels ./pip
+      python -m build --verbose --sdist --outdir target/wheels ./pip
       auditwheel repair --plat $(AUDITWHEEL_TAG) --wheel-dir target/wheels target/raw-wheels/*.whl
     displayName: Build Python packages
 

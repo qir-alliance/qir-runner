@@ -20,14 +20,6 @@ jobs:
         imageName: 'macOS-latest'
         arch: x86_64
         ARCHFLAGS: '-arch x86_64'
-      mac_aarch64:
-        imageName: 'macOS-latest'
-        arch: aarch64
-        ARCHFLAGS: '-arch arm64'
-      mac_universal:
-        imageName: 'macOS-latest'
-        arch: universal
-        ARCHFLAGS: '-arch arm64 -arch x86_64'
       windows:
         imageName: 'windows-latest'
         arch: x86_64
@@ -45,16 +37,6 @@ jobs:
       cratesIoFeedOverride: $(cratesIoFeedOverride)
       toolchainFeed: $(toolchainFeed)
     displayName: Install Rust toolchain
-    condition: ne(variables['Agent.OS'], 'Darwin')
-
-  - task: RustInstaller@1
-    inputs:
-      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
-      additionalTargets: aarch64-apple-darwin
-      cratesIoFeedOverride: $(cratesIoFeedOverride)
-      toolchainFeed: $(toolchainFeed)
-    displayName: Install Rust toolchain (Mac)
-    condition: eq(variables['Agent.OS'], 'Darwin')
 
   - script: |
       rustc --version
@@ -68,14 +50,9 @@ jobs:
 # prerequisites for building
 
   - pwsh: |
-      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.9"
+      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.12"
     displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET x86_64)
-    condition: and(eq(variables['Agent.OS'], 'Darwin'), eq(variables['arch'], 'x86_64'))
-
-  - pwsh: |
-      Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]11.0"
-    displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET aarch64/universal)
-    condition: and(eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'x86_64'))
+    condition: eq(variables['Agent.OS'], 'Darwin')
 
   - template: llvm.yml
     parameters:
@@ -90,24 +67,14 @@ jobs:
   - script: |
       cargo build -vv --release
     displayName: Build (non-Mac)
-    condition: and(succeeded(), ne(variables['Agent.OS'], 'Darwin'))
-
-  - script: |
-      env ARCHFLAGS="$(ARCHFLAGS)" cargo build -vv --release
-    displayName: Build (Mac)
-    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))
+    condition: succeeded()
 
 # test the project
 
   - script: |
       cargo test -vv --release -- --nocapture
     displayName: Test (non-Mac)
-    condition: and(succeeded(), ne(variables['Agent.OS'], 'Darwin'))
-
-  - script: |
-      env ARCHFLAGS="$(ARCHFLAGS)" cargo test -vv --release -- --nocapture
-    displayName: Test (Mac x86_64 and universal)
-    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'aarch64'))
+    condition: succeeded()
 
 # package the project
 
@@ -115,15 +82,17 @@ jobs:
       python -m pip install -U pip
       python -m pip install -r pip/requirements.txt
     displayName: Install Python packages
+    condition: succeeded()
 
   - script: |
-      python -m pip --verbose wheel --verbose --wheel-dir target/wheels ./pip
+      python -m build --verbose --wheel --outdir target/wheels ./pip
     displayName: Create Non-Linux Python wheel
     condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
 
   - script: |
       python -m pip install -r pip/requirements-manylinux.txt
-      python -m pip --verbose wheel --verbose --wheel-dir target/raw-wheels ./pip
+      python -m build --verbose --wheel --outdir target/raw-wheels ./pip
+      python -m build --verbose --sdist --outdir target/wheels ./pip
       auditwheel repair --plat $(AUDITWHEEL_TAG) --wheel-dir target/wheels target/raw-wheels/*.whl
     displayName: Create Linux Python wheel and run Auditwheel
     condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
@@ -135,7 +104,7 @@ jobs:
       python -m pip install --force-reinstall --no-index --find-links=target/wheels qirrunner
       python -m pytest --verbose pip
     displayName: Test Python packages
-    condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables['arch'], 'aarch64'))
+    condition: succeeded()
 
 # publish the python artifacts
 
@@ -164,6 +133,30 @@ jobs:
     displayName: Upload Python Artifacts Linux
     condition: eq(variables['Agent.OS'], 'Linux')
 
+# Publish stdlib
+
+  - pwsh: |
+      New-Item -Path $(Build.SourcesDirectory)/target/stdlib -ItemType Directory -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/qir_stdlib.h -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/runner/NOTICE.txt -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/LICENSE -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+    displayName: Organize qir-stdlib artifacts (all platforms)
+
+  - pwsh: |
+      Copy-Item -Path $(Build.SourcesDirectory)/target/release/libqir_stdlib.a -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+    displayName: Organize qir-stdlib artifacts (Linux/Mac)
+    condition: ne(variables['Agent.OS'], 'Windows_NT')
+
+  - pwsh: |
+      Copy-Item -Path $(Build.SourcesDirectory)/target/release/libqir_stdlib.lib -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/libqir_stdlib.def -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+    displayName: Organize qir-stdlib artifacts (Windows)
+    condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+  - publish: $(System.DefaultWorkingDirectory)/target/stdlib
+    artifact: qir-stdlib-${{ variables['Agent.OS'] }}-${{ variables['arch'] }}
+    displayName: Upload stdlib Artifacts
+
 - job: "Merge"
   dependsOn:
   - Build
@@ -180,24 +173,15 @@ jobs:
     displayName: Download Python Artifacts Mac
 
   - download: current
-    artifact: Wheels.Mac.aarch64
-    displayName: Download Python Artifacts Mac
-
-  - download: current
-    artifact: Wheels.Mac.universal
-    displayName: Download Python Artifacts Mac
-
-  - download: current
     artifact: Wheels.Linux.x86_64
     displayName: Download x86_64 Python Artifacts Linux
 
   - script: |
       mkdir -p                                  target/wheels
       mv ../Wheels.Linux.x86_64/*manylinux*.whl target/wheels
+      mv ../Wheels.Linux.x86_64/*.tar.gz        target/wheels
       mv ../Wheels.Win.x86_64/*.whl             target/wheels
       mv ../Wheels.Mac.x86_64/*.whl             target/wheels
-      mv ../Wheels.Mac.aarch64/*.whl            target/wheels
-      mv ../Wheels.Mac.universal/*.whl          target/wheels
       ls                                        target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
@@ -234,7 +218,7 @@ jobs:
 
   - script: |
       mkdir -p                            target/wheels
-      mv ../wheels/*.whl                  target/wheels
+      mv ../wheels/*.*                    target/wheels
       ls                                  target/wheels/*
     displayName: Move Py Artifacts to Publishing Dir
 
