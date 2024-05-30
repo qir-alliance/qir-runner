@@ -148,8 +148,8 @@ jobs:
     condition: ne(variables['Agent.OS'], 'Windows_NT')
 
   - pwsh: |
-      Copy-Item -Path $(Build.SourcesDirectory)/target/release/libqir_stdlib.lib -Destination $(Build.SourcesDirectory)/target/stdlib -Force
-      Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/libqir_stdlib.def -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/target/release/qir_stdlib.lib -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/qir_stdlib.def -Destination $(Build.SourcesDirectory)/target/stdlib -Force
     displayName: Organize qir-stdlib artifacts (Windows)
     condition: eq(variables['Agent.OS'], 'Windows_NT')
 
