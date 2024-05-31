@@ -11,7 +11,7 @@ default-features = false
 features = ["llvm14-0"]
 
 [dependencies]
-qir-stdlib = { path = "../stdlib", features = ["range-support"] }
+qir-stdlib = { path = "../stdlib" }
 qir-backend = { path = "../backend" }
 clap = { version = "4.5.4", features = [ "cargo" ] }
 msvc_spectre_libs = { version = "0.1", features = ["error"] }

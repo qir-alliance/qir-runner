@@ -14,10 +14,10 @@ function update-noticefiles {
     # as it is a hidden transitive dependency.
     # https://github.com/EmbarkStudios/cargo-about
     $config = Join-Path $PSScriptRoot notice.toml
-    $template = Join-Path $PSScriptRoot notice.hbs
-    foreach ($project in @("runner")) {
+    foreach ($project in @("pip", "stdlib")) {
         Push-Location $project
         try {
+            $template = Join-Path $PSScriptRoot $project notice.hbs
             $notice = Join-Path $PSScriptRoot $project NOTICE.txt
             cargo about generate --config $config --all-features --output-file $notice $template
             $contents = Get-Content -Raw $notice

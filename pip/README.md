@@ -1,6 +1,53 @@
 # QIR Runner
 
-This project implements a basic QIR Runner prototype. This includes a git dependency on the `qir_stdlib` for classical library support, and a `backend` with sparse quantum state simulation.
+This project implements a basic QIR runtime and execution tool. Once installed, `qir-runner` will be available via the command line in your python environment as well as the `qirrunner` module which can be imported into a Python program.
+
+## Usage
+
+### Command line
+
+```shell
+Usage: qir-runner [OPTIONS] --file <PATH>
+
+Options:
+  -f, --file <PATH>        (Required) Path to the QIR file to run
+  -e, --entrypoint <NAME>  Name of the entry point function to execute
+  -s, --shots <NUM>        The number of times to repeat the execution of the chosen entry point in the program [default: 1]
+  -r, --rngseed <NUM>      The value to use when seeding the random number generator used for quantum simulation
+  -h, --help               Print help
+  -V, --version            Print version
+```
+
+### Python module
+
+From a Python program, `qirrunner` provides a `run` function and two output helpers `Output` and `OutputHandler`. If the `output_fn` parameter of `run` is not specified, output will be written to `stdout`. Supplying the parameter allows the output of the execution to be captured.
+
+```python
+from qirrunner import run, OutputHandler
+
+path = "./runner/tests/resources/bv.bc"
+
+handler = OutputHandler()
+run(path, shots=2, output_fn=handler.handle)
+
+print(handler.get_output())
+```
+
+## Installation
+
+```shell
+pip install qirrunner
+```
+
+### Installing from sdist
+
+Platforms for which `qirrunner` doesn't have pre-built wheels (such as `aarch64` macos), installation is available via sdist. Before installing `qirrunner` via `pip`:
+
+- Install a usable LLVM distribution which has `llvm-config` available.
+- Set the `LLVM_SYS_140_PREFIX` environment variable to the LLVM installation directory
+  - example: `export LLVM_SYS_140_PREFIX=/Users/sample/llvm`
+- Install: `python -m pip install qirrunner`
+  - This will build `qirrunner` from source. You will need a working Rust installation in order for this to compile.
 
 ## Implemented APIs
 

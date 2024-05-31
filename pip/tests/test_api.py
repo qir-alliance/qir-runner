@@ -18,4 +18,4 @@ METADATA\tEntryPoint
 INFO\t[One, One, Zero]
 END\t0
 """
-    assert expected == handler.get_output()
+    assert expected == handler.get_output().replace("\r\n", "\n")
