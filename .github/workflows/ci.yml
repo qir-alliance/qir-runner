@@ -140,7 +140,7 @@ jobs:
         run: |
           New-Item -Path ./target/stdlib -ItemType Directory -Force
           Copy-Item -Path ./stdlib/include/qir_stdlib.h -Destination ./target/stdlib -Force
-          Copy-Item -Path ./pip/NOTICE.txt -Destination ./target/stdlib -Force
+          Copy-Item -Path ./stdlib/NOTICE.txt -Destination ./target/stdlib -Force
           Copy-Item -Path LICENSE -Destination ./target/stdlib -Force
         shell: pwsh
 

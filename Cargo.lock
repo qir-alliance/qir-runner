@@ -419,12 +419,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "llvm-tools"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "955be5d0ca0465caf127165acb47964f911e2bc26073e865deb8be7189302faf"
-
-[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -719,7 +713,6 @@ dependencies = [
 name = "qir-stdlib"
 version = "0.7.0"
 dependencies = [
- "llvm-tools",
  "num-bigint",
  "rand",
 ]

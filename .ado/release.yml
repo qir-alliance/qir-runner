@@ -138,7 +138,7 @@ jobs:
   - pwsh: |
       New-Item -Path $(Build.SourcesDirectory)/target/stdlib -ItemType Directory -Force
       Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/qir_stdlib.h -Destination $(Build.SourcesDirectory)/target/stdlib -Force
-      Copy-Item -Path $(Build.SourcesDirectory)/pip/NOTICE.txt -Destination $(Build.SourcesDirectory)/target/stdlib -Force
+      Copy-Item -Path $(Build.SourcesDirectory)/stdlib/NOTICE.txt -Destination $(Build.SourcesDirectory)/target/stdlib -Force
       Copy-Item -Path $(Build.SourcesDirectory)/LICENSE -Destination $(Build.SourcesDirectory)/target/stdlib -Force
     displayName: Organize qir-stdlib artifacts (all platforms)
 
