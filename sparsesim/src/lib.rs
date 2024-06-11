@@ -57,7 +57,7 @@ pub(crate) enum FlushLevel {
 
 impl Default for QuantumSim {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
@@ -65,14 +65,14 @@ impl Default for QuantumSim {
 impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(rng: Option<StdRng>) -> Self {
         let mut initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
             state: initial_state,
             id_map: FxHashMap::default(),
-            rng: RefCell::new(StdRng::from_entropy()),
+            rng: RefCell::new(rng.unwrap_or_else(|| StdRng::from_entropy())),
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
@@ -82,6 +82,11 @@ impl QuantumSim {
     /// Sets the seed for the random number generator used for probabilistic operations.
     pub fn set_rng_seed(&mut self, seed: u64) {
         self.rng.replace(StdRng::seed_from_u64(seed));
+    }
+
+    pub fn get_next_rng(&mut self) -> StdRng {
+        let seed = self.rng.borrow_mut().gen::<u64>();
+        StdRng::seed_from_u64(seed)
     }
 
     /// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
