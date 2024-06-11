@@ -72,7 +72,7 @@ impl QuantumSim {
         QuantumSim {
             state: initial_state,
             id_map: FxHashMap::default(),
-            rng: RefCell::new(rng.unwrap_or_else(|| StdRng::from_entropy())),
+            rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
