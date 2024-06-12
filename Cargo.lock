@@ -698,7 +698,7 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "bitvec",
  "criterion",
@@ -711,7 +711,7 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "num-bigint",
  "rand",
@@ -727,7 +727,7 @@ dependencies = [
 
 [[package]]
 name = "quantum-sparse-sim"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "ndarray",
  "num-bigint",
@@ -838,7 +838,7 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "runner"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "clap",
  "inkwell",
