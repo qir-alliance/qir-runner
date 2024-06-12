@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use runner::{run_bitcode, run_file};
+use runner::{run_bitcode, run_file, OUTPUT};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -276,6 +276,46 @@ fn run_file_errors_on_missing_file() {
         "no such file or directory",
         result.unwrap_err().to_lowercase()
     );
+}
+
+#[test]
+fn run_file_random_seed_is_applied_and_persists_across_shots() {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output.use_std_out(false);
+    });
+
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("resources")
+        .join("random-bit.bc");
+
+    // running 100 random shots with the same seed should be enough to ensure
+    // that the output is deterministic
+    let shots = 100;
+    let rngseed = 42;
+
+    let mut first_output = vec![];
+    let result = run_file(path.clone(), None, shots, Some(rngseed), &mut first_output);
+    assert!(result.is_ok());
+
+    let mut second_output = vec![];
+    let result = run_file(path, None, shots, Some(rngseed), &mut second_output);
+    assert!(result.is_ok());
+
+    let first_result = String::from_utf8(first_output).expect("output should be valid utf8");
+    let second_result = String::from_utf8(second_output).expect("output should be valid utf8");
+
+    // sanity check that the output has been captured
+    // if the output recording is accidentally set to stdout,
+    // this will fail.
+    assert!(
+        first_result.contains("OUTPUT	RESULT	1"),
+        "Ensure global output has use_std_out set to false"
+    );
+
+    // the output should be the same for each set of shots
+    assert_eq!(first_result, second_result);
 }
 
 #[test]

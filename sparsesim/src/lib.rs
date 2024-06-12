@@ -57,7 +57,7 @@ pub(crate) enum FlushLevel {
 
 impl Default for QuantumSim {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
@@ -65,14 +65,14 @@ impl Default for QuantumSim {
 impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(rng: Option<StdRng>) -> Self {
         let mut initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
             state: initial_state,
             id_map: FxHashMap::default(),
-            rng: RefCell::new(StdRng::from_entropy()),
+            rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
@@ -82,6 +82,10 @@ impl QuantumSim {
     /// Sets the seed for the random number generator used for probabilistic operations.
     pub fn set_rng_seed(&mut self, seed: u64) {
         self.rng.replace(StdRng::seed_from_u64(seed));
+    }
+
+    pub fn take_rng(&mut self) -> StdRng {
+        self.rng.replace(StdRng::from_entropy())
     }
 
     /// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
@@ -1288,7 +1292,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Duplicate qubit id '0' found in application.")]
     fn test_duplicate_target() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.mcx(&[q], q);
     }
@@ -1297,7 +1301,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Duplicate qubit id '1' found in application.")]
     fn test_duplicate_control() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         let c = sim.allocate();
         sim.mcx(&[c, c], q);
@@ -1307,7 +1311,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Duplicate qubit id '0' found in application.")]
     fn test_target_in_control() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         let c = sim.allocate();
         sim.mcx(&[c, q], q);
@@ -1316,7 +1320,7 @@ mod tests {
     /// Large, entangled state handling.
     #[test]
     fn test_large_state() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let ctl = sim.allocate();
         sim.h(ctl);
         for _ in 0..4999 {
@@ -1332,7 +1336,7 @@ mod tests {
     /// Verify seeded RNG is predictable.
     #[test]
     fn test_seeded_rng() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         sim.set_rng_seed(42);
         let q = sim.allocate();
         let mut val1 = 0_u64;
@@ -1342,7 +1346,7 @@ mod tests {
                 val1 += 1 << i;
             }
         }
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         sim.set_rng_seed(42);
         let q = sim.allocate();
         let mut val2 = 0_u64;
@@ -1358,7 +1362,7 @@ mod tests {
     /// Verify that dump after swap on released qubits doesn't crash.
     #[test]
     fn test_swap_dump() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         let inner_q = sim.allocate();
         sim.swap_qubit_ids(q, inner_q);
@@ -1369,7 +1373,7 @@ mod tests {
     /// Verify that swap preserves queued rotations.
     #[test]
     fn test_swap_rotations() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let (q1, q2) = (sim.allocate(), sim.allocate());
         sim.rx(PI / 7.0, q1);
         sim.ry(PI / 7.0, q2);
@@ -1384,7 +1388,7 @@ mod tests {
     /// a no-op.
     #[test]
     fn test_rx_queue_nearly_zero() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.rx(PI / 4.0, q);
         assert_eq!(sim.state.len(), 1);
@@ -1397,7 +1401,7 @@ mod tests {
     /// a no-op.
     #[test]
     fn test_ry_queue_nearly_zero() {
-        let mut sim = QuantumSim::new();
+        let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.ry(PI / 4.0, q);
         assert_eq!(sim.state.len(), 1);

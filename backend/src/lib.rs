@@ -61,7 +61,9 @@ pub fn set_rng_seed(seed: u64) {
 pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
-        state.sim = QuantumSim::default();
+        // in order to continue using the same RNG, we need to reset the simulator
+        // and keep the same RNG
+        state.sim = QuantumSim::new(Some(state.sim.take_rng()));
         state.res = bitvec![];
         state.max_qubit_id = 0;
     });
