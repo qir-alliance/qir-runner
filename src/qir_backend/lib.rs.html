@@ -1320,6 +1320,8 @@
 <a href="#1320" id="1320">1320</a>
 <a href="#1321" id="1321">1321</a>
 <a href="#1322" id="1322">1322</a>
+<a href="#1323" id="1323">1323</a>
+<a href="#1324" id="1324">1324</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1383,7 +1385,9 @@
 </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__initialize(<span class="kw">_</span>: <span class="kw-2">*mut </span>c_char) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
-        state.sim = QuantumSim::default();
+        <span class="comment">// in order to continue using the same RNG, we need to reset the simulator
+        // and keep the same RNG
+        </span>state.sim = QuantumSim::new(<span class="prelude-val">Some</span>(state.sim.take_rng()));
         state.res = <span class="macro">bitvec!</span>[];
         state.max_qubit_id = <span class="number">0</span>;
     });

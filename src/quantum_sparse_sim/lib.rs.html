@@ -1683,6 +1683,10 @@
 <a href="#1683" id="1683">1683</a>
 <a href="#1684" id="1684">1684</a>
 <a href="#1685" id="1685">1685</a>
+<a href="#1686" id="1686">1686</a>
+<a href="#1687" id="1687">1687</a>
+<a href="#1688" id="1688">1688</a>
+<a href="#1689" id="1689">1689</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1742,7 +1746,7 @@
 
 <span class="kw">impl </span>Default <span class="kw">for </span>QuantumSim {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::new()
+        <span class="self">Self</span>::new(<span class="prelude-val">None</span>)
     }
 }
 
@@ -1750,14 +1754,14 @@
 </span><span class="kw">impl </span>QuantumSim {
     <span class="doccomment">/// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     </span><span class="attr">#[must_use]
-    </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
+    </span><span class="kw">pub fn </span>new(rng: <span class="prelude-ty">Option</span>&lt;StdRng&gt;) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
             state: initial_state,
             id_map: FxHashMap::default(),
-            rng: RefCell::new(StdRng::from_entropy()),
+            rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
@@ -1767,6 +1771,10 @@
     <span class="doccomment">/// Sets the seed for the random number generator used for probabilistic operations.
     </span><span class="kw">pub fn </span>set_rng_seed(<span class="kw-2">&amp;mut </span><span class="self">self</span>, seed: u64) {
         <span class="self">self</span>.rng.replace(StdRng::seed_from_u64(seed));
+    }
+
+    <span class="kw">pub fn </span>take_rng(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; StdRng {
+        <span class="self">self</span>.rng.replace(StdRng::from_entropy())
     }
 
     <span class="doccomment">/// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
@@ -2973,7 +2981,7 @@
     </span><span class="attr">#[test]
     #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;0&#39; found in application.&quot;</span>)]
     </span><span class="kw">fn </span>test_duplicate_target() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[q], q);
     }
@@ -2982,7 +2990,7 @@
     </span><span class="attr">#[test]
     #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;1&#39; found in application.&quot;</span>)]
     </span><span class="kw">fn </span>test_duplicate_control() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span>c = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[c, c], q);
@@ -2992,7 +3000,7 @@
     </span><span class="attr">#[test]
     #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;0&#39; found in application.&quot;</span>)]
     </span><span class="kw">fn </span>test_target_in_control() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span>c = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[c, q], q);
@@ -3001,7 +3009,7 @@
     <span class="doccomment">/// Large, entangled state handling.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_large_state() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>ctl = sim.allocate();
         sim.h(ctl);
         <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">4999 </span>{
@@ -3017,7 +3025,7 @@
     <span class="doccomment">/// Verify seeded RNG is predictable.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_seeded_rng() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         sim.set_rng_seed(<span class="number">42</span>);
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span><span class="kw-2">mut </span>val1 = <span class="number">0_u64</span>;
@@ -3027,7 +3035,7 @@
                 val1 += <span class="number">1 </span>&lt;&lt; i;
             }
         }
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         sim.set_rng_seed(<span class="number">42</span>);
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span><span class="kw-2">mut </span>val2 = <span class="number">0_u64</span>;
@@ -3043,7 +3051,7 @@
     <span class="doccomment">/// Verify that dump after swap on released qubits doesn&#39;t crash.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_swap_dump() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span>inner_q = sim.allocate();
         sim.swap_qubit_ids(q, inner_q);
@@ -3054,7 +3062,7 @@
     <span class="doccomment">/// Verify that swap preserves queued rotations.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_swap_rotations() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>(q1, q2) = (sim.allocate(), sim.allocate());
         sim.rx(PI / <span class="number">7.0</span>, q1);
         sim.ry(PI / <span class="number">7.0</span>, q2);
@@ -3069,7 +3077,7 @@
     /// a no-op.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_rx_queue_nearly_zero() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         sim.rx(PI / <span class="number">4.0</span>, q);
         <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
@@ -3082,7 +3090,7 @@
     /// a no-op.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_ry_queue_nearly_zero() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new();
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         sim.ry(PI / <span class="number">4.0</span>, q);
         <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
