@@ -604,6 +604,45 @@ mod tests {
     }
 
     #[test]
+    fn test_rx_zero() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rx(0.0, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rx(0.0)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_rx_3pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rx(3.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rx(3.0 * PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_rx_4pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.rx(4.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&rx(4.0 * PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
     fn test_ry() {
         assert_operation_equal_referenced(
             |sim, qs| {
@@ -637,6 +676,45 @@ mod tests {
             },
             |sim, qs| {
                 sim.apply(&adjoint(&ry(2.0 * PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_ry_zero() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.ry(0.0, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&ry(0.0)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_ry_3pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.ry(3.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&ry(3.0 * PI)), &[qs[0]], None);
+            },
+            1,
+        );
+    }
+
+    #[test]
+    fn test_ry_4pi() {
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.ry(4.0 * PI, qs[0]);
+            },
+            |sim, qs| {
+                sim.apply(&adjoint(&ry(4.0 * PI)), &[qs[0]], None);
             },
             1,
         );
