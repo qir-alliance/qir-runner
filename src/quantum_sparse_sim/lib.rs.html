@@ -1687,6 +1687,17 @@
 <a href="#1687" id="1687">1687</a>
 <a href="#1688" id="1688">1688</a>
 <a href="#1689" id="1689">1689</a>
+<a href="#1690" id="1690">1690</a>
+<a href="#1691" id="1691">1691</a>
+<a href="#1692" id="1692">1692</a>
+<a href="#1693" id="1693">1693</a>
+<a href="#1694" id="1694">1694</a>
+<a href="#1695" id="1695">1695</a>
+<a href="#1696" id="1696">1696</a>
+<a href="#1697" id="1697">1697</a>
+<a href="#1698" id="1698">1698</a>
+<a href="#1699" id="1699">1699</a>
+<a href="#1700" id="1700">1700</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -2663,29 +2674,40 @@
             } <span class="kw">else </span>{
                 <span class="self">self</span>.mcx(ctls, target);
             }
-            <span class="comment">// Rx/Ry are different from X/Y by a global phase of -i, so apply that here for mathematical correctness.
+            <span class="comment">// Rx/Ry are different from X/Y by a global phase of -i, so apply that here when indicated by m01,
+            // for mathematical correctness.
             </span><span class="kw">let </span>(<span class="kw">_</span>, ctls) = <span class="self">self</span>.resolve_and_check_qubits(target, ctls);
-            <span class="self">self</span>.state =
-                <span class="self">self</span>.state
-                    .drain()
-                    .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (index, value)| {
-                        <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
-                            accum.insert(index, value * -Complex64::i());
-                        }
-                        accum
-                    });
+            <span class="kw">let </span>factor = m01
+                * <span class="kw">if </span>sign_flip {
+                    Complex64::i()
+                } <span class="kw">else </span>{
+                    Complex64::one()
+                };
+            <span class="kw">if </span>factor != Complex64::one() {
+                <span class="self">self</span>.state =
+                    <span class="self">self</span>.state
+                        .drain()
+                        .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (index, value)| {
+                            <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
+                                accum.insert(index, value * factor);
+                            }
+                            accum
+                        });
+            }
         } <span class="kw">else if </span>m01.is_nearly_zero() {
-            <span class="comment">// This is just identity, so we can effectively no-op and just add a phase of -1.
-            </span><span class="kw">let </span>(<span class="kw">_</span>, ctls) = <span class="self">self</span>.resolve_and_check_qubits(target, ctls);
-            <span class="self">self</span>.state =
-                <span class="self">self</span>.state
-                    .drain()
-                    .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (index, value)| {
-                        <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
-                            accum.insert(index, value * -Complex64::one());
-                        }
-                        accum
-                    });
+            <span class="comment">// This is just identity, so we can effectively no-op, and just add a phase of -1 as indicated by m00.
+            </span><span class="kw">if </span>m00 == -Complex64::one() {
+                <span class="kw">let </span>(<span class="kw">_</span>, ctls) = <span class="self">self</span>.resolve_and_check_qubits(target, ctls);
+                <span class="self">self</span>.state =
+                    <span class="self">self</span>.state
+                        .drain()
+                        .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (index, value)| {
+                            <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
+                                accum.insert(index, value * -Complex64::one());
+                            }
+                            accum
+                        });
+            }
         } <span class="kw">else </span>{
             <span class="kw">let </span>(target, ctls) = <span class="self">self</span>.resolve_and_check_qubits(target, ctls);
             <span class="kw">let </span><span class="kw-2">mut </span>new_state = SparseState::default();
