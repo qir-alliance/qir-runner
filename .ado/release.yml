@@ -28,6 +28,13 @@ variables:
   LLVM_VERSION: 14
   AUDITWHEEL_TAG: "manylinux_2_31_x86_64"
 
+resources:
+  repositories:
+  - repository: 1ESPipelineTemplates
+    type: git
+    name: 1ESPipelineTemplates/1ESPipelineTemplates
+    ref: refs/tags/release
+
 parameters:
 - name: matrix
   type: object
