@@ -45,6 +45,35 @@ pub struct QuantumSim {
 
     /// The map for tracking queued Pauli-Y rotations by a given angle for a given qubit.
     ry_queue: FxHashMap<usize, f64>,
+
+    /// The list of queued gate operations.
+    op_queue: Vec<(Vec<usize>, usize, OpCode)>,
+}
+
+/// Operations that support generic queuing.
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum OpCode {
+    X,
+    Y,
+    Z,
+    S,
+    Sadj,
+    T,
+    Tadj,
+}
+
+impl OpCode {
+    fn as_transform(self) -> impl FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64) {
+        match self {
+            OpCode::X => QuantumSim::x_transform,
+            OpCode::Y => QuantumSim::y_transform,
+            OpCode::Z => QuantumSim::z_transform,
+            OpCode::S => QuantumSim::s_transform,
+            OpCode::Sadj => QuantumSim::sadj_transform,
+            OpCode::T => QuantumSim::t_transform,
+            OpCode::Tadj => QuantumSim::tadj_transform,
+        }
+    }
 }
 
 /// Levels for flushing of queued gates.
@@ -76,6 +105,7 @@ impl QuantumSim {
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
+            op_queue: Vec::new(),
         }
     }
 
@@ -392,6 +422,8 @@ impl QuantumSim {
     /// # Panics
     /// This function will panic if either of the given identifiers do not correspond to an allocated qubit.
     pub fn swap_qubit_ids(&mut self, qubit1: usize, qubit2: usize) {
+        self.flush_ops();
+
         // Must also swap any queued operations.
         let (h_val1, h_val2) = (
             self.h_flag.bit(qubit1 as u64),
@@ -502,7 +534,24 @@ impl QuantumSim {
         (target, ctls)
     }
 
+    fn enqueue_op(&mut self, target: usize, ctls: Vec<usize>, op: OpCode) {
+        self.op_queue.push((ctls, target, op));
+    }
+
+    fn has_queued_hrxy(&self, target: usize) -> bool {
+        self.h_flag.bit(target as u64)
+            || self.rx_queue.contains_key(&target)
+            || self.ry_queue.contains_key(&target)
+    }
+
+    fn maybe_flush_queue(&mut self, qubits: &[usize], level: FlushLevel) {
+        if qubits.iter().any(|q| self.has_queued_hrxy(*q)) {
+            self.flush_queue(qubits, level);
+        }
+    }
+
     pub(crate) fn flush_queue(&mut self, qubits: &[usize], level: FlushLevel) {
+        self.flush_ops();
         for target in qubits {
             if self.h_flag.bit(*target as u64) {
                 self.apply_mch(&[], *target);
@@ -516,6 +565,39 @@ impl QuantumSim {
                     self.flush_ry(*target);
                 }
             }
+        }
+    }
+
+    fn flush_ops(&mut self) {
+        if !self.op_queue.is_empty() {
+            let ops = self
+                .op_queue
+                .iter()
+                .map(|(ctls, target, op)| {
+                    let (target, ctls) = self.resolve_and_check_qubits(*target, ctls);
+                    (ctls, target, *op)
+                })
+                .collect::<Vec<_>>();
+            self.op_queue.clear();
+            self.state =
+                self.state
+                    .drain()
+                    .fold(SparseState::default(), |mut accum, (index, value)| {
+                        let (k, v) = ops.iter().fold(
+                            (index, value),
+                            |(index, value), (ctls, target, op)| {
+                                if ctls.iter().all(|c| index.bit(*c)) {
+                                    op.as_transform()((index, value), *target)
+                                } else {
+                                    (index, value)
+                                }
+                            },
+                        );
+                        if !v.is_nearly_zero() {
+                            accum.insert(k, v);
+                        }
+                        accum
+                    });
         }
     }
 
@@ -574,9 +656,9 @@ impl QuantumSim {
         }
         if self.h_flag.bit(target as u64) {
             // XH = HZ, so execute a Z transformation if there is an H queued.
-            self.controlled_gate(&[], target, Self::z_transform);
+            self.enqueue_op(target, Vec::new(), OpCode::Z);
         } else {
-            self.controlled_gate(&[], target, Self::x_transform);
+            self.enqueue_op(target, Vec::new(), OpCode::X);
         }
     }
 
@@ -587,8 +669,9 @@ impl QuantumSim {
             return;
         }
 
-        if ctls.len() > 1
-            || self.ry_queue.contains_key(&ctls[0])
+        if ctls.len() > 1 {
+            self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        } else if self.ry_queue.contains_key(&ctls[0])
             || self.rx_queue.contains_key(&ctls[0])
             || (self.h_flag.bit(ctls[0] as u64) && !self.h_flag.bit(target as u64))
         {
@@ -603,13 +686,13 @@ impl QuantumSim {
             if ctls.len() == 1 && self.h_flag.bit(ctls[0] as u64) {
                 // An H on both target and single control means we can perform a CNOT with the control
                 // and target switched.
-                self.controlled_gate(&[target], ctls[0], Self::x_transform);
+                self.enqueue_op(ctls[0], vec![target], OpCode::X);
             } else {
                 // XH = HZ, so perform a mulit-controlled Z here.
-                self.controlled_gate(ctls, target, Self::z_transform);
+                self.enqueue_op(target, ctls.into(), OpCode::Z);
             }
         } else {
-            self.controlled_gate(ctls, target, Self::x_transform);
+            self.enqueue_op(target, ctls.into(), OpCode::X);
         }
     }
 
@@ -634,7 +717,7 @@ impl QuantumSim {
             *entry *= -1.0;
         }
 
-        self.controlled_gate(&[], target, Self::y_transform);
+        self.enqueue_op(target, Vec::new(), OpCode::Y);
     }
 
     /// Multi-controlled Y gate.
@@ -645,7 +728,7 @@ impl QuantumSim {
             return;
         }
 
-        self.flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
 
         if self.rx_queue.contains_key(&target) {
             self.flush_queue(&[target], FlushLevel::HRx);
@@ -656,10 +739,10 @@ impl QuantumSim {
             let (target, ctls) = ctls
                 .split_first()
                 .expect("Controls list cannot be empty here.");
-            self.controlled_gate(ctls, *target, Self::z_transform);
+            self.enqueue_op(*target, ctls.into(), OpCode::Z);
         }
 
-        self.controlled_gate(ctls, target, Self::y_transform);
+        self.enqueue_op(target, ctls.into(), OpCode::Y);
     }
 
     /// Performs a phase transformation (a rotation in the computational basis) on a single state.
@@ -705,9 +788,9 @@ impl QuantumSim {
 
         if self.h_flag.bit(target as u64) {
             // HZ = XH, so execute an X if an H is queued.
-            self.controlled_gate(&[], target, Self::x_transform);
+            self.enqueue_op(target, Vec::new(), OpCode::X);
         } else {
-            self.controlled_gate(&[], target, Self::z_transform);
+            self.enqueue_op(target, Vec::new(), OpCode::Z);
         }
     }
 
@@ -752,11 +835,11 @@ impl QuantumSim {
                     (ctls.to_owned(), target)
                 };
             // With a single H queued, treat the multi-controlled Z as a multi-controlled X.
-            self.controlled_gate(&ctls, target, Self::x_transform);
+            self.enqueue_op(target, ctls, OpCode::X);
         } else {
             self.flush_queue(ctls, FlushLevel::HRxRy);
             self.flush_queue(&[target], FlushLevel::HRxRy);
-            self.controlled_gate(ctls, target, Self::z_transform);
+            self.enqueue_op(target, ctls.into(), OpCode::Z);
         }
     }
 
@@ -767,15 +850,15 @@ impl QuantumSim {
 
     /// Single qubit S gate.
     pub fn s(&mut self, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, Self::s_transform);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::S);
     }
 
     /// Multi-controlled S gate.
     pub fn mcs(&mut self, ctls: &[usize], target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, Self::s_transform);
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::S);
     }
 
     /// Performs the adjoint S transformation on a signle state.
@@ -785,15 +868,15 @@ impl QuantumSim {
 
     /// Single qubit Adjoint S Gate.
     pub fn sadj(&mut self, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, Self::sadj_transform);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::Sadj);
     }
 
     /// Multi-controlled Adjoint S gate.
     pub fn mcsadj(&mut self, ctls: &[usize], target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, Self::sadj_transform);
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::Sadj);
     }
 
     /// Performs the T transformation on a single state.
@@ -807,15 +890,15 @@ impl QuantumSim {
 
     /// Single qubit T gate.
     pub fn t(&mut self, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, Self::t_transform);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::T);
     }
 
     /// Multi-controlled T gate.
     pub fn mct(&mut self, ctls: &[usize], target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, Self::t_transform);
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::T);
     }
 
     /// Performs the adjoint T transformation to a single state.
@@ -829,15 +912,15 @@ impl QuantumSim {
 
     /// Single qubit Adjoint T gate.
     pub fn tadj(&mut self, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, Self::tadj_transform);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::Tadj);
     }
 
     /// Multi-controlled Adjoint T gate.
     pub fn mctadj(&mut self, ctls: &[usize], target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, Self::tadj_transform);
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::Tadj);
     }
 
     /// Performs the Rz transformation with the given angle to a single state.
@@ -1306,6 +1389,7 @@ mod tests {
         let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.mcx(&[q], q);
+        let _ = sim.dump();
     }
 
     /// Verify that controls cannot be duplicated.
@@ -1316,6 +1400,7 @@ mod tests {
         let q = sim.allocate();
         let c = sim.allocate();
         sim.mcx(&[c, c], q);
+        let _ = sim.dump();
     }
 
     /// Verify that targets aren't in controls.
@@ -1326,6 +1411,7 @@ mod tests {
         let q = sim.allocate();
         let c = sim.allocate();
         sim.mcx(&[c, q], q);
+        let _ = sim.dump();
     }
 
     /// Large, entangled state handling.
