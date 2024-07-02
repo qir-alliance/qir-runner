@@ -45,22 +45,6 @@ impl Read for OutputRecorder {
     }
 }
 
-struct DefaultReaderWriter(Vec<u8>);
-impl Write for DefaultReaderWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.write(buf)
-    }
-    fn flush(&mut self) -> std::io::Result<()> {
-        self.0.flush()
-    }
-}
-
-impl Read for DefaultReaderWriter {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.0.as_slice().read(buf)
-    }
-}
-
 impl Default for OutputRecorder {
     fn default() -> Self {
         OutputRecorder {

@@ -306,6 +306,7 @@ macro_rules! multicontrolled_qubit_gate {
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
         #[no_mangle]
+        #[allow(clippy::cast_ptr_alignment)]
         pub unsafe extern "C" fn $qir_name(ctls: *const QirArray, qubit: *mut c_void) {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
@@ -382,6 +383,7 @@ macro_rules! multicontrolled_qubit_rotation {
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
         #[no_mangle]
+        #[allow(clippy::cast_ptr_alignment)]
         pub unsafe extern "C" fn $qir_name(
             ctls: *const QirArray,
             arg_tuple: *mut *const Vec<u8>,
