@@ -7,16 +7,11 @@ repository.workspace = true
 edition.workspace = true
 license.workspace = true
 
-[dependencies.inkwell]
-git = "https://github.com/TheDan64/inkwell"
-rev = "0.4.0"
-default-features = false
-features = ["llvm14-0"]
-
 [dependencies]
 qir-stdlib = { path = "../stdlib" }
 qir-backend = { path = "../backend" }
 clap = { workspace = true }
+inkwell = { workspace = true }
 msvc_spectre_libs = { workspace = true }
 
 [[bin]]
