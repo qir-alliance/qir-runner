@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `stdlib/src/strings.rs`."><title>strings.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_stdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `stdlib/src/strings.rs`."><title>strings.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_stdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../qir_stdlib/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -400,27 +400,27 @@
 };
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_create(str: <span class="kw-2">*mut </span>c_char) -&gt; <span class="kw-2">*const </span>CString {
-    <span class="kw">let </span>cstring = CString::new(CStr::from_ptr(str).to_owned()).expect(<span class="string">&quot;Failed to create %String&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_create(str: <span class="kw-2">*mut </span>c_char) -&gt; <span class="kw-2">*const </span>CString {
+    <span class="kw">let </span>cstring = CString::new(CStr::from_ptr(str).to_owned()).expect(<span class="string">"Failed to create %String"</span>);
     Rc::into_raw(Rc::new(cstring))
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_get_data(str: <span class="kw-2">*const </span>CString) -&gt; <span class="kw-2">*const </span>c_char {
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_get_data(str: <span class="kw-2">*const </span>CString) -&gt; <span class="kw-2">*const </span>c_char {
     (<span class="kw-2">*</span>str).as_bytes_with_nul().as_ptr().cast::&lt;c_char&gt;()
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_get_length(str: <span class="kw-2">*const </span>CString) -&gt; u32 {
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_get_length(str: <span class="kw-2">*const </span>CString) -&gt; u32 {
     (<span class="kw-2">*</span>str)
         .as_bytes()
         .len()
         .try_into()
-        .expect(<span class="string">&quot;String length is too large for 32-bit integer.&quot;</span>)
+        .expect(<span class="string">"String length is too large for 32-bit integer."</span>)
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_update_reference_count(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_update_reference_count(
     str: <span class="kw-2">*const </span>CString,
     update: i32,
 ) {
@@ -428,7 +428,7 @@
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_concatenate(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_concatenate(
     s1: <span class="kw-2">*const </span>CString,
     s2: <span class="kw-2">*const </span>CString,
 ) -&gt; <span class="kw-2">*const </span>CString {
@@ -436,12 +436,12 @@
     new_str.extend_from_slice((<span class="kw-2">*</span>s2).to_bytes());
 
     Rc::into_raw(Rc::new(
-        CString::new(new_str).expect(<span class="string">&quot;Unable to convert string&quot;</span>),
+        CString::new(new_str).expect(<span class="string">"Unable to convert string"</span>),
     ))
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__string_equal(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__string_equal(
     s1: <span class="kw-2">*const </span>CString,
     s2: <span class="kw-2">*const </span>CString,
 ) -&gt; bool {
@@ -455,7 +455,7 @@
     <span class="kw">unsafe </span>{
         __quantum__rt__string_create(
             CString::new(input.to_string())
-                .expect(<span class="string">&quot;Unable to allocate string for conversion.&quot;</span>)
+                .expect(<span class="string">"Unable to allocate string for conversion."</span>)
                 .as_bytes_with_nul()
                 .as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
         )
@@ -463,7 +463,7 @@
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__int_to_string(input: i64) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__int_to_string(input: i64) -&gt; <span class="kw-2">*const </span>CString {
     convert(<span class="kw-2">&amp;</span>input)
 }
 
@@ -471,34 +471,34 @@
     <span class="kw">if </span>(input.floor() - input.ceil()).abs() &lt; c_double::EPSILON {
         <span class="comment">// The value is a whole number, which by convention is displayed with one decimal point
         // to differentiate it from an integer value.
-        </span><span class="macro">format!</span>(<span class="string">&quot;{input:.1}&quot;</span>)
+        </span><span class="macro">format!</span>(<span class="string">"{input:.1}"</span>)
     } <span class="kw">else </span>{
-        <span class="macro">format!</span>(<span class="string">&quot;{input}&quot;</span>)
+        <span class="macro">format!</span>(<span class="string">"{input}"</span>)
     }
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__double_to_string(input: c_double) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__double_to_string(input: c_double) -&gt; <span class="kw-2">*const </span>CString {
     convert(<span class="kw-2">&amp;</span>double_to_string(input))
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__bool_to_string(input: bool) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__bool_to_string(input: bool) -&gt; <span class="kw-2">*const </span>CString {
     convert(<span class="kw-2">&amp;</span>input)
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__pauli_to_string(input: Pauli) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__pauli_to_string(input: Pauli) -&gt; <span class="kw-2">*const </span>CString {
     <span class="kw">match </span>input {
-        Pauli::I =&gt; convert(<span class="kw-2">&amp;</span><span class="string">&quot;PauliI&quot;</span>),
-        Pauli::X =&gt; convert(<span class="kw-2">&amp;</span><span class="string">&quot;PauliX&quot;</span>),
-        Pauli::Y =&gt; convert(<span class="kw-2">&amp;</span><span class="string">&quot;PauliY&quot;</span>),
-        Pauli::Z =&gt; convert(<span class="kw-2">&amp;</span><span class="string">&quot;PauliZ&quot;</span>),
+        Pauli::I =&gt; convert(<span class="kw-2">&amp;</span><span class="string">"PauliI"</span>),
+        Pauli::X =&gt; convert(<span class="kw-2">&amp;</span><span class="string">"PauliX"</span>),
+        Pauli::Y =&gt; convert(<span class="kw-2">&amp;</span><span class="string">"PauliY"</span>),
+        Pauli::Z =&gt; convert(<span class="kw-2">&amp;</span><span class="string">"PauliZ"</span>),
     }
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__bigint_to_string(input: <span class="kw-2">*const </span>BigInt) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__bigint_to_string(input: <span class="kw-2">*const </span>BigInt) -&gt; <span class="kw-2">*const </span>CString {
     convert(<span class="kw-2">&amp;*</span>input)
 }
 
@@ -514,14 +514,14 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_string_create() {
-        <span class="kw">let </span>orig_str = CString::new(<span class="string">&quot;Test String&quot;</span>).unwrap();
+        <span class="kw">let </span>orig_str = CString::new(<span class="string">"Test String"</span>).unwrap();
         <span class="kw">let </span>str = <span class="kw">unsafe </span>{
             __quantum__rt__string_create(
                 orig_str.as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>std::ffi::c_char
             )
         };
         <span class="comment">// string_create should make a copy, not consume original.
-        </span><span class="macro">assert_eq!</span>(orig_str.to_str().unwrap(), <span class="string">&quot;Test String&quot;</span>);
+        </span><span class="macro">assert_eq!</span>(orig_str.to_str().unwrap(), <span class="string">"Test String"</span>);
         drop(orig_str);
         <span class="macro">assert!</span>(!str.is_null());
         <span class="kw">unsafe </span>{
@@ -529,8 +529,8 @@
             </span><span class="macro">assert_eq!</span>(
                 Rc::from_raw(str)
                     .to_str()
-                    .expect(<span class="string">&quot;Unable to convert input string&quot;</span>),
-                <span class="string">&quot;Test String&quot;
+                    .expect(<span class="string">"Unable to convert input string"</span>),
+                <span class="string">"Test String"
             </span>);
         }
     }
@@ -539,7 +539,7 @@
     </span><span class="kw">fn </span>test_string_get_data() {
         <span class="kw">let </span>str = <span class="kw">unsafe </span>{
             __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Data&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char
+                CString::new(<span class="string">"Data"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char
             )
         };
         <span class="kw">unsafe </span>{
@@ -547,7 +547,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Data&quot;
+                <span class="string">"Data"
             </span>);
         }
         <span class="kw">unsafe </span>{
@@ -559,7 +559,7 @@
     </span><span class="kw">fn </span>test_string_get_length() {
         <span class="kw">let </span>str = <span class="kw">unsafe </span>{
             __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Data&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char
+                CString::new(<span class="string">"Data"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char
             )
         };
         <span class="macro">assert_eq!</span>(<span class="kw">unsafe </span>{ __quantum__rt__string_get_length(str) }, <span class="number">4</span>);
@@ -572,7 +572,7 @@
     </span><span class="kw">fn </span>test_string_update_reference_count() {
         <span class="kw">unsafe </span>{
             <span class="kw">let </span>str = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Data&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
+                CString::new(<span class="string">"Data"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
             );
             <span class="kw">let </span>rc = ManuallyDrop::new(Rc::from_raw(str));
             <span class="macro">assert_eq!</span>(Rc::strong_count(<span class="kw-2">&amp;</span>rc), <span class="number">1</span>);
@@ -588,10 +588,10 @@
     </span><span class="kw">fn </span>test_string_concatenate() {
         <span class="kw">unsafe </span>{
             <span class="kw">let </span>str1 = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Hello&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
+                CString::new(<span class="string">"Hello"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
             );
             <span class="kw">let </span>str2 = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;, World!&quot;</span>)
+                CString::new(<span class="string">", World!"</span>)
                     .unwrap()
                     .as_bytes_with_nul()
                     .as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
@@ -604,7 +604,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str3))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Hello, World!&quot;
+                <span class="string">"Hello, World!"
             </span>);
             __quantum__rt__string_update_reference_count(str3, -<span class="number">1</span>);
             <span class="comment">// After decrement and drop, original strings should still be valid.
@@ -614,7 +614,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str2))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;, World!&quot;
+                <span class="string">", World!"
             </span>);
             __quantum__rt__string_update_reference_count(str2, -<span class="number">1</span>);
             <span class="kw">let </span>rc = ManuallyDrop::new(Rc::from_raw(str1));
@@ -623,7 +623,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Hello&quot;
+                <span class="string">"Hello"
             </span>);
             __quantum__rt__string_update_reference_count(str1, -<span class="number">1</span>);
         }
@@ -633,13 +633,13 @@
     </span><span class="kw">fn </span>test_string_equal() {
         <span class="kw">unsafe </span>{
             <span class="kw">let </span>str1 = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Data&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
+                CString::new(<span class="string">"Data"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
             );
             <span class="kw">let </span>str2 = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Data&quot;</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
+                CString::new(<span class="string">"Data"</span>).unwrap().as_bytes_with_nul().as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
             );
             <span class="kw">let </span>str3 = __quantum__rt__string_create(
-                CString::new(<span class="string">&quot;Not Data&quot;</span>)
+                CString::new(<span class="string">"Not Data"</span>)
                     .unwrap()
                     .as_bytes_with_nul()
                     .as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
@@ -653,7 +653,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str3))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Not Data&quot;
+                <span class="string">"Not Data"
             </span>);
             __quantum__rt__string_update_reference_count(str3, -<span class="number">1</span>);
             <span class="kw">let </span>rc = ManuallyDrop::new(Rc::from_raw(str2));
@@ -662,7 +662,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str2))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Data&quot;
+                <span class="string">"Data"
             </span>);
             __quantum__rt__string_update_reference_count(str2, -<span class="number">1</span>);
             <span class="kw">let </span>rc = ManuallyDrop::new(Rc::from_raw(str1));
@@ -671,7 +671,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;Data&quot;
+                <span class="string">"Data"
             </span>);
             __quantum__rt__string_update_reference_count(str1, -<span class="number">1</span>);
         }
@@ -685,7 +685,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str0))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;42&quot;
+                <span class="string">"42"
             </span>);
         }
         <span class="kw">let </span>str1 = __quantum__rt__double_to_string(<span class="number">4.2_f64</span>);
@@ -694,7 +694,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;4.2&quot;
+                <span class="string">"4.2"
             </span>);
         }
         <span class="kw">let </span>str1_1 = __quantum__rt__double_to_string(<span class="number">4.0_f64</span>);
@@ -703,7 +703,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_1))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;4.0&quot;
+                <span class="string">"4.0"
             </span>);
         }
         <span class="kw">let </span>str1_2 = __quantum__rt__double_to_string(<span class="number">0.1_f64</span>);
@@ -712,7 +712,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_2))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;0.1&quot;
+                <span class="string">"0.1"
             </span>);
         }
         <span class="kw">let </span>str1_3 = __quantum__rt__double_to_string(<span class="number">0.100_000_000_01_f64</span>);
@@ -721,7 +721,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str1_3))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;0.10000000001&quot;
+                <span class="string">"0.10000000001"
             </span>);
         }
         <span class="kw">let </span>str2 = __quantum__rt__bool_to_string(<span class="bool-val">false</span>);
@@ -730,7 +730,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str2))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;false&quot;
+                <span class="string">"false"
             </span>);
         }
         <span class="kw">let </span>str3 = __quantum__rt__pauli_to_string(Pauli::Z);
@@ -739,7 +739,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str3))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;PauliZ&quot;
+                <span class="string">"PauliZ"
             </span>);
         }
         <span class="kw">let </span>input4 = __quantum__rt__bigint_create_i64(<span class="number">400_002</span>);
@@ -749,7 +749,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str4))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;400002&quot;
+                <span class="string">"400002"
             </span>);
             __quantum__rt__string_update_reference_count(str4, -<span class="number">1</span>);
         }
@@ -762,7 +762,7 @@
                 CStr::from_ptr(__quantum__rt__string_get_data(str5))
                     .to_str()
                     .unwrap(),
-                <span class="string">&quot;9223372036854775807000&quot;
+                <span class="string">"9223372036854775807000"
             </span>);
             __quantum__rt__string_update_reference_count(str0, -<span class="number">1</span>);
             __quantum__rt__string_update_reference_count(str1, -<span class="number">1</span>);

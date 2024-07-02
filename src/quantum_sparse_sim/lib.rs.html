@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `sparsesim/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="quantum_sparse_sim" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `sparsesim/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="quantum_sparse_sim" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../quantum_sparse_sim/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1705,7 +1705,7 @@
 
 </span><span class="doccomment">//! # Sparse State Quantum Simulator
 //! This libary implements sparse state simulation, based on the design from
-//! &lt;a href=&quot;https://arxiv.org/abs/2105.01533&quot;&gt;Leveraging state sparsity for more efficient quantum simulations&lt;/a&gt;.
+//! &lt;a href="https://arxiv.org/abs/2105.01533"&gt;Leveraging state sparsity for more efficient quantum simulations&lt;/a&gt;.
 
 </span><span class="kw">pub mod </span>exp;
 <span class="kw">mod </span>nearly_zero;
@@ -1790,11 +1790,11 @@
 
     <span class="doccomment">/// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
     /// the total number of currently allocated qubits to help in interpreting the sparse state.
-    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason=&quot;Panics can only occur if the keys are not present in the map, which should not happen.&quot;
+    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason="Panics can only occur if the keys are not present in the map, which should not happen."
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>get_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; (Vec&lt;(BigUint, Complex64)&gt;, usize) {
         <span class="comment">// Swap all the entries in the state to be ordered by qubit identifier. This makes
-        // interpreting the state easier for external consumers that don&#39;t have access to the id map.
+        // interpreting the state easier for external consumers that don't have access to the id map.
         </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.keys().copied().collect();
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>sorted_keys, FlushLevel::HRxRy);
 
@@ -1808,12 +1808,12 @@
                     <span class="kw-2">*</span>(<span class="self">self
                         </span>.id_map
                         .get_mut(<span class="kw-2">&amp;</span>swapped_key)
-                        .expect(<span class="string">&quot;key should be present in map&quot;</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
+                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
                 }
                 <span class="kw-2">*</span>(<span class="self">self
                     </span>.id_map
                     .get_mut(<span class="kw-2">&amp;</span>key)
-                    .expect(<span class="string">&quot;key should be present in map&quot;</span>)) = index;
+                    .expect(<span class="string">"key should be present in map"</span>)) = index;
             }
         });
 
@@ -1823,7 +1823,7 @@
     }
 
     <span class="doccomment">/// Allocates a fresh qubit, returning its identifier. Note that this will use the lowest available
-    /// identifier, and may result in qubits being allocated &quot;in the middle&quot; of an existing register
+    /// identifier, and may result in qubits being allocated "in the middle" of an existing register
     /// if those identifiers are available.
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; usize {
@@ -1862,7 +1862,7 @@
         <span class="kw">let </span>loc = <span class="self">self
             </span>.id_map
             .remove(<span class="kw-2">&amp;</span>id)
-            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {id}.&quot;</span>));
+            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}."</span>));
 
         <span class="kw">if </span><span class="self">self</span>.id_map.is_empty() {
             <span class="comment">// When no qubits are allocated, we can reset the sparse state to a clean ground, so
@@ -1875,7 +1875,7 @@
             </span><span class="kw">let </span>res = <span class="self">self</span>.measure_impl(loc);
 
             <span class="comment">// If the result of measurement was true then we must set the bit for this qubit in every key
-            // to zero to &quot;reset&quot; the qubit.
+            // to zero to "reset" the qubit.
             </span><span class="kw">if </span>res {
                 <span class="self">self</span>.state =
                     <span class="self">self</span>.state
@@ -1891,11 +1891,11 @@
 
     <span class="doccomment">/// Prints the current state vector to standard output with integer labels for the states, skipping any
     /// states with zero amplitude.
-    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason=&quot;Panics can only occur if the keys are not present in the map, which should not happen.&quot;
+    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason="Panics can only occur if the keys are not present in the map, which should not happen."
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; String {
         <span class="comment">// Swap all the entries in the state to be ordered by qubit identifier. This makes
-        // interpreting the state easier for external consumers that don&#39;t have access to the id map.
+        // interpreting the state easier for external consumers that don't have access to the id map.
         </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.keys().copied().collect();
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>sorted_keys, FlushLevel::HRxRy);
 
@@ -1909,12 +1909,12 @@
                     <span class="kw-2">*</span>(<span class="self">self
                         </span>.id_map
                         .get_mut(<span class="kw-2">&amp;</span>swapped_key)
-                        .expect(<span class="string">&quot;key should be present in map&quot;</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
+                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
                 }
                 <span class="kw-2">*</span>(<span class="self">self
                     </span>.id_map
                     .get_mut(<span class="kw-2">&amp;</span>key)
-                    .expect(<span class="string">&quot;key should be present in map&quot;</span>)) = index;
+                    .expect(<span class="string">"key should be present in map"</span>)) = index;
             }
         });
 
@@ -1926,34 +1926,34 @@
     /// of the internal structures.
     </span><span class="kw">fn </span>dump_impl(<span class="kw-2">&amp;</span><span class="self">self</span>, print_id_map: bool) -&gt; String {
         <span class="attr">#[cfg(windows)]
-        </span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\r\n&quot;</span>;
+        </span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"\r\n"</span>;
         <span class="attr">#[cfg(not(windows))]
-        </span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\n&quot;</span>;
+        </span><span class="kw">const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"\n"</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>output = String::new();
-        <span class="kw">let </span>nl = String::from_utf8(LINE_ENDING.to_vec()).expect(<span class="string">&quot;Failed to create newline string&quot;</span>);
+        <span class="kw">let </span>nl = String::from_utf8(LINE_ENDING.to_vec()).expect(<span class="string">"Failed to create newline string"</span>);
         <span class="kw">if </span>print_id_map {
             output
-                .write_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;MAP: {:?}&quot;</span>, <span class="self">self</span>.id_map))
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
-            output.write_str(<span class="kw-2">&amp;</span>nl).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .write_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"MAP: {:?}"</span>, <span class="self">self</span>.id_map))
+                .expect(<span class="string">"Failed to write output"</span>);
+            output.write_str(<span class="kw-2">&amp;</span>nl).expect(<span class="string">"Failed to write output"</span>);
         };
         output
-            .write_str(<span class="string">&quot;STATE: [ &quot;</span>)
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .write_str(<span class="string">"STATE: [ "</span>)
+            .expect(<span class="string">"Failed to write output"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>sorted_keys = <span class="self">self</span>.state.keys().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
         sorted_keys.sort_unstable();
         <span class="kw">for </span>key <span class="kw">in </span>sorted_keys {
             output
                 .write_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-                    <span class="string">&quot;|{}\u{27e9}: {}, &quot;</span>,
+                    <span class="string">"|{}\u{27e9}: {}, "</span>,
                     key,
                     <span class="self">self</span>.state.get(key).map_or_else(Complex64::zero, |v| <span class="kw-2">*</span>v)
                 ))
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .expect(<span class="string">"Failed to write output"</span>);
         }
-        output.write_str(<span class="string">&quot;]&quot;</span>).expect(<span class="string">&quot;Failed to write output&quot;</span>);
-        output.write_str(<span class="kw-2">&amp;</span>nl).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+        output.write_str(<span class="string">"]"</span>).expect(<span class="string">"Failed to write output"</span>);
+        output.write_str(<span class="kw-2">&amp;</span>nl).expect(<span class="string">"Failed to write output"</span>);
         output
     }
 
@@ -1974,7 +1974,7 @@
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
                     .get(id)
-                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {id}&quot;</span>))
+                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>))
             })
             .collect();
 
@@ -1998,7 +1998,7 @@
             <span class="kw-2">*</span><span class="self">self
                 </span>.id_map
                 .get(<span class="kw-2">&amp;</span>id)
-                .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {id}&quot;</span>)),
+                .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>)),
         )
     }
 
@@ -2028,7 +2028,7 @@
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
                     .get(id)
-                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {id}&quot;</span>))
+                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>))
             })
             .collect();
 
@@ -2055,7 +2055,7 @@
     }
 
     <span class="doccomment">/// Utility to collapse the probability at the given location based on the boolean value. This means
-    /// that if the given value is &#39;true&#39; then all keys in the sparse state where the given location
+    /// that if the given value is 'true' then all keys in the sparse state where the given location
     /// has a zero bit will be reduced to zero and removed. Then the sparse state is normalized.
     </span><span class="kw">fn </span>collapse(<span class="kw-2">&amp;mut </span><span class="self">self</span>, loc: usize, val: bool) {
         <span class="self">self</span>.joint_collapse(<span class="kw-2">&amp;</span>[loc], val);
@@ -2129,11 +2129,11 @@
         <span class="kw">let </span>qubit1_mapped = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
             .get(<span class="kw-2">&amp;</span>qubit1)
-            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {qubit1}&quot;</span>));
+            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {qubit1}"</span>));
         <span class="kw">let </span>qubit2_mapped = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
             .get(<span class="kw-2">&amp;</span>qubit2)
-            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {qubit2}&quot;</span>));
+            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {qubit2}"</span>));
         <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(<span class="kw-2">&amp;</span>qubit1).unwrap() = qubit2_mapped;
         <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(<span class="kw-2">&amp;</span>qubit2).unwrap() = qubit1_mapped;
     }
@@ -2148,7 +2148,7 @@
 
         <span class="kw">let </span>(q1, q2) = (qubit1 <span class="kw">as </span>u64, qubit2 <span class="kw">as </span>u64);
 
-        <span class="comment">// Swap entries in the sparse state to correspond to swapping of two qubits&#39; locations.
+        <span class="comment">// Swap entries in the sparse state to correspond to swapping of two qubits' locations.
         </span><span class="self">self</span>.state = <span class="self">self
             </span>.state
             .drain()
@@ -2170,7 +2170,7 @@
         <span class="kw">for </span>id <span class="kw">in </span>ids {
             <span class="macro">assert!</span>(
                 unique.insert(id),
-                <span class="string">&quot;Duplicate qubit id &#39;{id}&#39; found in application.&quot;
+                <span class="string">"Duplicate qubit id '{id}' found in application."
             </span>);
         }
     }
@@ -2185,7 +2185,7 @@
         <span class="kw">let </span>target = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
             .get(<span class="kw-2">&amp;</span>target)
-            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {target}&quot;</span>))
+            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {target}"</span>))
             <span class="kw">as </span>u64;
 
         <span class="kw">let </span>ctls: Vec&lt;u64&gt; = ctls
@@ -2194,7 +2194,7 @@
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
                     .get(c)
-                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;Unable to find qubit with id {c}&quot;</span>))
+                    .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {c}"</span>))
                     <span class="kw">as </span>u64
             })
             .collect();
@@ -2234,7 +2234,7 @@
     }
 
     <span class="doccomment">/// Utility for performing an in-place update of the state vector with the given target and controls.
-    /// Here, &quot;in-place&quot; indicates that the given transformation operation can calulate a new entry in the
+    /// Here, "in-place" indicates that the given transformation operation can calulate a new entry in the
     /// state vector using only one entry of the state vector as input and does not need to refer to any
     /// other entries. This covers the multicontrolled gates except for H, Rx, and Ry and notably keeps the
     /// size of the state vector the same.
@@ -2338,7 +2338,7 @@
     }
 
     <span class="doccomment">/// Multi-controlled Y gate.
-    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason=&quot;Panics can only occur if ctrls are empty, which is handled at the top of the function.&quot;
+    </span><span class="attr">#[allow(clippy::missing_panics_doc)] </span><span class="comment">// reason="Panics can only occur if ctrls are empty, which is handled at the top of the function."
     </span><span class="kw">pub fn </span>mcy(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
         <span class="kw">if </span>ctls.is_empty() {
             <span class="self">self</span>.y(target);
@@ -2355,7 +2355,7 @@
             <span class="comment">// HY = -YH, so add a phase to one of the controls.
             </span><span class="kw">let </span>(target, ctls) = ctls
                 .split_first()
-                .expect(<span class="string">&quot;Controls list cannot be empty here.&quot;</span>);
+                .expect(<span class="string">"Controls list cannot be empty here."</span>);
             <span class="self">self</span>.controlled_gate(ctls, <span class="kw-2">*</span>target, <span class="self">Self</span>::z_transform);
         }
 
@@ -2377,7 +2377,7 @@
         (index, val)
     }
 
-    <span class="doccomment">/// Multi-controlled phase rotation (&quot;G&quot; gate).
+    <span class="doccomment">/// Multi-controlled phase rotation ("G" gate).
     </span><span class="kw">pub fn </span>mcphase(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], phase: Complex64, target: usize) {
         <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
@@ -2579,7 +2579,7 @@
         }
 
         <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
-            <span class="comment">// Can&#39;t commute well with queued Rx, so flush those ops.
+            <span class="comment">// Can't commute well with queued Rx, so flush those ops.
             </span><span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRx);
         }
 
@@ -2719,8 +2719,8 @@
                 <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
                     <span class="kw">let </span>flipped_index = index ^ <span class="kw-2">&amp;</span>flipped;
                     <span class="kw">if </span>!<span class="self">self</span>.state.contains_key(<span class="kw-2">&amp;</span>flipped_index) {
-                        <span class="comment">// The state vector doesn&#39;t have an entry for the flipped target bit, so there
-                        // isn&#39;t a superposition. Calculate the superposition using the matrix entries.
+                        <span class="comment">// The state vector doesn't have an entry for the flipped target bit, so there
+                        // isn't a superposition. Calculate the superposition using the matrix entries.
                         </span><span class="kw">if </span>index.bit(target) {
                             new_state.insert(flipped_index, value * m01);
                             new_state.insert(index.clone(), value * m00);
@@ -2816,7 +2816,7 @@
         a.max(b) - b.min(a) &lt;= <span class="number">1e-10
     </span>}
 
-    <span class="comment">// Test that basic allocation and release of qubits doesn&#39;t fail.
+    <span class="comment">// Test that basic allocation and release of qubits doesn't fail.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_alloc_release() {
         <span class="kw">let </span>sim = <span class="kw-2">&amp;mut </span>QuantumSim::default();
@@ -3001,7 +3001,7 @@
 
     <span class="doccomment">/// Verify that targets cannot be duplicated.
     </span><span class="attr">#[test]
-    #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;0&#39; found in application.&quot;</span>)]
+    #[should_panic(expected = <span class="string">"Duplicate qubit id '0' found in application."</span>)]
     </span><span class="kw">fn </span>test_duplicate_target() {
         <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
@@ -3010,7 +3010,7 @@
 
     <span class="doccomment">/// Verify that controls cannot be duplicated.
     </span><span class="attr">#[test]
-    #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;1&#39; found in application.&quot;</span>)]
+    #[should_panic(expected = <span class="string">"Duplicate qubit id '1' found in application."</span>)]
     </span><span class="kw">fn </span>test_duplicate_control() {
         <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
@@ -3018,9 +3018,9 @@
         sim.mcx(<span class="kw-2">&amp;</span>[c, c], q);
     }
 
-    <span class="doccomment">/// Verify that targets aren&#39;t in controls.
+    <span class="doccomment">/// Verify that targets aren't in controls.
     </span><span class="attr">#[test]
-    #[should_panic(expected = <span class="string">&quot;Duplicate qubit id &#39;0&#39; found in application.&quot;</span>)]
+    #[should_panic(expected = <span class="string">"Duplicate qubit id '0' found in application."</span>)]
     </span><span class="kw">fn </span>test_target_in_control() {
         <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
@@ -3070,7 +3070,7 @@
         <span class="macro">assert_eq!</span>(val1, val2);
     }
 
-    <span class="doccomment">/// Verify that dump after swap on released qubits doesn&#39;t crash.
+    <span class="doccomment">/// Verify that dump after swap on released qubits doesn't crash.
     </span><span class="attr">#[test]
     </span><span class="kw">fn </span>test_swap_dump() {
         <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
@@ -3078,7 +3078,7 @@
         <span class="kw">let </span>inner_q = sim.allocate();
         sim.swap_qubit_ids(q, inner_q);
         sim.release(inner_q);
-        <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, sim.dump());
+        <span class="macro">println!</span>(<span class="string">"{}"</span>, sim.dump());
     }
 
     <span class="doccomment">/// Verify that swap preserves queued rotations.
@@ -3216,7 +3216,7 @@
 
             <span class="comment">// Sparse state vector should have one entry for |0⟩.
             // Dump the state first to force a flush of any queued operations.
-            </span><span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, sim.dump());
+            </span><span class="macro">println!</span>(<span class="string">"{}"</span>, sim.dump());
             <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
         }
     }

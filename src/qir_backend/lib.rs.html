@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `backend/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_backend" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `backend/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_backend" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../qir_backend/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1322,6 +1322,8 @@
 <a href="#1322" id="1322">1322</a>
 <a href="#1323" id="1323">1323</a>
 <a href="#1324" id="1324">1324</a>
+<a href="#1325" id="1325">1325</a>
+<a href="#1326" id="1326">1326</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1331,7 +1333,7 @@
 //! This libary builds on top of the `qir_stdlib` to implement a full backend for simulation of QIR
 //! programs. This includes a broad set of quantum intrinsic operations for sparse state simulation,
 //! based on the design from
-//! &lt;a href=&quot;https://arxiv.org/abs/2105.01533&quot;&gt;Leveraging state sparsity for more efficient quantum simulations&lt;/a&gt;.
+//! &lt;a href="https://arxiv.org/abs/2105.01533"&gt;Leveraging state sparsity for more efficient quantum simulations&lt;/a&gt;.
 
 </span><span class="kw">pub mod </span>result_bool;
 
@@ -1364,7 +1366,7 @@
     <span class="kw">pub </span>max_qubit_id: usize,
 }
 
-<span class="macro">thread_local! </span>{
+<span class="macro">thread_local!</span> {
     <span class="kw">static </span>SIM_STATE: RefCell&lt;SimulatorState&gt; = RefCell::new(SimulatorState {
         sim: QuantumSim::default(),
         res: <span class="macro">bitvec!</span>[],
@@ -1382,7 +1384,7 @@
 
 <span class="doccomment">/// Initializes the execution environment.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__initialize(<span class="kw">_</span>: <span class="kw-2">*mut </span>c_char) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__initialize(<span class="kw">_</span>: <span class="kw-2">*mut </span>c_char) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         <span class="comment">// in order to continue using the same RNG, we need to reset the simulator
@@ -1412,8 +1414,8 @@
     <span class="kw">let </span>qubits_size = __quantum__rt__array_get_size_1d(qubits);
     <span class="kw">if </span>paulis_size != qubits_size {
         __quantum__rt__fail(__quantum__rt__string_create(
-            CString::new(<span class="string">&quot;Pauli array and Qubit array must be the same size.&quot;</span>)
-                .expect(<span class="string">&quot;Unable to allocate memory for failure message string.&quot;</span>)
+            CString::new(<span class="string">"Pauli array and Qubit array must be the same size."</span>)
+                .expect(<span class="string">"Unable to allocate memory for failure message string."</span>)
                 .as_bytes_with_nul()
                 .as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
         ));
@@ -1465,12 +1467,12 @@
     }
 }
 
-<span class="macro">macro_rules! </span>single_qubit_gate {
+<span class="macro">macro_rules!</span> single_qubit_gate {
     ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)*
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
         <span class="attr">#[no_mangle]
-        </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(qubit: <span class="kw-2">*mut </span>c_void) {
+        </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(qubit: <span class="kw-2">*mut </span>c_void) {
             SIM_STATE.with(|sim_state| {
                 <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
                 ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1522,12 +1524,12 @@
     QuantumSim::z
 );
 
-<span class="macro">macro_rules! </span>controlled_qubit_gate {
+<span class="macro">macro_rules!</span> controlled_qubit_gate {
     ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)*
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr, <span class="number">1</span>) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
         <span class="attr">#[no_mangle]
-        </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(control: <span class="kw-2">*mut </span>c_void, target: <span class="kw-2">*mut </span>c_void) {
+        </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(control: <span class="kw-2">*mut </span>c_void, target: <span class="kw-2">*mut </span>c_void) {
             SIM_STATE.with(|sim_state| {
                 <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
                 ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, target <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1542,7 +1544,7 @@
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr, <span class="number">2</span>) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
         <span class="attr">#[no_mangle]
-        </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(
+        </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(
             control_1: <span class="kw-2">*mut </span>c_void,
             control_2: <span class="kw-2">*mut </span>c_void,
             target: <span class="kw-2">*mut </span>c_void,
@@ -1590,12 +1592,12 @@
     <span class="number">1
 </span>);
 
-<span class="macro">macro_rules! </span>single_qubit_rotation {
+<span class="macro">macro_rules!</span> single_qubit_rotation {
     ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)*
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
         <span class="attr">#[no_mangle]
-        </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
+        </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
             SIM_STATE.with(|sim_state| {
                 <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
                 ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1622,7 +1624,7 @@
     QuantumSim::rz
 );
 
-<span class="macro">macro_rules! </span>multicontrolled_qubit_gate {
+<span class="macro">macro_rules!</span> multicontrolled_qubit_gate {
     ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)*
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
@@ -1630,7 +1632,8 @@
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
         </span><span class="attr">#[no_mangle]
-        </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(ctls: <span class="kw-2">*const </span>QirArray, qubit: <span class="kw-2">*mut </span>c_void) {
+        #[allow(clippy::cast_ptr_alignment)]
+        </span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(ctls: <span class="kw-2">*const </span>QirArray, qubit: <span class="kw-2">*mut </span>c_void) {
             SIM_STATE.with(|sim_state| {
                 <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
                 ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1698,7 +1701,7 @@
     qubit: <span class="kw-2">*mut </span>c_void,
 }
 
-<span class="macro">macro_rules! </span>multicontrolled_qubit_rotation {
+<span class="macro">macro_rules!</span> multicontrolled_qubit_rotation {
     ($(<span class="attr">#[<span class="macro-nonterminal">$meta</span>:meta]</span>)*
     <span class="macro-nonterminal">$qir_name</span>:ident, <span class="macro-nonterminal">$gate</span>:expr) =&gt; {
         $(<span class="attr">#[<span class="macro-nonterminal">$meta</span>]</span>)*
@@ -1706,7 +1709,8 @@
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
         </span><span class="attr">#[no_mangle]
-        </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(
+        #[allow(clippy::cast_ptr_alignment)]
+        </span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span><span class="macro-nonterminal">$qir_name</span>(
             ctls: <span class="kw-2">*const </span>QirArray,
             arg_tuple: <span class="kw-2">*mut *const </span>Vec&lt;u8&gt;,
         ) {
@@ -1755,7 +1759,7 @@
 
 <span class="doccomment">/// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__rxx__body(
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__rxx__body(
     theta: c_double,
     qubit1: <span class="kw-2">*mut </span>c_void,
     qubit2: <span class="kw-2">*mut </span>c_void,
@@ -1773,7 +1777,7 @@
 
 <span class="doccomment">/// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__ryy__body(
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__ryy__body(
     theta: c_double,
     qubit1: <span class="kw-2">*mut </span>c_void,
     qubit2: <span class="kw-2">*mut </span>c_void,
@@ -1799,7 +1803,7 @@
 
 <span class="doccomment">/// QIR API for applying a joint rotation Pauli-Z rotation with the given angle for the two target qubit.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__rzz__body(
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__rzz__body(
     theta: c_double,
     qubit1: <span class="kw-2">*mut </span>c_void,
     qubit2: <span class="kw-2">*mut </span>c_void,
@@ -1811,7 +1815,7 @@
 
 <span class="doccomment">/// QIR API for applying a rotation about the given Pauli axis with the given angle and qubit.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__r__body(pauli: Pauli, theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__r__body(pauli: Pauli, theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
     <span class="kw">match </span>pauli {
         Pauli::I =&gt; (),
         Pauli::X =&gt; __quantum__qis__rx__body(theta, qubit),
@@ -1822,7 +1826,7 @@
 
 <span class="doccomment">/// QIR API for applying an adjoint rotation about the given Pauli axis with the given angle and qubit.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__r__adj(pauli: Pauli, theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__r__adj(pauli: Pauli, theta: c_double, qubit: <span class="kw-2">*mut </span>c_void) {
     __quantum__qis__r__body(pauli, -theta, qubit);
 }
 
@@ -1840,7 +1844,7 @@
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 </span><span class="attr">#[allow(clippy::cast_ptr_alignment)]
 #[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__r__ctl(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__r__ctl(
     ctls: <span class="kw-2">*const </span>QirArray,
     arg_tuple: <span class="kw-2">*mut *const </span>Vec&lt;u8&gt;,
 ) {
@@ -1896,7 +1900,7 @@
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__r__ctladj(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__r__ctladj(
     ctls: <span class="kw-2">*const </span>QirArray,
     arg_tuple: <span class="kw-2">*mut *const </span>Vec&lt;u8&gt;,
 ) {
@@ -1914,7 +1918,7 @@
 
 <span class="doccomment">/// QIR API for applying a SWAP gate to the given qubits.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__swap__body(qubit1: <span class="kw-2">*mut </span>c_void, qubit2: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__swap__body(qubit1: <span class="kw-2">*mut </span>c_void, qubit2: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit1 <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1926,7 +1930,7 @@
 
 <span class="doccomment">/// QIR API for resetting the given qubit in the computational basis.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__reset__body(qubit: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__reset__body(qubit: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -1940,9 +1944,9 @@
 <span class="doccomment">/// QIR API for measuring the given qubit and storing the measured value with the given result identifier,
 /// then resetting it in the computational basis.
 </span><span class="attr">#[allow(clippy::missing_panics_doc)]
-</span><span class="comment">// reason=&quot;Panics can only occur if the result that was just collected is not found in the BitVec, which should not happen.&quot;
+</span><span class="comment">// reason="Panics can only occur if the result that was just collected is not found in the BitVec, which should not happen."
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__mresetz__body(qubit: <span class="kw-2">*mut </span>c_void, result: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__mresetz__body(qubit: <span class="kw-2">*mut </span>c_void, result: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
@@ -1961,15 +1965,15 @@
         <span class="kw-2">*</span>state
             .res
             .get_mut(res_id)
-            .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>) = res;
+            .expect(<span class="string">"Result with given id missing after expansion."</span>) = res;
     });
 }
 
 <span class="doccomment">/// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
 </span><span class="attr">#[allow(clippy::missing_panics_doc)]
-</span><span class="comment">// reason=&quot;Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen.&quot;
+</span><span class="comment">// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__mz__body(qubit: <span class="kw-2">*mut </span>c_void, result: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__mz__body(qubit: <span class="kw-2">*mut </span>c_void, result: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
@@ -1982,7 +1986,7 @@
         <span class="kw-2">*</span>state
             .res
             .get_mut(res_id)
-            .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>) =
+            .expect(<span class="string">"Result with given id missing after expansion."</span>) =
             state.sim.measure(qubit <span class="kw">as </span>usize);
     });
 }
@@ -1990,9 +1994,9 @@
 <span class="doccomment">/// QIR API that reads the Boolean value corresponding to the given result identifier, where true
 /// indicates a |1⟩ state and false indicates a |0⟩ state.
 </span><span class="attr">#[allow(clippy::missing_panics_doc)]
-</span><span class="comment">// reason=&quot;Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen.&quot;
+</span><span class="comment">// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__read_result__body(result: <span class="kw-2">*mut </span>c_void) -&gt; bool {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__read_result__body(result: <span class="kw-2">*mut </span>c_void) -&gt; bool {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>res = <span class="kw-2">&amp;mut </span>sim_state.borrow_mut().res;
         <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
@@ -2002,14 +2006,14 @@
 
         <span class="kw">let </span>b = <span class="kw-2">*</span>res
             .get(res_id)
-            .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>);
+            .expect(<span class="string">"Result with given id missing after expansion."</span>);
         b
     })
 }
 
 <span class="doccomment">/// QIR API that measures a given qubit in the computational basis, returning a runtime managed result value.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__m__body(qubit: <span class="kw-2">*mut </span>c_void) -&gt; <span class="kw-2">*mut </span>c_void {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__m__body(qubit: <span class="kw-2">*mut </span>c_void) -&gt; <span class="kw-2">*mut </span>c_void {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span>state = <span class="kw-2">&amp;mut *</span>sim_state.borrow_mut();
         ensure_sufficient_qubits(<span class="kw-2">&amp;mut </span>state.sim, qubit <span class="kw">as </span>usize, <span class="kw-2">&amp;mut </span>state.max_qubit_id);
@@ -2031,7 +2035,7 @@
 /// This function will panic if the provided paulis and qubits arrays are not of the same size.
 </span><span class="attr">#[allow(clippy::cast_ptr_alignment)]
 #[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__measure__body(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__measure__body(
     paulis: <span class="kw-2">*const </span>QirArray,
     qubits: <span class="kw-2">*const </span>QirArray,
 ) -&gt; <span class="kw-2">*mut </span>c_void {
@@ -2073,7 +2077,7 @@
 ///
 /// This function should only be called with arrays created by the QIR runtime library.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__assertmeasurementprobability__body(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__assertmeasurementprobability__body(
     paulis: <span class="kw-2">*const </span>QirArray,
     qubits: <span class="kw-2">*const </span>QirArray,
     result: <span class="kw-2">*mut </span>c_void,
@@ -2123,7 +2127,7 @@
 ///
 /// This function should only be called with arrays created by the QIR runtime library.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__assertmeasurementprobability__ctl(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__assertmeasurementprobability__ctl(
     _ctls: <span class="kw-2">*const </span>QirArray,
     arg_tuple: <span class="kw-2">*mut *const </span>Vec&lt;u8&gt;,
 ) {
@@ -2149,9 +2153,9 @@
     };
 
     <span class="attr">#[allow(clippy::missing_panics_doc)]
-    </span><span class="comment">// reason=&quot;Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen.&quot;
+    </span><span class="comment">// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
     </span><span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__result_record_output(result: <span class="kw-2">*mut </span>c_void) {
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__result_record_output(result: <span class="kw-2">*mut </span>c_void) {
         SIM_STATE.with(|sim_state| {
             <span class="kw">let </span>res = <span class="kw-2">&amp;mut </span>sim_state.borrow_mut().res;
             <span class="kw">let </span>res_id = result <span class="kw">as </span>usize;
@@ -2163,22 +2167,22 @@
                     res.resize(res_id + <span class="number">1</span>, <span class="bool-val">false</span>);
                 }
                 <span class="kw-2">*</span>res.get(res_id)
-                    .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>)
+                    .expect(<span class="string">"Result with given id missing after expansion."</span>)
             };
 
-            record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;RESULT\t{}&quot;</span>, <span class="kw">if </span>b { <span class="string">&quot;1&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;0&quot; </span>}))
-                .expect(<span class="string">&quot;Failed to write result output&quot;</span>);
+            record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"RESULT\t{}"</span>, <span class="kw">if </span>b { <span class="string">"1" </span>} <span class="kw">else </span>{ <span class="string">"0" </span>}))
+                .expect(<span class="string">"Failed to write result output"</span>);
         });
     }
 }
 
 <span class="doccomment">/// QIR API for recording the given result into the program output.
 </span><span class="attr">#[allow(clippy::missing_panics_doc)]
-</span><span class="comment">// reason=&quot;Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen.&quot;
+</span><span class="comment">// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 </span><span class="doccomment">/// # Safety
 /// This function will panic if the tag cannot be written to the output buffer.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__result_record_output(
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__result_record_output(
     result: <span class="kw-2">*mut </span>c_void,
     tag: <span class="kw-2">*mut </span>c_char,
 ) {
@@ -2193,23 +2197,23 @@
                 res.resize(res_id + <span class="number">1</span>, <span class="bool-val">false</span>);
             }
             <span class="kw-2">*</span>res.get(res_id)
-                .expect(<span class="string">&quot;Result with given id missing after expansion.&quot;</span>)
+                .expect(<span class="string">"Result with given id missing after expansion."</span>)
         };
 
         <span class="kw">let </span>val: i64 = i64::from(b);
-        record_output(<span class="string">&quot;RESULT&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write result output&quot;</span>);
+        record_output(<span class="string">"RESULT"</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write result output"</span>);
     });
 }
 
 <span class="doccomment">/// QIR API that allocates the next available qubit in the simulation.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__qubit_allocate() -&gt; <span class="kw-2">*mut </span>c_void {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__qubit_allocate() -&gt; <span class="kw-2">*mut </span>c_void {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span><span class="kw-2">mut </span>state = sim_state.borrow_mut();
         <span class="kw">let </span>qubit_id = state.sim.allocate();
 
         <span class="comment">// Increase the max qubit id global so that `ensure_sufficient_qubits` wont trigger more allocations.
-        // NOTE: static allocation and dynamic allocation shouldn&#39;t be used together, so this is safe to do.
+        // NOTE: static allocation and dynamic allocation shouldn't be used together, so this is safe to do.
         </span>state.max_qubit_id = state.max_qubit_id.max(qubit_id + <span class="number">1</span>);
 
         qubit_id <span class="kw">as </span><span class="kw-2">*mut </span>c_void
@@ -2221,11 +2225,11 @@
 /// This function will panic if the requested array size is too large to be described with the system pointer size.
 </span><span class="attr">#[allow(clippy::cast_ptr_alignment)]
 #[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__qubit_allocate_array(size: u64) -&gt; <span class="kw-2">*const </span>QirArray {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__qubit_allocate_array(size: u64) -&gt; <span class="kw-2">*const </span>QirArray {
     <span class="kw">let </span>arr = __quantum__rt__array_create_1d(
         size_of::&lt;usize&gt;()
             .try_into()
-            .expect(<span class="string">&quot;System pointer size too large to be described with u32.&quot;</span>),
+            .expect(<span class="string">"System pointer size too large to be described with u32."</span>),
         size,
     );
     <span class="kw">for </span>index <span class="kw">in </span><span class="number">0</span>..size {
@@ -2243,7 +2247,7 @@
 /// This function should only be called with arrays created by `__quantum__rt__qubit_allocate_array`.
 </span><span class="attr">#[allow(clippy::cast_ptr_alignment)]
 #[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__qubit_release_array(arr: <span class="kw-2">*const </span>QirArray) {
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__qubit_release_array(arr: <span class="kw-2">*const </span>QirArray) {
     <span class="kw">for </span>index <span class="kw">in </span><span class="number">0</span>..__quantum__rt__array_get_size_1d(arr) {
         <span class="kw">let </span>elem = __quantum__rt__array_get_element_ptr_1d(arr, index).cast::&lt;<span class="kw-2">*mut </span>c_void&gt;();
         __quantum__rt__qubit_release(<span class="kw-2">*</span>elem);
@@ -2253,7 +2257,7 @@
 
 <span class="doccomment">/// QIR API for releasing the given qubit from the simulation.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__qubit_release(qubit: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__qubit_release(qubit: <span class="kw-2">*mut </span>c_void) {
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span><span class="kw-2">mut </span>state = sim_state.borrow_mut();
         state.sim.release(qubit <span class="kw">as </span>usize);
@@ -2264,11 +2268,11 @@
 /// # Panics
 /// This function will panic if memory cannot be allocated for the underyling string.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__qubit_to_string(qubit: <span class="kw-2">*mut </span>c_void) -&gt; <span class="kw-2">*const </span>CString {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__qubit_to_string(qubit: <span class="kw-2">*mut </span>c_void) -&gt; <span class="kw-2">*const </span>CString {
     <span class="kw">unsafe </span>{
         __quantum__rt__string_create(
-            CString::new(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, qubit <span class="kw">as </span>usize))
-                .expect(<span class="string">&quot;Unable to allocate memory for qubit string.&quot;</span>)
+            CString::new(<span class="macro">format!</span>(<span class="string">"{}"</span>, qubit <span class="kw">as </span>usize))
+                .expect(<span class="string">"Unable to allocate memory for qubit string."</span>)
                 .as_bytes_with_nul()
                 .as_ptr() <span class="kw">as </span><span class="kw-2">*mut </span>c_char,
         )
@@ -2290,9 +2294,9 @@
 /// # Panics
 /// This function will panic if the output buffer is not available.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__qis__dumpmachine__body(location: <span class="kw-2">*mut </span>c_void) {
+</span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__qis__dumpmachine__body(location: <span class="kw-2">*mut </span>c_void) {
     <span class="kw">if </span>!location.is_null() {
-        <span class="macro">unimplemented!</span>(<span class="string">&quot;Dump to location is not implemented.&quot;</span>)
+        <span class="macro">unimplemented!</span>(<span class="string">"Dump to location is not implemented."</span>)
     }
     SIM_STATE.with(|sim_state| {
         <span class="kw">let </span><span class="kw-2">mut </span>state = sim_state.borrow_mut();
@@ -2301,8 +2305,8 @@
             OUTPUT.with(|output| {
                 <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
                 output
-                    .write_fmt(<span class="macro">format_args!</span>(<span class="string">&quot;Global Results: {}&quot;</span>, state.res))
-                    .expect(<span class="string">&quot;Failed to write global results&quot;</span>);
+                    .write_fmt(<span class="macro">format_args!</span>(<span class="string">"Global Results: {}"</span>, state.res))
+                    .expect(<span class="string">"Failed to write global results"</span>);
                 output.write_newline();
             });
         }
@@ -2310,7 +2314,7 @@
             <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
             output
                 .write_all(state.sim.dump().as_bytes())
-                .expect(<span class="string">&quot;Failed to write simulator state&quot;</span>);
+                .expect(<span class="string">"Failed to write simulator state"</span>);
         });
     });
 }

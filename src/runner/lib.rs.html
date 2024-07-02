@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `runner/src/lib.rs`."><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="runner" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `runner/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="runner" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../runner/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -613,7 +613,7 @@
     output_writer: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>Write,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
     <span class="kw">let </span>context = Context::create();
-    <span class="kw">let </span>buffer = MemoryBuffer::create_from_memory_range(bytes, <span class="string">&quot;&quot;</span>);
+    <span class="kw">let </span>buffer = MemoryBuffer::create_from_memory_range(bytes, <span class="string">""</span>);
     <span class="kw">let </span>module = Module::parse_bitcode_from_buffer(<span class="kw-2">&amp;</span>buffer, <span class="kw-2">&amp;</span>context).map_err(|e| e.to_string())<span class="question-mark">?</span>;
     run_module(<span class="kw-2">&amp;</span>module, entry_point, shots, output_writer)
 }
@@ -626,21 +626,21 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
     module
         .verify()
-        .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Failed to verify module: {}&quot;</span>, e.to_string()))<span class="question-mark">?</span>;
+        .map_err(|e| <span class="macro">format!</span>(<span class="string">"Failed to verify module: {}"</span>, e.to_string()))<span class="question-mark">?</span>;
 
     Target::initialize_native(<span class="kw-2">&amp;</span>InitializationConfig::default())<span class="question-mark">?</span>;
     <span class="kw">let </span>default_triple = TargetMachine::get_default_triple();
     <span class="kw">let </span>target = Target::from_triple(<span class="kw-2">&amp;</span>default_triple).map_err(|e| e.to_string())<span class="question-mark">?</span>;
     <span class="kw">if </span>!target.has_asm_backend() {
-        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;Target doesn&#39;t have an ASM backend.&quot;</span>.to_owned());
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Target doesn't have an ASM backend."</span>.to_owned());
     }
     <span class="kw">if </span>!target.has_target_machine() {
-        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;Target doesn&#39;t have a target machine.&quot;</span>.to_owned());
+        <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">"Target doesn't have a target machine."</span>.to_owned());
     }
 
     run_basic_passes_on(module, <span class="kw-2">&amp;</span>default_triple, <span class="kw-2">&amp;</span>target)<span class="question-mark">?</span>;
 
-    inkwell::support::load_library_permanently(Path::new(<span class="string">&quot;&quot;</span>));
+    inkwell::support::load_library_permanently(Path::new(<span class="string">""</span>));
 
     <span class="kw">let </span>execution_engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
@@ -657,11 +657,11 @@
             (
                 attr.get_string_kind_id()
                     .to_str()
-                    .expect(<span class="string">&quot;Invalid UTF8 data&quot;</span>)
+                    .expect(<span class="string">"Invalid UTF8 data"</span>)
                     .to_string(),
                 attr.get_string_value()
                     .to_str()
-                    .expect(<span class="string">&quot;Invalid UTF8 data&quot;</span>)
+                    .expect(<span class="string">"Invalid UTF8 data"</span>)
                     .to_string(),
             )
         })
@@ -669,20 +669,20 @@
 
     <span class="kw">for _ in </span><span class="number">1</span>..=shots {
         output_writer
-            .write_all(<span class="string">&quot;START\n&quot;</span>.as_bytes())
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .write_all(<span class="string">"START\n"</span>.as_bytes())
+            .expect(<span class="string">"Failed to write output"</span>);
         <span class="kw">for </span>attr <span class="kw">in </span><span class="kw-2">&amp;</span>attrs {
             output_writer
-                .write_all(<span class="macro">format!</span>(<span class="string">&quot;METADATA\t{}&quot;</span>, attr.<span class="number">0</span>).as_bytes())
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .write_all(<span class="macro">format!</span>(<span class="string">"METADATA\t{}"</span>, attr.<span class="number">0</span>).as_bytes())
+                .expect(<span class="string">"Failed to write output"</span>);
             <span class="kw">if </span>!attr.<span class="number">1</span>.is_empty() {
                 output_writer
-                    .write_all(<span class="macro">format!</span>(<span class="string">&quot;\t{}&quot;</span>, attr.<span class="number">1</span>).as_bytes())
-                    .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                    .write_all(<span class="macro">format!</span>(<span class="string">"\t{}"</span>, attr.<span class="number">1</span>).as_bytes())
+                    .expect(<span class="string">"Failed to write output"</span>);
             }
             output_writer
                 .write_all(qir_stdlib::output_recording::LINE_ENDING)
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .expect(<span class="string">"Failed to write output"</span>);
         }
 
         __quantum__rt__initialize(null_mut());
@@ -693,16 +693,16 @@
             <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
             output_writer
                 .write_all(output.drain().as_slice())
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .expect(<span class="string">"Failed to write output"</span>);
         });
 
         <span class="comment">// Write the end of the shot
         </span>output_writer
-            .write_all(<span class="string">&quot;END\t0&quot;</span>.as_bytes())
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .write_all(<span class="string">"END\t0"</span>.as_bytes())
+            .expect(<span class="string">"Failed to write output"</span>);
         output_writer
             .write_all(qir_stdlib::output_recording::LINE_ENDING)
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .expect(<span class="string">"Failed to write output"</span>);
     }
     <span class="prelude-val">Ok</span>(())
 }
@@ -712,11 +712,11 @@
     <span class="kw">let </span>extension = path.extension().and_then(OsStr::to_str);
 
     <span class="kw">match </span>extension {
-        <span class="prelude-val">Some</span>(<span class="string">&quot;ll&quot;</span>) =&gt; MemoryBuffer::create_from_file(path)
+        <span class="prelude-val">Some</span>(<span class="string">"ll"</span>) =&gt; MemoryBuffer::create_from_file(path)
             .and_then(|buffer| context.create_module_from_ir(buffer))
             .map_err(|e| e.to_string()),
-        <span class="prelude-val">Some</span>(<span class="string">&quot;bc&quot;</span>) =&gt; Module::parse_bitcode_from_path(path, context).map_err(|e| e.to_string()),
-        <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Unsupported file extension &#39;{extension:?}&#39;.&quot;</span>)),
+        <span class="prelude-val">Some</span>(<span class="string">"bc"</span>) =&gt; Module::parse_bitcode_from_path(path, context).map_err(|e| e.to_string()),
+        <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">"Unsupported file extension '{extension:?}'."</span>)),
     }
 }
 
@@ -728,33 +728,33 @@
         execution_engine.run_function(entry_point, <span class="kw-2">&amp;</span>[]);
         <span class="prelude-val">Ok</span>(())
     } <span class="kw">else </span>{
-        <span class="prelude-val">Err</span>(<span class="string">&quot;Entry point has parameters or a non-void return type.&quot;</span>.to_owned())
+        <span class="prelude-val">Err</span>(<span class="string">"Entry point has parameters or a non-void return type."</span>.to_owned())
     }
 }
 
-<span class="kw">fn </span>choose_entry_point&lt;<span class="lifetime">&#39;ctx</span>&gt;(
-    functions: <span class="kw">impl </span>Iterator&lt;Item = FunctionValue&lt;<span class="lifetime">&#39;ctx</span>&gt;&gt;,
+<span class="kw">fn </span>choose_entry_point&lt;<span class="lifetime">'ctx</span>&gt;(
+    functions: <span class="kw">impl </span>Iterator&lt;Item = FunctionValue&lt;<span class="lifetime">'ctx</span>&gt;&gt;,
     name: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
-) -&gt; <span class="prelude-ty">Result</span>&lt;FunctionValue&lt;<span class="lifetime">&#39;ctx</span>&gt;, String&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;FunctionValue&lt;<span class="lifetime">'ctx</span>&gt;, String&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>entry_points = functions
         .filter(|f| is_entry_point(<span class="kw-2">*</span>f) &amp;&amp; name.iter().all(|n| f.get_name().to_str() == <span class="prelude-val">Ok</span>(n)));
 
     <span class="kw">let </span>entry_point = entry_points
         .next()
-        .ok_or_else(|| <span class="string">&quot;No matching entry point found.&quot;</span>.to_owned())<span class="question-mark">?</span>;
+        .ok_or_else(|| <span class="string">"No matching entry point found."</span>.to_owned())<span class="question-mark">?</span>;
 
     <span class="kw">if </span>entry_points.next().is_some() {
-        <span class="prelude-val">Err</span>(<span class="string">&quot;Multiple matching entry points found.&quot;</span>.to_owned())
+        <span class="prelude-val">Err</span>(<span class="string">"Multiple matching entry points found."</span>.to_owned())
     } <span class="kw">else </span>{
         <span class="prelude-val">Ok</span>(entry_point)
     }
 }
 
-<span class="kw">fn </span>module_functions&lt;<span class="lifetime">&#39;ctx</span>&gt;(module: <span class="kw-2">&amp;</span>Module&lt;<span class="lifetime">&#39;ctx</span>&gt;) -&gt; <span class="kw">impl </span>Iterator&lt;Item = FunctionValue&lt;<span class="lifetime">&#39;ctx</span>&gt;&gt; {
-    <span class="kw">struct </span>FunctionValueIter&lt;<span class="lifetime">&#39;ctx</span>&gt;(<span class="prelude-ty">Option</span>&lt;FunctionValue&lt;<span class="lifetime">&#39;ctx</span>&gt;&gt;);
+<span class="kw">fn </span>module_functions&lt;<span class="lifetime">'ctx</span>&gt;(module: <span class="kw-2">&amp;</span>Module&lt;<span class="lifetime">'ctx</span>&gt;) -&gt; <span class="kw">impl </span>Iterator&lt;Item = FunctionValue&lt;<span class="lifetime">'ctx</span>&gt;&gt; {
+    <span class="kw">struct </span>FunctionValueIter&lt;<span class="lifetime">'ctx</span>&gt;(<span class="prelude-ty">Option</span>&lt;FunctionValue&lt;<span class="lifetime">'ctx</span>&gt;&gt;);
 
-    <span class="kw">impl</span>&lt;<span class="lifetime">&#39;ctx</span>&gt; Iterator <span class="kw">for </span>FunctionValueIter&lt;<span class="lifetime">&#39;ctx</span>&gt; {
-        <span class="kw">type </span>Item = FunctionValue&lt;<span class="lifetime">&#39;ctx</span>&gt;;
+    <span class="kw">impl</span>&lt;<span class="lifetime">'ctx</span>&gt; Iterator <span class="kw">for </span>FunctionValueIter&lt;<span class="lifetime">'ctx</span>&gt; {
+        <span class="kw">type </span>Item = FunctionValue&lt;<span class="lifetime">'ctx</span>&gt;;
 
         <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
             <span class="kw">let </span>function = <span class="self">self</span>.<span class="number">0</span>;
@@ -768,10 +768,10 @@
 
 <span class="kw">fn </span>is_entry_point(function: FunctionValue) -&gt; bool {
     function
-        .get_string_attribute(AttributeLoc::Function, <span class="string">&quot;entry_point&quot;</span>)
+        .get_string_attribute(AttributeLoc::Function, <span class="string">"entry_point"</span>)
         .is_some()
         || function
-            .get_string_attribute(AttributeLoc::Function, <span class="string">&quot;EntryPoint&quot;</span>)
+            .get_string_attribute(AttributeLoc::Function, <span class="string">"EntryPoint"</span>)
             .is_some()
 }
 
@@ -782,20 +782,20 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
     <span class="comment">// Description of this syntax:
     // https://github.com/llvm/llvm-project/blob/2ba08386156ef25913b1bee170d8fe95aaceb234/llvm/include/llvm/Passes/PassBuilder.h#L308-L347
-    </span><span class="kw">const </span>BASIC_PASS_PIPELINE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;globaldce,strip-dead-prototypes&quot;</span>;
+    </span><span class="kw">const </span>BASIC_PASS_PIPELINE: <span class="kw-2">&amp;</span>str = <span class="string">"globaldce,strip-dead-prototypes"</span>;
 
     <span class="comment">// Boilerplate taken from here:
     // https://github.com/TheDan64/inkwell/blob/5c9f7fcbb0a667f7391b94beb65f1a670ad13221/examples/kaleidoscope/main.rs#L86-L95
     </span><span class="kw">let </span>target_machine = target
         .create_target_machine(
             target_triple,
-            <span class="string">&quot;generic&quot;</span>,
-            <span class="string">&quot;&quot;</span>,
+            <span class="string">"generic"</span>,
+            <span class="string">""</span>,
             OptimizationLevel::None,
             RelocMode::Default,
             CodeModel::Default,
         )
-        .ok_or(<span class="string">&quot;Unable to create TargetMachine from Target&quot;</span>)<span class="question-mark">?</span>;
+        .ok_or(<span class="string">"Unable to create TargetMachine from Target"</span>)<span class="question-mark">?</span>;
     module
         .run_passes(
             BASIC_PASS_PIPELINE,
@@ -814,24 +814,24 @@
             </span>&amp;&amp; !f
                 .get_name()
                 .to_str()
-                .expect(<span class="string">&quot;Unable to coerce function name into str.&quot;</span>)
-                .starts_with(<span class="string">&quot;llvm.&quot;</span>)
+                .expect(<span class="string">"Unable to coerce function name into str."</span>)
+                .starts_with(<span class="string">"llvm."</span>)
     }) {
         declarations.insert(
             func.get_name()
                 .to_str()
-                .expect(<span class="string">&quot;Unable to coerce function name into str.&quot;</span>)
+                .expect(<span class="string">"Unable to coerce function name into str."</span>)
                 .to_owned(),
             func,
         );
     }
 
-    <span class="macro">macro_rules! </span>bind {
+    <span class="macro">macro_rules!</span> bind {
         (<span class="macro-nonterminal">$func</span>:ident, <span class="macro-nonterminal">$param_count</span>:expr) =&gt; {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$func</span>)) {
                 <span class="kw">if </span>func.get_params().len() != <span class="macro-nonterminal">$param_count </span>{
                     <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-                        <span class="string">&quot;Function &#39;{}&#39; has mismatched parameters: expected {}, found {}&quot;</span>,
+                        <span class="string">"Function '{}' has mismatched parameters: expected {}, found {}"</span>,
                         <span class="macro">stringify!</span>(<span class="macro-nonterminal">$func</span>),
                         <span class="macro-nonterminal">$param_count</span>,
                         func.get_params().len()
@@ -843,7 +843,7 @@
         };
     }
 
-    <span class="macro">macro_rules! </span>legacy_output {
+    <span class="macro">macro_rules!</span> legacy_output {
         (<span class="macro-nonterminal">$func</span>:ident) =&gt; {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$func</span>)) {
                 execution_engine.add_global_mapping(
@@ -858,7 +858,7 @@
         };
     }
 
-    <span class="macro">macro_rules! </span>bind_output_record {
+    <span class="macro">macro_rules!</span> bind_output_record {
         (<span class="macro-nonterminal">$func</span>:ident) =&gt; {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="macro">stringify!</span>(<span class="macro-nonterminal">$func</span>)) {
                 <span class="kw">if </span>func.get_params().len() == <span class="number">1 </span>{
@@ -965,20 +965,20 @@
     uses_legacy.push(<span class="macro">bind_output_record!</span>(__quantum__rt__double_record_output));
     uses_legacy.push(<span class="macro">bind_output_record!</span>(__quantum__rt__int_record_output));
 
-    <span class="comment">// results need special handling as they aren&#39;t in the std lib
+    <span class="comment">// results need special handling as they aren't in the std lib
     </span>uses_legacy.push(
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="string">"__quantum__rt__result_record_output"</span>) {
             <span class="kw">if </span>func.get_params().len() == <span class="number">1 </span>{
                 execution_engine.add_global_mapping(
                     func,
                     qir_backend::legacy_output::__quantum__rt__result_record_output <span class="kw">as </span>usize,
                 );
-                declarations.remove(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
+                declarations.remove(<span class="string">"__quantum__rt__result_record_output"</span>);
                 <span class="prelude-val">Some</span>(<span class="bool-val">true</span>)
             } <span class="kw">else </span>{
                 execution_engine
                     .add_global_mapping(func, __quantum__rt__result_record_output <span class="kw">as </span>usize);
-                declarations.remove(<span class="string">&quot;__quantum__rt__result_record_output&quot;</span>);
+                declarations.remove(<span class="string">"__quantum__rt__result_record_output"</span>);
                 <span class="prelude-val">Some</span>(<span class="bool-val">false</span>)
             }
         } <span class="kw">else </span>{
@@ -988,7 +988,7 @@
 
     <span class="comment">// calls to __quantum__qis__m__body may use either dynamic or static results, so bind to the right
     // implementation based on number of arguments.
-    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="string">&quot;__quantum__qis__m__body&quot;</span>) {
+    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(func) = declarations.get(<span class="string">"__quantum__qis__m__body"</span>) {
         <span class="kw">if </span>func.get_params().len() == <span class="number">2 </span>{
             execution_engine
                 .add_global_mapping(func, qir_backend::__quantum__qis__mz__body <span class="kw">as </span>usize);
@@ -997,11 +997,11 @@
                 .add_global_mapping(func, qir_backend::__quantum__qis__m__body <span class="kw">as </span>usize);
         } <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-                <span class="string">&quot;Function &#39;__quantum__qis__m__body&#39; has mismatched parameters: expected 1 or 2, found {}&quot;</span>,
+                <span class="string">"Function '__quantum__qis__m__body' has mismatched parameters: expected 1 or 2, found {}"</span>,
                 func.get_params().len()
             ));
         }
-        declarations.remove(<span class="string">&quot;__quantum__qis__m__body&quot;</span>);
+        declarations.remove(<span class="string">"__quantum__qis__m__body"</span>);
     }
 
     <span class="macro">bind!</span>(__quantum__rt__array_get_element_ptr_1d, <span class="number">2</span>);
@@ -1072,18 +1072,18 @@
     <span class="kw">if </span>!(uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| b)
         || uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| !b))
     {
-        <span class="prelude-val">Err</span>(<span class="string">&quot;Use of legacy and current output recording functions in the same program is not supported&quot;</span>.to_string())
+        <span class="prelude-val">Err</span>(<span class="string">"Use of legacy and current output recording functions in the same program is not supported"</span>.to_string())
     } <span class="kw">else if </span>declarations.is_empty() {
         <span class="prelude-val">Ok</span>(())
     } <span class="kw">else </span>{
         <span class="kw">let </span>keys = declarations.keys().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
         <span class="kw">let </span>(first, rest) = keys
             .split_first()
-            .expect(<span class="string">&quot;Declarations list should be non-empty.&quot;</span>);
+            .expect(<span class="string">"Declarations list should be non-empty."</span>);
         <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-            <span class="string">&quot;Failed to link some declared functions: {}&quot;</span>,
+            <span class="string">"Failed to link some declared functions: {}"</span>,
             rest.iter().fold((<span class="kw-2">*</span>first).to_string(), |<span class="kw-2">mut </span>accum, f| {
-                accum.push_str(<span class="string">&quot;, &quot;</span>);
+                accum.push_str(<span class="string">", "</span>);
                 accum.push_str(f);
                 accum
             })

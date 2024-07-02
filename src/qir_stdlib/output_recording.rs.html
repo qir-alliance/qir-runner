@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `stdlib/src/output_recording.rs`."><title>output_recording.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_stdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `stdlib/src/output_recording.rs`."><title>output_recording.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="qir_stdlib" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../qir_stdlib/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -298,22 +298,6 @@
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
-<a href="#301" id="301">301</a>
-<a href="#302" id="302">302</a>
-<a href="#303" id="303">303</a>
-<a href="#304" id="304">304</a>
-<a href="#305" id="305">305</a>
-<a href="#306" id="306">306</a>
-<a href="#307" id="307">307</a>
-<a href="#308" id="308">308</a>
-<a href="#309" id="309">309</a>
-<a href="#310" id="310">310</a>
-<a href="#311" id="311">311</a>
-<a href="#312" id="312">312</a>
-<a href="#313" id="313">313</a>
-<a href="#314" id="314">314</a>
-<a href="#315" id="315">315</a>
-<a href="#316" id="316">316</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -326,9 +310,9 @@
 <span class="kw">use </span><span class="kw">crate</span>::strings::double_to_string;
 
 <span class="attr">#[cfg(windows)]
-</span><span class="kw">pub const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\r\n&quot;</span>;
+</span><span class="kw">pub const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"\r\n"</span>;
 <span class="attr">#[cfg(not(windows))]
-</span><span class="kw">pub const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b&quot;\n&quot;</span>;
+</span><span class="kw">pub const </span>LINE_ENDING: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"\n"</span>;
 
 <span class="doccomment">/// Holds output messages from calls to the QIR
 /// output recording functions and message calls.
@@ -361,22 +345,6 @@
     }
 }
 
-<span class="kw">struct </span>DefaultReaderWriter(Vec&lt;u8&gt;);
-<span class="kw">impl </span>Write <span class="kw">for </span>DefaultReaderWriter {
-    <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;</span>[u8]) -&gt; std::io::Result&lt;usize&gt; {
-        <span class="self">self</span>.<span class="number">0</span>.write(buf)
-    }
-    <span class="kw">fn </span>flush(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; std::io::Result&lt;()&gt; {
-        <span class="self">self</span>.<span class="number">0</span>.flush()
-    }
-}
-
-<span class="kw">impl </span>Read <span class="kw">for </span>DefaultReaderWriter {
-    <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, buf: <span class="kw-2">&amp;mut </span>[u8]) -&gt; std::io::Result&lt;usize&gt; {
-        <span class="self">self</span>.<span class="number">0</span>.as_slice().read(buf)
-    }
-}
-
 <span class="kw">impl </span>Default <span class="kw">for </span>OutputRecorder {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         OutputRecorder {
@@ -395,7 +363,7 @@
 
     <span class="doccomment">/// Writes the newline char(s) to the output.
     </span><span class="kw">pub fn </span>write_newline(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-        <span class="self">self</span>.write_all(LINE_ENDING).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+        <span class="self">self</span>.write_all(LINE_ENDING).expect(<span class="string">"Failed to write output"</span>);
     }
 
     <span class="doccomment">/// Drains the buffer and returns the contents.
@@ -404,7 +372,7 @@
     }
 }
 
-<span class="macro">thread_local! </span>{
+<span class="macro">thread_local!</span> {
     <span class="kw">pub static </span>OUTPUT: std::cell::RefCell&lt;Box&lt;OutputRecorder&gt;&gt; = std::cell::RefCell::new(Box::default());
 }
 
@@ -416,7 +384,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
         output
             .write_all(val.as_bytes())
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .expect(<span class="string">"Failed to write output"</span>);
         output.write_newline();
     });
     <span class="prelude-val">Ok</span>(())
@@ -429,13 +397,13 @@
     OUTPUT.with(|output| {
         <span class="kw">let </span><span class="kw-2">mut </span>output = output.borrow_mut();
         output
-            .write_fmt(<span class="macro">format_args!</span>(<span class="string">&quot;OUTPUT\t{ty}\t{val}&quot;</span>))
-            .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            .write_fmt(<span class="macro">format_args!</span>(<span class="string">"OUTPUT\t{ty}\t{val}"</span>))
+            .expect(<span class="string">"Failed to write output"</span>);
         <span class="kw">if </span>!tag.is_null() {
-            output.write_all(<span class="string">b&quot;\t&quot;</span>).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            output.write_all(<span class="string">b"\t"</span>).expect(<span class="string">"Failed to write output"</span>);
             output
                 .write_all(CStr::from_ptr(tag).to_bytes())
-                .expect(<span class="string">&quot;Failed to write output&quot;</span>);
+                .expect(<span class="string">"Failed to write output"</span>);
         }
         output.write_newline();
     });
@@ -447,8 +415,8 @@
 /// parameter defines a string label for the array. Depending on
 /// the output schema, the label is included in the output or omitted.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__array_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
-    record_output(<span class="string">&quot;ARRAY&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write array output&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__array_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
+    record_output(<span class="string">"ARRAY"</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write array output"</span>);
 }
 
 <span class="doccomment">/// Inserts a marker in the generated output that indicates the
@@ -456,35 +424,35 @@
 /// parameter defines a string label for the tuple. Depending on
 /// the output schema, the label is included in the output or omitted.
 </span><span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__tuple_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
-    record_output(<span class="string">&quot;TUPLE&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write tuple output&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__tuple_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
+    record_output(<span class="string">"TUPLE"</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write tuple output"</span>);
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__int_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
-    record_output(<span class="string">&quot;INT&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write int output&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__int_record_output(val: i64, tag: <span class="kw-2">*mut </span>c_char) {
+    record_output(<span class="string">"INT"</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write int output"</span>);
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__double_record_output(val: c_double, tag: <span class="kw-2">*mut </span>c_char) {
-    record_output(<span class="string">&quot;DOUBLE&quot;</span>, <span class="kw-2">&amp;</span>double_to_string(val), tag).expect(<span class="string">&quot;Failed to write double output&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__double_record_output(val: c_double, tag: <span class="kw-2">*mut </span>c_char) {
+    record_output(<span class="string">"DOUBLE"</span>, <span class="kw-2">&amp;</span>double_to_string(val), tag).expect(<span class="string">"Failed to write double output"</span>);
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__bool_record_output(val: bool, tag: <span class="kw-2">*mut </span>c_char) {
-    record_output(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write bool output&quot;</span>);
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__bool_record_output(val: bool, tag: <span class="kw-2">*mut </span>c_char) {
+    record_output(<span class="string">"BOOL"</span>, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write bool output"</span>);
 }
 
 <span class="attr">#[no_mangle]
-</span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__message_record_output(str: <span class="kw-2">*const </span>CString) {
+</span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__message_record_output(str: <span class="kw-2">*const </span>CString) {
     record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
-        <span class="string">&quot;INFO\t{}&quot;</span>,
+        <span class="string">"INFO\t{}"</span>,
         (<span class="kw-2">*</span>str)
             .to_str()
-            .expect(<span class="string">&quot;Unable to convert input string&quot;</span>)
+            .expect(<span class="string">"Unable to convert input string"</span>)
             .escape_default()
     ))
-    .expect(<span class="string">&quot;Failed to write message output&quot;</span>);
+    .expect(<span class="string">"Failed to write message output"</span>);
 }
 
 <span class="kw">pub mod </span>legacy {
@@ -495,48 +463,48 @@
     <span class="kw">use </span><span class="kw">super</span>::record_output_str;
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__array_start_record_output() {
-        record_output_str(<span class="string">&quot;RESULT\tARRAY_START&quot;</span>).expect(<span class="string">&quot;Failed to write array start output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__array_start_record_output() {
+        record_output_str(<span class="string">"RESULT\tARRAY_START"</span>).expect(<span class="string">"Failed to write array start output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__array_end_record_output() {
-        record_output_str(<span class="string">&quot;RESULT\tARRAY_END&quot;</span>).expect(<span class="string">&quot;Failed to write array end output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__array_end_record_output() {
+        record_output_str(<span class="string">"RESULT\tARRAY_END"</span>).expect(<span class="string">"Failed to write array end output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__tuple_start_record_output() {
-        record_output_str(<span class="string">&quot;RESULT\tTUPLE_START&quot;</span>).expect(<span class="string">&quot;Failed to write tuple start output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__tuple_start_record_output() {
+        record_output_str(<span class="string">"RESULT\tTUPLE_START"</span>).expect(<span class="string">"Failed to write tuple start output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__tuple_end_record_output() {
-        record_output_str(<span class="string">&quot;RESULT\tTUPLE_END&quot;</span>).expect(<span class="string">&quot;Failed to write tuple end output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__tuple_end_record_output() {
+        record_output_str(<span class="string">"RESULT\tTUPLE_END"</span>).expect(<span class="string">"Failed to write tuple end output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__int_record_output(val: i64) {
-        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;RESULT\t{val}&quot;</span>)).expect(<span class="string">&quot;Failed to write int output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__int_record_output(val: i64) {
+        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"RESULT\t{val}"</span>)).expect(<span class="string">"Failed to write int output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__double_record_output(val: c_double) {
-        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;RESULT\t{}&quot;</span>, double_to_string(val)))
-            .expect(<span class="string">&quot;Failed to write double output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__double_record_output(val: c_double) {
+        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"RESULT\t{}"</span>, double_to_string(val)))
+            .expect(<span class="string">"Failed to write double output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__bool_record_output(val: bool) {
-        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;RESULT\t{val}&quot;</span>)).expect(<span class="string">&quot;Failed to write bool output&quot;</span>);
+    </span><span class="kw">pub extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__bool_record_output(val: bool) {
+        record_output_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"RESULT\t{val}"</span>)).expect(<span class="string">"Failed to write bool output"</span>);
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__array_record_output(val: i64) {
+    </span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__array_record_output(val: i64) {
         <span class="kw">super</span>::__quantum__rt__array_record_output(val, null_mut());
     }
 
     <span class="attr">#[allow(non_snake_case)]
-    </span><span class="kw">pub unsafe extern </span><span class="string">&quot;C&quot; </span><span class="kw">fn </span>__quantum__rt__tuple_record_output(val: i64) {
+    </span><span class="kw">pub unsafe extern </span><span class="string">"C" </span><span class="kw">fn </span>__quantum__rt__tuple_record_output(val: i64) {
         <span class="kw">super</span>::__quantum__rt__tuple_record_output(val, null_mut());
     }
 }
@@ -550,45 +518,45 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_int_untagged() {
         <span class="kw">let </span>val: i64 = <span class="number">42</span>;
-        assert_untagged_output_match(<span class="string">&quot;INT&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tINT\t42&quot;</span>);
+        assert_untagged_output_match(<span class="string">"INT"</span>, <span class="kw-2">&amp;</span>val, <span class="string">"OUTPUT\tINT\t42"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_double_untagged() {
         <span class="kw">let </span>val: f64 = <span class="number">42.4533</span>;
         <span class="kw">let </span>double_str = double_to_string(val);
-        assert_untagged_output_match(<span class="string">&quot;DOUBLE&quot;</span>, <span class="kw-2">&amp;</span>double_str, <span class="string">&quot;OUTPUT\tDOUBLE\t42.4533&quot;</span>);
+        assert_untagged_output_match(<span class="string">"DOUBLE"</span>, <span class="kw-2">&amp;</span>double_str, <span class="string">"OUTPUT\tDOUBLE\t42.4533"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_double_whole_untagged() {
         <span class="kw">let </span>val: c_double = <span class="number">42.000_000_000_000_001</span>;
         <span class="kw">let </span>double_str = double_to_string(val);
-        assert_untagged_output_match(<span class="string">&quot;DOUBLE&quot;</span>, <span class="kw-2">&amp;</span>double_str, <span class="string">&quot;OUTPUT\tDOUBLE\t42.0&quot;</span>);
+        assert_untagged_output_match(<span class="string">"DOUBLE"</span>, <span class="kw-2">&amp;</span>double_str, <span class="string">"OUTPUT\tDOUBLE\t42.0"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_bool_true_untagged() {
         <span class="kw">let </span>val: bool = <span class="bool-val">true</span>;
-        assert_untagged_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tBOOL\ttrue&quot;</span>);
+        assert_untagged_output_match(<span class="string">"BOOL"</span>, <span class="kw-2">&amp;</span>val, <span class="string">"OUTPUT\tBOOL\ttrue"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_bool_false_untagged() {
         <span class="kw">let </span>val: bool = <span class="bool-val">false</span>;
-        assert_untagged_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tBOOL\tfalse&quot;</span>);
+        assert_untagged_output_match(<span class="string">"BOOL"</span>, <span class="kw-2">&amp;</span>val, <span class="string">"OUTPUT\tBOOL\tfalse"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_tuple_untagged() {
         <span class="kw">let </span>val: i64 = <span class="number">42</span>;
-        assert_untagged_output_match(<span class="string">&quot;TUPLE&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tTUPLE\t42&quot;</span>);
+        assert_untagged_output_match(<span class="string">"TUPLE"</span>, <span class="kw-2">&amp;</span>val, <span class="string">"OUTPUT\tTUPLE\t42"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_array_untagged() {
         <span class="kw">let </span>val: i64 = <span class="number">42</span>;
-        assert_untagged_output_match(<span class="string">&quot;ARRAY&quot;</span>, <span class="kw-2">&amp;</span>val, <span class="string">&quot;OUTPUT\tARRAY\t42&quot;</span>);
+        assert_untagged_output_match(<span class="string">"ARRAY"</span>, <span class="kw-2">&amp;</span>val, <span class="string">"OUTPUT\tARRAY\t42"</span>);
     }
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_output_bool_true_tagged_from_cstring() {
         <span class="kw">let </span>val: bool = <span class="bool-val">true</span>;
-        <span class="kw">let </span>tag = CString::new(<span class="string">&quot;YEEHAW&quot;</span>).unwrap().into_raw();
-        assert_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, tag, <span class="string">&quot;OUTPUT\tBOOL\ttrue\tYEEHAW&quot;</span>);
+        <span class="kw">let </span>tag = CString::new(<span class="string">"YEEHAW"</span>).unwrap().into_raw();
+        assert_output_match(<span class="string">"BOOL"</span>, <span class="kw-2">&amp;</span>val, tag, <span class="string">"OUTPUT\tBOOL\ttrue\tYEEHAW"</span>);
         <span class="comment">// Avoid memory leak
         </span><span class="kw">unsafe </span>{
             <span class="kw">let _ </span>= CString::from_raw(tag);
@@ -600,7 +568,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>tag: [c_char; <span class="number">3</span>] = [<span class="number">0x68</span>, <span class="number">0x69</span>, <span class="number">0</span>];
         <span class="comment">// With any luck, this will segfault if the tag pointer is incorrectly
         // passed to CString::from_raw(). (Thankfully, it does on my system.)
-        </span>assert_output_match(<span class="string">&quot;BOOL&quot;</span>, <span class="kw-2">&amp;</span>val, tag.as_mut_ptr(), <span class="string">&quot;OUTPUT\tBOOL\ttrue\thi&quot;</span>);
+        </span>assert_output_match(<span class="string">"BOOL"</span>, <span class="kw-2">&amp;</span>val, tag.as_mut_ptr(), <span class="string">"OUTPUT\tBOOL\ttrue\thi"</span>);
     }
     <span class="kw">fn </span>assert_untagged_output_match(ty: <span class="kw-2">&amp;</span>str, val: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Display, expected_str: <span class="kw-2">&amp;</span>str) {
         assert_output_match(ty, val, null_mut(), expected_str);
@@ -608,7 +576,7 @@
     <span class="kw">fn </span>assert_output_match(ty: <span class="kw-2">&amp;</span>str, val: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Display, tag: <span class="kw-2">*mut </span>c_char, expected_str: <span class="kw-2">&amp;</span>str) {
         OUTPUT.with(|output| output.borrow_mut().use_std_out(<span class="bool-val">false</span>));
         <span class="kw">unsafe </span>{
-            record_output(ty, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">&quot;Failed to write output&quot;</span>);
+            record_output(ty, <span class="kw-2">&amp;</span>val, tag).expect(<span class="string">"Failed to write output"</span>);
         }
 
         <span class="kw">let </span>actual = OUTPUT.with(|output| {
