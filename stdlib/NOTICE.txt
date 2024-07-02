@@ -2220,7 +2220,7 @@ limitations under the License.
 
 
 
-qir-stdlib 0.7.1 - SPDX: MIT - MIT License
+qir-stdlib 0.7.2 - SPDX: MIT - MIT License
 https://crates.io/crates/qir-stdlib
 
 MIT License
