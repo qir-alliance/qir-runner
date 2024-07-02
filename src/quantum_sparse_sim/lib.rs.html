@@ -1698,6 +1698,92 @@
 <a href="#1698" id="1698">1698</a>
 <a href="#1699" id="1699">1699</a>
 <a href="#1700" id="1700">1700</a>
+<a href="#1701" id="1701">1701</a>
+<a href="#1702" id="1702">1702</a>
+<a href="#1703" id="1703">1703</a>
+<a href="#1704" id="1704">1704</a>
+<a href="#1705" id="1705">1705</a>
+<a href="#1706" id="1706">1706</a>
+<a href="#1707" id="1707">1707</a>
+<a href="#1708" id="1708">1708</a>
+<a href="#1709" id="1709">1709</a>
+<a href="#1710" id="1710">1710</a>
+<a href="#1711" id="1711">1711</a>
+<a href="#1712" id="1712">1712</a>
+<a href="#1713" id="1713">1713</a>
+<a href="#1714" id="1714">1714</a>
+<a href="#1715" id="1715">1715</a>
+<a href="#1716" id="1716">1716</a>
+<a href="#1717" id="1717">1717</a>
+<a href="#1718" id="1718">1718</a>
+<a href="#1719" id="1719">1719</a>
+<a href="#1720" id="1720">1720</a>
+<a href="#1721" id="1721">1721</a>
+<a href="#1722" id="1722">1722</a>
+<a href="#1723" id="1723">1723</a>
+<a href="#1724" id="1724">1724</a>
+<a href="#1725" id="1725">1725</a>
+<a href="#1726" id="1726">1726</a>
+<a href="#1727" id="1727">1727</a>
+<a href="#1728" id="1728">1728</a>
+<a href="#1729" id="1729">1729</a>
+<a href="#1730" id="1730">1730</a>
+<a href="#1731" id="1731">1731</a>
+<a href="#1732" id="1732">1732</a>
+<a href="#1733" id="1733">1733</a>
+<a href="#1734" id="1734">1734</a>
+<a href="#1735" id="1735">1735</a>
+<a href="#1736" id="1736">1736</a>
+<a href="#1737" id="1737">1737</a>
+<a href="#1738" id="1738">1738</a>
+<a href="#1739" id="1739">1739</a>
+<a href="#1740" id="1740">1740</a>
+<a href="#1741" id="1741">1741</a>
+<a href="#1742" id="1742">1742</a>
+<a href="#1743" id="1743">1743</a>
+<a href="#1744" id="1744">1744</a>
+<a href="#1745" id="1745">1745</a>
+<a href="#1746" id="1746">1746</a>
+<a href="#1747" id="1747">1747</a>
+<a href="#1748" id="1748">1748</a>
+<a href="#1749" id="1749">1749</a>
+<a href="#1750" id="1750">1750</a>
+<a href="#1751" id="1751">1751</a>
+<a href="#1752" id="1752">1752</a>
+<a href="#1753" id="1753">1753</a>
+<a href="#1754" id="1754">1754</a>
+<a href="#1755" id="1755">1755</a>
+<a href="#1756" id="1756">1756</a>
+<a href="#1757" id="1757">1757</a>
+<a href="#1758" id="1758">1758</a>
+<a href="#1759" id="1759">1759</a>
+<a href="#1760" id="1760">1760</a>
+<a href="#1761" id="1761">1761</a>
+<a href="#1762" id="1762">1762</a>
+<a href="#1763" id="1763">1763</a>
+<a href="#1764" id="1764">1764</a>
+<a href="#1765" id="1765">1765</a>
+<a href="#1766" id="1766">1766</a>
+<a href="#1767" id="1767">1767</a>
+<a href="#1768" id="1768">1768</a>
+<a href="#1769" id="1769">1769</a>
+<a href="#1770" id="1770">1770</a>
+<a href="#1771" id="1771">1771</a>
+<a href="#1772" id="1772">1772</a>
+<a href="#1773" id="1773">1773</a>
+<a href="#1774" id="1774">1774</a>
+<a href="#1775" id="1775">1775</a>
+<a href="#1776" id="1776">1776</a>
+<a href="#1777" id="1777">1777</a>
+<a href="#1778" id="1778">1778</a>
+<a href="#1779" id="1779">1779</a>
+<a href="#1780" id="1780">1780</a>
+<a href="#1781" id="1781">1781</a>
+<a href="#1782" id="1782">1782</a>
+<a href="#1783" id="1783">1783</a>
+<a href="#1784" id="1784">1784</a>
+<a href="#1785" id="1785">1785</a>
+<a href="#1786" id="1786">1786</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -1745,6 +1831,35 @@
 
     <span class="doccomment">/// The map for tracking queued Pauli-Y rotations by a given angle for a given qubit.
     </span>ry_queue: FxHashMap&lt;usize, f64&gt;,
+
+    <span class="doccomment">/// The list of queued gate operations.
+    </span>op_queue: Vec&lt;(Vec&lt;usize&gt;, usize, OpCode)&gt;,
+}
+
+<span class="doccomment">/// Operations that support generic queuing.
+</span><span class="attr">#[derive(Debug, Copy, Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>OpCode {
+    X,
+    Y,
+    Z,
+    S,
+    Sadj,
+    T,
+    Tadj,
+}
+
+<span class="kw">impl </span>OpCode {
+    <span class="kw">fn </span>as_transform(<span class="self">self</span>) -&gt; <span class="kw">impl </span>FnMut((BigUint, Complex64), u64) -&gt; (BigUint, Complex64) {
+        <span class="kw">match </span><span class="self">self </span>{
+            OpCode::X =&gt; QuantumSim::x_transform,
+            OpCode::Y =&gt; QuantumSim::y_transform,
+            OpCode::Z =&gt; QuantumSim::z_transform,
+            OpCode::S =&gt; QuantumSim::s_transform,
+            OpCode::Sadj =&gt; QuantumSim::sadj_transform,
+            OpCode::T =&gt; QuantumSim::t_transform,
+            OpCode::Tadj =&gt; QuantumSim::tadj_transform,
+        }
+    }
 }
 
 <span class="doccomment">/// Levels for flushing of queued gates.
@@ -1776,6 +1891,7 @@
             h_flag: BigUint::zero(),
             rx_queue: FxHashMap::default(),
             ry_queue: FxHashMap::default(),
+            op_queue: Vec::new(),
         }
     }
 
@@ -2092,6 +2208,8 @@
     /// # Panics
     /// This function will panic if either of the given identifiers do not correspond to an allocated qubit.
     </span><span class="kw">pub fn </span>swap_qubit_ids(<span class="kw-2">&amp;mut </span><span class="self">self</span>, qubit1: usize, qubit2: usize) {
+        <span class="self">self</span>.flush_ops();
+
         <span class="comment">// Must also swap any queued operations.
         </span><span class="kw">let </span>(h_val1, h_val2) = (
             <span class="self">self</span>.h_flag.bit(qubit1 <span class="kw">as </span>u64),
@@ -2202,7 +2320,24 @@
         (target, ctls)
     }
 
+    <span class="kw">fn </span>enqueue_op(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize, ctls: Vec&lt;usize&gt;, op: OpCode) {
+        <span class="self">self</span>.op_queue.push((ctls, target, op));
+    }
+
+    <span class="kw">fn </span>has_queued_hrxy(<span class="kw-2">&amp;</span><span class="self">self</span>, target: usize) -&gt; bool {
+        <span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64)
+            || <span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target)
+            || <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target)
+    }
+
+    <span class="kw">fn </span>maybe_flush_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, qubits: <span class="kw-2">&amp;</span>[usize], level: FlushLevel) {
+        <span class="kw">if </span>qubits.iter().any(|q| <span class="self">self</span>.has_queued_hrxy(<span class="kw-2">*</span>q)) {
+            <span class="self">self</span>.flush_queue(qubits, level);
+        }
+    }
+
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>flush_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, qubits: <span class="kw-2">&amp;</span>[usize], level: FlushLevel) {
+        <span class="self">self</span>.flush_ops();
         <span class="kw">for </span>target <span class="kw">in </span>qubits {
             <span class="kw">if </span><span class="self">self</span>.h_flag.bit(<span class="kw-2">*</span>target <span class="kw">as </span>u64) {
                 <span class="self">self</span>.apply_mch(<span class="kw-2">&amp;</span>[], <span class="kw-2">*</span>target);
@@ -2216,6 +2351,39 @@
                     <span class="self">self</span>.flush_ry(<span class="kw-2">*</span>target);
                 }
             }
+        }
+    }
+
+    <span class="kw">fn </span>flush_ops(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">if </span>!<span class="self">self</span>.op_queue.is_empty() {
+            <span class="kw">let </span>ops = <span class="self">self
+                </span>.op_queue
+                .iter()
+                .map(|(ctls, target, op)| {
+                    <span class="kw">let </span>(target, ctls) = <span class="self">self</span>.resolve_and_check_qubits(<span class="kw-2">*</span>target, ctls);
+                    (ctls, target, <span class="kw-2">*</span>op)
+                })
+                .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+            <span class="self">self</span>.op_queue.clear();
+            <span class="self">self</span>.state =
+                <span class="self">self</span>.state
+                    .drain()
+                    .fold(SparseState::default(), |<span class="kw-2">mut </span>accum, (index, value)| {
+                        <span class="kw">let </span>(k, v) = ops.iter().fold(
+                            (index, value),
+                            |(index, value), (ctls, target, op)| {
+                                <span class="kw">if </span>ctls.iter().all(|c| index.bit(<span class="kw-2">*</span>c)) {
+                                    op.as_transform()((index, value), <span class="kw-2">*</span>target)
+                                } <span class="kw">else </span>{
+                                    (index, value)
+                                }
+                            },
+                        );
+                        <span class="kw">if </span>!v.is_nearly_zero() {
+                            accum.insert(k, v);
+                        }
+                        accum
+                    });
         }
     }
 
@@ -2274,9 +2442,9 @@
         }
         <span class="kw">if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) {
             <span class="comment">// XH = HZ, so execute a Z transformation if there is an H queued.
-            </span><span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::z_transform);
+            </span><span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::Z);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::x_transform);
+            <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::X);
         }
     }
 
@@ -2287,8 +2455,9 @@
             <span class="kw">return</span>;
         }
 
-        <span class="kw">if </span>ctls.len() &gt; <span class="number">1
-            </span>|| <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>ctls[<span class="number">0</span>])
+        <span class="kw">if </span>ctls.len() &gt; <span class="number">1 </span>{
+            <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        } <span class="kw">else if </span><span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>ctls[<span class="number">0</span>])
             || <span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>ctls[<span class="number">0</span>])
             || (<span class="self">self</span>.h_flag.bit(ctls[<span class="number">0</span>] <span class="kw">as </span>u64) &amp;&amp; !<span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64))
         {
@@ -2303,13 +2472,13 @@
             <span class="kw">if </span>ctls.len() == <span class="number">1 </span>&amp;&amp; <span class="self">self</span>.h_flag.bit(ctls[<span class="number">0</span>] <span class="kw">as </span>u64) {
                 <span class="comment">// An H on both target and single control means we can perform a CNOT with the control
                 // and target switched.
-                </span><span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[target], ctls[<span class="number">0</span>], <span class="self">Self</span>::x_transform);
+                </span><span class="self">self</span>.enqueue_op(ctls[<span class="number">0</span>], <span class="macro">vec!</span>[target], OpCode::X);
             } <span class="kw">else </span>{
                 <span class="comment">// XH = HZ, so perform a mulit-controlled Z here.
-                </span><span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::z_transform);
+                </span><span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::Z);
             }
         } <span class="kw">else </span>{
-            <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::x_transform);
+            <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::X);
         }
     }
 
@@ -2334,7 +2503,7 @@
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
 
-        <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::y_transform);
+        <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::Y);
     }
 
     <span class="doccomment">/// Multi-controlled Y gate.
@@ -2345,7 +2514,7 @@
             <span class="kw">return</span>;
         }
 
-        <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
+        <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
 
         <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRx);
@@ -2356,10 +2525,10 @@
             </span><span class="kw">let </span>(target, ctls) = ctls
                 .split_first()
                 .expect(<span class="string">"Controls list cannot be empty here."</span>);
-            <span class="self">self</span>.controlled_gate(ctls, <span class="kw-2">*</span>target, <span class="self">Self</span>::z_transform);
+            <span class="self">self</span>.enqueue_op(<span class="kw-2">*</span>target, ctls.into(), OpCode::Z);
         }
 
-        <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::y_transform);
+        <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::Y);
     }
 
     <span class="doccomment">/// Performs a phase transformation (a rotation in the computational basis) on a single state.
@@ -2405,9 +2574,9 @@
 
         <span class="kw">if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) {
             <span class="comment">// HZ = XH, so execute an X if an H is queued.
-            </span><span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::x_transform);
+            </span><span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::X);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::z_transform);
+            <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::Z);
         }
     }
 
@@ -2452,11 +2621,11 @@
                     </span>(ctls.to_owned(), target)
                 };
             <span class="comment">// With a single H queued, treat the multi-controlled Z as a multi-controlled X.
-            </span><span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>ctls, target, <span class="self">Self</span>::x_transform);
+            </span><span class="self">self</span>.enqueue_op(target, ctls, OpCode::X);
         } <span class="kw">else </span>{
             <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-            <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::z_transform);
+            <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::Z);
         }
     }
 
@@ -2467,15 +2636,15 @@
 
     <span class="doccomment">/// Single qubit S gate.
     </span><span class="kw">pub fn </span>s(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::s_transform);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::S);
     }
 
     <span class="doccomment">/// Multi-controlled S gate.
     </span><span class="kw">pub fn </span>mcs(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
-        <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::s_transform);
+        <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::S);
     }
 
     <span class="doccomment">/// Performs the adjoint S transformation on a signle state.
@@ -2485,15 +2654,15 @@
 
     <span class="doccomment">/// Single qubit Adjoint S Gate.
     </span><span class="kw">pub fn </span>sadj(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::sadj_transform);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::Sadj);
     }
 
     <span class="doccomment">/// Multi-controlled Adjoint S gate.
     </span><span class="kw">pub fn </span>mcsadj(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
-        <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::sadj_transform);
+        <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::Sadj);
     }
 
     <span class="doccomment">/// Performs the T transformation on a single state.
@@ -2507,15 +2676,15 @@
 
     <span class="doccomment">/// Single qubit T gate.
     </span><span class="kw">pub fn </span>t(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::t_transform);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::T);
     }
 
     <span class="doccomment">/// Multi-controlled T gate.
     </span><span class="kw">pub fn </span>mct(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
-        <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::t_transform);
+        <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::T);
     }
 
     <span class="doccomment">/// Performs the adjoint T transformation to a single state.
@@ -2529,15 +2698,15 @@
 
     <span class="doccomment">/// Single qubit Adjoint T gate.
     </span><span class="kw">pub fn </span>tadj(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(<span class="kw-2">&amp;</span>[], target, <span class="self">Self</span>::tadj_transform);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, Vec::new(), OpCode::Tadj);
     }
 
     <span class="doccomment">/// Multi-controlled Adjoint T gate.
     </span><span class="kw">pub fn </span>mctadj(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
-        <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-        <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
-        <span class="self">self</span>.controlled_gate(ctls, target, <span class="self">Self</span>::tadj_transform);
+        <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        <span class="self">self</span>.maybe_flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+        <span class="self">self</span>.enqueue_op(target, ctls.into(), OpCode::Tadj);
     }
 
     <span class="doccomment">/// Performs the Rz transformation with the given angle to a single state.
@@ -3006,6 +3175,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::new(<span class="prelude-val">None</span>);
         <span class="kw">let </span>q = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[q], q);
+        <span class="kw">let _ </span>= sim.dump();
     }
 
     <span class="doccomment">/// Verify that controls cannot be duplicated.
@@ -3016,6 +3186,7 @@
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span>c = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[c, c], q);
+        <span class="kw">let _ </span>= sim.dump();
     }
 
     <span class="doccomment">/// Verify that targets aren't in controls.
@@ -3026,6 +3197,7 @@
         <span class="kw">let </span>q = sim.allocate();
         <span class="kw">let </span>c = sim.allocate();
         sim.mcx(<span class="kw-2">&amp;</span>[c, q], q);
+        <span class="kw">let _ </span>= sim.dump();
     }
 
     <span class="doccomment">/// Large, entangled state handling.
