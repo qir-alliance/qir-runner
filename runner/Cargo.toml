@@ -1,20 +1,18 @@
 [package]
 name = "runner"
-version = "0.7.1"
-edition = "2021"
-license = "MIT"
-
-[dependencies.inkwell]
-git = "https://github.com/TheDan64/inkwell"
-branch = "master"
-default-features = false
-features = ["llvm14-0"]
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 qir-stdlib = { path = "../stdlib" }
 qir-backend = { path = "../backend" }
-clap = { version = "4.5.8", features = [ "cargo" ] }
-msvc_spectre_libs = { version = "0.1", features = ["error"] }
+clap = { workspace = true }
+inkwell = { workspace = true }
+msvc_spectre_libs = { workspace = true }
 
 [[bin]]
 name = "qir-runner"
