@@ -1,20 +1,22 @@
 [package]
 name = "qir-backend"
-version = "0.7.1"
-authors = ["Microsoft"]
-edition = "2021"
-license = "MIT"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 qir-stdlib = { path = "../stdlib" }
 quantum-sparse-sim = { path = "../sparsesim" }
-rand = "0.8.5"
-num-complex = "0.4"
-num-bigint = { version = "0.4.6", default-features = false }
-bitvec = "1.0.0"
+rand = { workspace = true }
+num-complex = { workspace = true }
+num-bigint = { workspace = true }
+bitvec = { workspace = true }
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = { workspace = true }
 
 [[bench]]
 name = "gates"

@@ -8,8 +8,26 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+authors = ["Microsoft"]
+homepage = "https://github.com/qir-alliance/qir-runner"
+repository = "https://github.com/qir-alliance/qir-runner"
+edition = "2021"
+license = "MIT"
+version = "0.7.1"
+
 [profile.release]
 debug = 1
 
 [workspace.dependencies]
+bitvec = "1.0.0"
+clap = { version = "4.5.7", features = [ "cargo" ] }
+criterion = "0.5.1"
+msvc_spectre_libs = { version = "0.1", features = [ "error" ] }
+ndarray = "0.15.4"
+num-bigint = { version = "0.4.6", default-features = false }
+num-complex = "0.4"
+num-traits = "0.2.19"
 pyo3 = "0.20"
+rand = "0.8.5"
+rustc-hash = "1.1.0"

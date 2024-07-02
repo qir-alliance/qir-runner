@@ -43,7 +43,7 @@ pub unsafe extern "C" fn __quantum__rt__array_copy(
         let copy = rc.as_ref().clone();
         Rc::into_raw(Rc::new(copy))
     } else {
-        Rc::into_raw(Rc::clone(&rc));
+        let _ = Rc::into_raw(Rc::clone(&rc));
         arr
     }
 }

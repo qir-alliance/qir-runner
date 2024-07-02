@@ -1,13 +1,13 @@
 [package]
-authors = ["Microsoft"]
 name = "qirrunner"
-version = "0.0.0"
-edition = "2021"
-license = "MIT"
 description = "JIT compiles and executes programs written in QIR (Quantum Intermediate Representation)."
 readme = "README.md"
-homepage = "https://github.com/qir-alliance/qir-runner"
-repository = "https://github.com/qir-alliance/qir-runner"
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 runner = { path = "../runner" }

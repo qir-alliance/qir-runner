@@ -38,7 +38,7 @@ pub unsafe extern "C" fn __quantum__rt__tuple_copy(
         *header = Rc::into_raw(Rc::new(copy));
         header.wrapping_add(1)
     } else {
-        Rc::into_raw(Rc::clone(&rc));
+        let _ = Rc::into_raw(Rc::clone(&rc));
         raw_tup
     }
 }
