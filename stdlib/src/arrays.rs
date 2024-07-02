@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{strings::convert, update_counts};
-use std::{mem::ManuallyDrop, rc::Rc, usize};
+use std::{mem::ManuallyDrop, rc::Rc};
 
 #[cfg(not(feature = "fail-support"))]
 #[allow(improper_ctypes)]

@@ -5,7 +5,6 @@ use crate::update_counts;
 use std::{
     mem::{size_of, ManuallyDrop},
     rc::Rc,
-    usize,
 };
 
 #[allow(clippy::cast_ptr_alignment)]
