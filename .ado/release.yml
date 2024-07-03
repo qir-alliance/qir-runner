@@ -219,6 +219,7 @@ extends:
           - script: |
               python -m pip install -r pip/requirements-manylinux.txt
               python -m build --verbose --wheel --outdir target/raw-wheels ./pip
+              rm -rf target/wheels
               python -m build --verbose --sdist --outdir target/wheels ./pip
               auditwheel repair --plat $(AUDITWHEEL_TAG) --wheel-dir target/wheels target/raw-wheels/*.whl
             displayName: Create Linux Python wheel and run Auditwheel
