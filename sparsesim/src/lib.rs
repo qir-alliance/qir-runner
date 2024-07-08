@@ -1514,7 +1514,10 @@ mod tests {
         let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.rx(PI, q);
-        assert!(almost_equal(sim.joint_probability(&[q]), sim.joint_probability(&[q])));
+        assert!(almost_equal(
+            sim.joint_probability(&[q]),
+            sim.joint_probability(&[q])
+        ));
         assert!(!sim.joint_probability(&[q]).is_nearly_zero());
     }
 
@@ -1524,7 +1527,10 @@ mod tests {
         let mut sim = QuantumSim::new(None);
         let q = sim.allocate();
         sim.ry(PI, q);
-        assert!(almost_equal(sim.joint_probability(&[q]), sim.joint_probability(&[q])));
+        assert!(almost_equal(
+            sim.joint_probability(&[q]),
+            sim.joint_probability(&[q])
+        ));
         assert!(!sim.joint_probability(&[q]).is_nearly_zero());
     }
 
