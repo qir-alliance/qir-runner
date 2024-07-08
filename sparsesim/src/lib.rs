@@ -1057,6 +1057,7 @@ impl QuantumSim {
             } else {
                 self.mcx(ctls, target);
             }
+            self.flush_ops();
             // Rx/Ry are different from X/Y by a global phase of -i, so apply that here when indicated by m01,
             // for mathematical correctness.
             let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
@@ -1505,6 +1506,26 @@ mod tests {
         sim.ry(-PI / 4.0, q);
         assert_eq!(sim.state.len(), 1);
         assert!(sim.joint_probability(&[q]).is_nearly_zero());
+    }
+
+    /// Verifies that an Rx rotation by PI, which becomes an X gate, is correctly flushed.
+    #[test]
+    fn test_rx_pi_flushed() {
+        let mut sim = QuantumSim::new(None);
+        let q = sim.allocate();
+        sim.rx(PI, q);
+        assert!(almost_equal(sim.joint_probability(&[q]), sim.joint_probability(&[q])));
+        assert!(!sim.joint_probability(&[q]).is_nearly_zero());
+    }
+
+    /// Verifies that an Ry rotation by PI, which becomes an Y gate, is correctly flushed.
+    #[test]
+    fn test_ry_pi_flushed() {
+        let mut sim = QuantumSim::new(None);
+        let q = sim.allocate();
+        sim.ry(PI, q);
+        assert!(almost_equal(sim.joint_probability(&[q]), sim.joint_probability(&[q])));
+        assert!(!sim.joint_probability(&[q]).is_nearly_zero());
     }
 
     /// Utility for testing operation equivalence.
