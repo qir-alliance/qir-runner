@@ -37,7 +37,7 @@ runs:
     - name: MacOS - Install build dependencies, ninja
       run: brew install ninja
       shell: pwsh
-      if: ${{ (inputs.os == 'macos-12' || inputs.os == 'macos-14') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
+      if: ${{ (inputs.os == 'macos-14') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
     - name: Windows - Install LLVM 14.0.6
       run: choco install llvm --version=14.0.6 --allow-downgrade
       shell: pwsh
