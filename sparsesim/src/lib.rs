@@ -1074,13 +1074,16 @@ impl QuantumSim {
                         .fold(SparseState::default(), |mut accum, (index, value)| {
                             if ctls.iter().all(|c| index.bit(*c)) {
                                 accum.insert(index, value * factor);
+                            } else {
+                                accum.insert(index, value);
                             }
                             accum
                         });
             }
         } else if m01.is_nearly_zero() {
             // This is just identity, so we can effectively no-op, and just add a phase of -1 as indicated by m00.
-            if m00 == -Complex64::one() {
+            // Here, m00 + 1 == 0 is used to check if m00 == -1.
+            if (m00 + Complex64::one()).is_nearly_zero() {
                 let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
                 self.state =
                     self.state
@@ -1088,6 +1091,8 @@ impl QuantumSim {
                         .fold(SparseState::default(), |mut accum, (index, value)| {
                             if ctls.iter().all(|c| index.bit(*c)) {
                                 accum.insert(index, value * -Complex64::one());
+                            } else {
+                                accum.insert(index, value);
                             }
                             accum
                         });
@@ -1532,6 +1537,36 @@ mod tests {
             sim.joint_probability(&[q])
         ));
         assert!(!sim.joint_probability(&[q]).is_nearly_zero());
+    }
+
+    /// Verifies that when a controlled Ry(PI) is recognized as equivalent to a
+    /// controlled -iY (and handed as such), the state vector is not corrupted
+    #[test]
+    fn test_mcry_pi() {
+        let mut sim = QuantumSim::new(None);
+        let q1 = sim.allocate();
+        let q2 = sim.allocate();
+        sim.h(q1);
+        sim.x(q1);
+        sim.mcry(&[q1], PI, q2);
+        sim.x(q1);
+        // Expected result is an equal superposition of |01⟩ and |10⟩
+        assert!(almost_equal(sim.joint_probability(&[q1, q2]), 1.0));
+    }
+
+    /// Verifies that when a controlled Ry(2*PI) is recognized as equivalent to a
+    /// controlled -I (and handed as such), the state vector is not corrupted
+    #[test]
+    fn test_mcry_2pi() {
+        let mut sim = QuantumSim::new(None);
+        let q1 = sim.allocate();
+        let q2 = sim.allocate();
+        sim.h(q1);
+        sim.mcry(&[q1], 2.0 * PI, q2);
+        sim.h(q1);
+        // Expected result is |10⟩ because CRy(2pi) = Z ⊗ I, so conjugating
+        // with Hadamards on the left makes it equivalent to a bit flip X ⊗ I
+        assert!(almost_equal(sim.joint_probability(&[q1, q2]), 1.0));
     }
 
     /// Utility for testing operation equivalence.
