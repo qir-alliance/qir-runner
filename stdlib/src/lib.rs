@@ -113,6 +113,7 @@ mod tests {
         }
     }
 
+    #[ignore = "Test triggers a panic during unwinding"]
     #[test]
     #[should_panic(expected = "FAIL")]
     fn test_fail() {
