@@ -113,7 +113,7 @@ mod tests {
         }
     }
 
-    #[ignore = "In newer rust versions, test test triggers a panic during unwinding"]
+    #[ignore = "Test triggers a panic during unwinding"]
     #[test]
     #[should_panic(expected = "FAIL")]
     fn test_fail() {
