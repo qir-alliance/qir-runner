@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["exp"],"struct":["QuantumSim"],"type":["SparseState"]};
+window.SIDEBAR_ITEMS = {"fn":["controlled"],"mod":["exp"],"struct":["QuantumSim"],"type":["SparseState"]};
