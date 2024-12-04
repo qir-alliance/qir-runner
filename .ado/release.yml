@@ -95,6 +95,11 @@ extends:
               condition: succeeded()
               targetPath: $(Build.SourcesDirectory)/target/stdlib
               artifactName: qir-stdlib.${{ target.os }}.${{ target.arch }}
+            - output: pipelineArtifact
+              displayName: 'Upload backend Artifacts for ${{ target.os }} ${{ target.arch }}'
+              condition: succeeded()
+              targetPath: $(Build.SourcesDirectory)/target/backend
+              artifactName: qir-backend.${{ target.os }}.${{ target.arch }}
           steps:
           - task: RustInstaller@1
             inputs:
@@ -265,6 +270,22 @@ extends:
               Copy-Item -Path $(Build.SourcesDirectory)/target/release/qir_stdlib.lib -Destination $(Build.SourcesDirectory)/target/stdlib -Force
               Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/qir_stdlib.def -Destination $(Build.SourcesDirectory)/target/stdlib -Force
             displayName: Organize qir-stdlib artifacts (Windows)
+            condition: eq(variables['Agent.OS'], 'Windows_NT')
+
+          # Publish backend
+
+          - pwsh: |
+              New-Item -Path $(Build.SourcesDirectory)/target/backend -ItemType Directory -Force
+            displayName: Organize qir-backend artifacts (all platforms)
+
+          - pwsh: |
+              Copy-Item -Path $(Build.SourcesDirectory)/target/release/libqir_backend.a -Destination $(Build.SourcesDirectory)/target/backend -Force
+            displayName: Organize qir-backend artifacts (Linux/Mac)
+            condition: ne(variables['Agent.OS'], 'Windows_NT')
+
+          - pwsh: |
+              Copy-Item -Path $(Build.SourcesDirectory)/target/release/qir_backend.lib -Destination $(Build.SourcesDirectory)/target/backend -Force
+            displayName: Organize qir-backend artifacts (Windows)
             condition: eq(variables['Agent.OS'], 'Windows_NT')
 
     - stage: approval

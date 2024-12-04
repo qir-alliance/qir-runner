@@ -665,6 +665,122 @@ pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_vo
     });
 }
 
+/// QIR API for measuring the given qubit in the Pauli-X basis and storing the measured value with the given result identifier.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[no_mangle]
+pub extern "C" fn __quantum__qis__mx__body(qubit: *mut c_void, result: *mut c_void) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        let res_id = result as usize;
+        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
+
+        if state.res.len() < res_id + 1 {
+            state.res.resize(res_id + 1, false);
+        }
+
+        state.sim.h(qubit as usize);
+
+        *state
+            .res
+            .get_mut(res_id)
+            .expect("Result with given id missing after expansion.") =
+            state.sim.measure(qubit as usize);
+
+        state.sim.h(qubit as usize);
+    });
+}
+
+/// QIR API for measuring the given qubit in the Pauli-Y basis and storing the measured value with the given result identifier.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[no_mangle]
+pub extern "C" fn __quantum__qis__my__body(qubit: *mut c_void, result: *mut c_void) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        let res_id = result as usize;
+        ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
+
+        if state.res.len() < res_id + 1 {
+            state.res.resize(res_id + 1, false);
+        }
+
+        state.sim.h(qubit as usize);
+        state.sim.s(qubit as usize);
+        state.sim.h(qubit as usize);
+
+        *state
+            .res
+            .get_mut(res_id)
+            .expect("Result with given id missing after expansion.") =
+            state.sim.measure(qubit as usize);
+
+        state.sim.h(qubit as usize);
+        state.sim.sadj(qubit as usize);
+        state.sim.h(qubit as usize);
+    });
+}
+
+/// QIR API for joinly measuring the two given qubits in the computation basis and storing the measured value with the given result identifier.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[no_mangle]
+pub extern "C" fn __quantum__qis__mzz__body(
+    qubit0: *mut c_void,
+    qubit1: *mut c_void,
+    result: *mut c_void,
+) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        let res_id = result as usize;
+        ensure_sufficient_qubits(&mut state.sim, qubit0 as usize, &mut state.max_qubit_id);
+        ensure_sufficient_qubits(&mut state.sim, qubit1 as usize, &mut state.max_qubit_id);
+
+        if state.res.len() < res_id + 1 {
+            state.res.resize(res_id + 1, false);
+        }
+
+        *state
+            .res
+            .get_mut(res_id)
+            .expect("Result with given id missing after expansion.") =
+            state.sim.joint_measure(&[qubit0 as usize, qubit1 as usize]);
+    });
+}
+
+/// QIR API for joinly measuring the two given qubits in the Pauli-X basis and storing the measured value with the given result identifier.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[no_mangle]
+pub extern "C" fn __quantum__qis__mxx__body(
+    qubit0: *mut c_void,
+    qubit1: *mut c_void,
+    result: *mut c_void,
+) {
+    SIM_STATE.with(|sim_state| {
+        let state = &mut *sim_state.borrow_mut();
+        let res_id = result as usize;
+        ensure_sufficient_qubits(&mut state.sim, qubit0 as usize, &mut state.max_qubit_id);
+        ensure_sufficient_qubits(&mut state.sim, qubit1 as usize, &mut state.max_qubit_id);
+
+        if state.res.len() < res_id + 1 {
+            state.res.resize(res_id + 1, false);
+        }
+
+        state.sim.h(qubit0 as usize);
+        state.sim.h(qubit1 as usize);
+
+        *state
+            .res
+            .get_mut(res_id)
+            .expect("Result with given id missing after expansion.") =
+            state.sim.joint_measure(&[qubit0 as usize, qubit1 as usize]);
+
+        state.sim.h(qubit0 as usize);
+        state.sim.h(qubit1 as usize);
+    });
+}
+
 /// QIR API that reads the Boolean value corresponding to the given result identifier, where true
 /// indicates a |1⟩ state and false indicates a |0⟩ state.
 #[allow(clippy::missing_panics_doc)]
