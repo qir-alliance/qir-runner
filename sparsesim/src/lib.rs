@@ -16,9 +16,10 @@ mod nearly_zero;
 mod matrix_testing;
 
 use crate::nearly_zero::NearlyZero;
+use ndarray::{s, Array2};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use num_traits::{One, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
@@ -1194,6 +1195,114 @@ impl QuantumSim {
 
         self.mcrotation(ctls, theta, target, true);
     }
+
+    /// Applies the given unitary to the given targets, extending the unitary to accomodate controls if any.
+    /// # Panics
+    ///
+    /// This function will panic if given ids in either targets or optional controls that do not correspond to allocated
+    /// qubits, or if there is a duplicate id in targets or controls.
+    /// This funciton will panic if the given unitary matrix does not match the number of targets provided.
+    /// This function will panic if the given unitary is not square.
+    /// This function will panic if the total number of targets and controls too large for a `u32`.
+    pub fn apply(
+        &mut self,
+        unitary: &Array2<Complex64>,
+        targets: &[usize],
+        controls: Option<&[usize]>,
+    ) {
+        let mut targets = targets.to_vec();
+        let mut unitary = unitary.clone();
+
+        assert!(
+            unitary.ncols() == unitary.nrows(),
+            "Application given non-square matrix."
+        );
+
+        assert!(
+            targets.len() == unitary.ncols() / 2,
+            "Application given incorrect number of targets; expected {}, given {}.",
+            unitary.ncols() / 2,
+            targets.len()
+        );
+
+        if let Some(ctrls) = controls {
+            // Add controls in order as targets.
+            ctrls
+                .iter()
+                .enumerate()
+                .for_each(|(index, &element)| targets.insert(index, element));
+
+            // Extend the provided unitary by inserting it into an identity matrix.
+            unitary = controlled(&unitary, ctrls.len().try_into().unwrap());
+        }
+        Self::check_for_duplicates(&targets);
+
+        self.flush_queue(&targets, FlushLevel::HRxRy);
+
+        targets
+            .iter()
+            .rev()
+            .enumerate()
+            .for_each(|(target_loc, target)| {
+                let loc = *self
+                    .id_map
+                    .get(target)
+                    .unwrap_or_else(|| panic!("Unable to find qubit with id {target}"));
+                let swap_id = *self
+                    .id_map
+                    .iter()
+                    .find(|(_, &value)| value == target_loc)
+                    .unwrap()
+                    .0;
+                self.swap_qubit_state(loc, target_loc);
+                *(self.id_map.get_mut(&swap_id).unwrap()) = loc;
+                *(self.id_map.get_mut(target).unwrap()) = target_loc;
+            });
+
+        let op_size = unitary.nrows();
+        self.state = self
+            .state
+            .drain()
+            .fold(SparseState::default(), |mut accum, (index, val)| {
+                let i = &index / op_size;
+                let l = (&index % op_size)
+                    .to_usize()
+                    .expect("Cannot operate on more than 64 qubits at a time.");
+                for j in (0..op_size).filter(|j| !unitary.row(*j)[l].is_nearly_zero()) {
+                    let loc = (&i * op_size) + j;
+                    if let Some(entry) = accum.get_mut(&loc) {
+                        *entry += unitary.row(j)[l] * val;
+                    } else {
+                        accum.insert((&i * op_size) + j, unitary.row(j)[l] * val);
+                    }
+                    if accum
+                        .get(&loc)
+                        .map_or_else(|| false, |entry| (*entry).is_nearly_zero())
+                    {
+                        accum.remove(&loc);
+                    }
+                }
+                accum
+            });
+        assert!(
+            !self.state.is_empty(),
+            "State vector should never be empty."
+        );
+    }
+}
+
+/// Extends the given unitary matrix into a matrix corresponding to the same unitary with a given number of controls
+/// by inserting it into an identity matrix.
+#[must_use]
+pub fn controlled(u: &Array2<Complex64>, num_ctrls: u32) -> Array2<Complex64> {
+    let mut controlled_u = Array2::eye(u.nrows() * 2_usize.pow(num_ctrls));
+    controlled_u
+        .slice_mut(s![
+            (controlled_u.nrows() - u.nrows())..,
+            (controlled_u.ncols() - u.ncols())..
+        ])
+        .assign(u);
+    controlled_u
 }
 
 #[cfg(test)]
