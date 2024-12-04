@@ -19,7 +19,7 @@ use crate::nearly_zero::NearlyZero;
 use ndarray::{s, Array2};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use num_traits::{One, Zero, ToPrimitive};
+use num_traits::{One, ToPrimitive, Zero};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
