@@ -49,7 +49,8 @@ thread_local! {
 }
 
 /// Sets the seed for the pseudo-random number generator used during measurements.
-pub fn set_rng_seed(seed: u64) {
+#[no_mangle]
+pub extern "C" fn set_rng_seed(seed: u64) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
         state.sim.set_rng_seed(seed);
