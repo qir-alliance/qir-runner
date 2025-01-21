@@ -28,7 +28,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.82.0
+          toolchain: 1.84.0
           components: rustfmt clippy
       - name: cargo fmt
         run: cargo fmt -v --all -- --check
@@ -80,8 +80,16 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "ubuntu-20.04", arch: "amd64", env: { AUDITWHEEL_TAG: "manylinux_2_31_x86_64" } }
-          - { os: "ubuntu-22.04", arch: "amd64", env: { AUDITWHEEL_TAG: "manylinux_2_35_x86_64" } }
+          - {
+              os: "ubuntu-20.04",
+              arch: "amd64",
+              env: { AUDITWHEEL_TAG: "manylinux_2_31_x86_64" },
+            }
+          - {
+              os: "ubuntu-22.04",
+              arch: "amd64",
+              env: { AUDITWHEEL_TAG: "manylinux_2_35_x86_64" },
+            }
           - { os: "windows-2019", arch: "amd64", env: {} }
           - { os: "macos-14", arch: "arm64", env: {} }
     steps:
@@ -89,7 +97,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.82.0
+          toolchain: 1.84.0
           components: rustfmt clippy
       - name: Install LLVM
         uses: ./.github/actions/install-llvm
