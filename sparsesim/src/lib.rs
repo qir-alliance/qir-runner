@@ -26,6 +26,8 @@ use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
 pub type SparseState = FxHashMap<BigUint, Complex64>;
 
+const QUEUE_LIMIT: usize = 10_000;
+
 /// The `QuantumSim` struct contains the necessary state for tracking the simulation. Each instance of a
 /// `QuantumSim` represents an independant simulation.
 pub struct QuantumSim {
@@ -536,6 +538,9 @@ impl QuantumSim {
     }
 
     fn enqueue_op(&mut self, target: usize, ctls: Vec<usize>, op: OpCode) {
+        if self.op_queue.len() == QUEUE_LIMIT {
+            self.flush_ops();
+        }
         self.op_queue.push((ctls, target, op));
     }
 
@@ -1953,5 +1958,16 @@ mod tests {
             },
             3,
         );
+    }
+
+    #[test]
+    fn test_op_queue_flushes_at_limit() {
+        let mut sim = QuantumSim::default();
+        let q = sim.allocate();
+        for _ in 0..10_002 {
+            sim.x(q);
+        }
+        assert_eq!(sim.op_queue.len(), 2);
+        assert_eq!(sim.state.len(), 1);
     }
 }
