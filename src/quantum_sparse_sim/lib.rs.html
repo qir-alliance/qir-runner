@@ -1955,7 +1955,23 @@
 <a href="#1954" id="1954">1954</a>
 <a href="#1955" id="1955">1955</a>
 <a href="#1956" id="1956">1956</a>
-<a href="#1957" id="1957">1957</a></pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
+<a href="#1957" id="1957">1957</a>
+<a href="#1958" id="1958">1958</a>
+<a href="#1959" id="1959">1959</a>
+<a href="#1960" id="1960">1960</a>
+<a href="#1961" id="1961">1961</a>
+<a href="#1962" id="1962">1962</a>
+<a href="#1963" id="1963">1963</a>
+<a href="#1964" id="1964">1964</a>
+<a href="#1965" id="1965">1965</a>
+<a href="#1966" id="1966">1966</a>
+<a href="#1967" id="1967">1967</a>
+<a href="#1968" id="1968">1968</a>
+<a href="#1969" id="1969">1969</a>
+<a href="#1970" id="1970">1970</a>
+<a href="#1971" id="1971">1971</a>
+<a href="#1972" id="1972">1972</a>
+<a href="#1973" id="1973">1973</a></pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 </span><span class="attr">#![deny(clippy::all, clippy::pedantic)]
@@ -1982,6 +1998,8 @@
 <span class="kw">use </span>std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
 <span class="kw">pub type </span>SparseState = FxHashMap&lt;BigUint, Complex64&gt;;
+
+<span class="kw">const </span>QUEUE_LIMIT: usize = <span class="number">10_000</span>;
 
 <span class="doccomment">/// The `QuantumSim` struct contains the necessary state for tracking the simulation. Each instance of a
 /// `QuantumSim` represents an independant simulation.
@@ -2493,6 +2511,9 @@
     }
 
     <span class="kw">fn </span>enqueue_op(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize, ctls: Vec&lt;usize&gt;, op: OpCode) {
+        <span class="kw">if </span><span class="self">self</span>.op_queue.len() == QUEUE_LIMIT {
+            <span class="self">self</span>.flush_ops();
+        }
         <span class="self">self</span>.op_queue.push((ctls, target, op));
     }
 
@@ -3910,6 +3931,17 @@
             },
             <span class="number">3</span>,
         );
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_op_queue_flushes_at_limit() {
+        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::default();
+        <span class="kw">let </span>q = sim.allocate();
+        <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">10_002 </span>{
+            sim.x(q);
+        }
+        <span class="macro">assert_eq!</span>(sim.op_queue.len(), <span class="number">2</span>);
+        <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
     }
 }
 </code></pre></div></section></main></body></html>
