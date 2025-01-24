@@ -287,7 +287,7 @@
             .map(|c| {
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(c)
+                    .get(<span class="kw-2">*</span>c)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {c}"</span>))
                     <span class="kw">as </span>u64
             })
@@ -298,7 +298,7 @@
             .map(|c| {
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(c)
+                    .get(<span class="kw-2">*</span>c)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {c}"</span>))
                     <span class="kw">as </span>u64
             })

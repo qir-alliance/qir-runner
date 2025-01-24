@@ -1970,8 +1970,7 @@
 <a href="#1969" id="1969">1969</a>
 <a href="#1970" id="1970">1970</a>
 <a href="#1971" id="1971">1971</a>
-<a href="#1972" id="1972">1972</a>
-<a href="#1973" id="1973">1973</a></pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
+<a href="#1972" id="1972">1972</a></pre></div><pre class="rust"><code><span class="comment">// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 </span><span class="attr">#![deny(clippy::all, clippy::pedantic)]
@@ -1981,6 +1980,7 @@
 //! &lt;a href="https://arxiv.org/abs/2105.01533"&gt;Leveraging state sparsity for more efficient quantum simulations&lt;/a&gt;.
 
 </span><span class="kw">pub mod </span>exp;
+<span class="kw">mod </span>index_map;
 <span class="kw">mod </span>nearly_zero;
 
 <span class="comment">// Additional test infrastructure is available in matrix_testing that allows comparing the transformations
@@ -1989,6 +1989,7 @@
 </span><span class="kw">mod </span>matrix_testing;
 
 <span class="kw">use </span><span class="kw">crate</span>::nearly_zero::NearlyZero;
+<span class="kw">use </span>index_map::IndexMap;
 <span class="kw">use </span>ndarray::{s, Array2};
 <span class="kw">use </span>num_bigint::BigUint;
 <span class="kw">use </span>num_complex::Complex64;
@@ -2008,7 +2009,7 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) state: SparseState,
 
     <span class="doccomment">/// The mapping from qubit identifiers to internal state locations.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) id_map: FxHashMap&lt;usize, usize&gt;,
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) id_map: IndexMap&lt;usize, usize&gt;,
 
     <span class="doccomment">/// The random number generator used for probabilistic operations.
     </span>rng: RefCell&lt;StdRng&gt;,
@@ -2017,10 +2018,10 @@
     </span>h_flag: BigUint,
 
     <span class="doccomment">/// The map for tracking queued Pauli-X rotations by a given angle for a given qubit.
-    </span>rx_queue: FxHashMap&lt;usize, f64&gt;,
+    </span>rx_queue: IndexMap&lt;usize, f64&gt;,
 
     <span class="doccomment">/// The map for tracking queued Pauli-Y rotations by a given angle for a given qubit.
-    </span>ry_queue: FxHashMap&lt;usize, f64&gt;,
+    </span>ry_queue: IndexMap&lt;usize, f64&gt;,
 
     <span class="doccomment">/// The list of queued gate operations.
     </span>op_queue: Vec&lt;(Vec&lt;usize&gt;, usize, OpCode)&gt;,
@@ -2071,16 +2072,17 @@
     <span class="doccomment">/// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>new(rng: <span class="prelude-ty">Option</span>&lt;StdRng&gt;) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>default_initial_size = <span class="number">50</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
             state: initial_state,
-            id_map: FxHashMap::default(),
+            id_map: IndexMap::with_capacity(default_initial_size),
             rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
-            rx_queue: FxHashMap::default(),
-            ry_queue: FxHashMap::default(),
+            rx_queue: IndexMap::with_capacity(default_initial_size),
+            ry_queue: IndexMap::with_capacity(default_initial_size),
             op_queue: Vec::new(),
         }
     }
@@ -2101,24 +2103,23 @@
     </span><span class="kw">pub fn </span>get_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; (Vec&lt;(BigUint, Complex64)&gt;, usize) {
         <span class="comment">// Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.keys().copied().collect();
+        </span><span class="kw">let </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.iter().map(|(k, <span class="kw">_</span>)| k).collect();
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>sorted_keys, FlushLevel::HRxRy);
 
-        sorted_keys.sort_unstable();
         sorted_keys.iter().enumerate().for_each(|(index, <span class="kw-2">&amp;</span>key)| {
-            <span class="kw">if </span>index != <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key] {
-                <span class="self">self</span>.swap_qubit_state(<span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key], index);
-                <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw-2">&amp;</span>swapped_key, <span class="kw">_</span>)) =
+            <span class="kw">if </span>index != <span class="self">self</span>.id_map[key] {
+                <span class="self">self</span>.swap_qubit_state(<span class="self">self</span>.id_map[key], index);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>((swapped_key, <span class="kw">_</span>)) =
                     <span class="self">self</span>.id_map.iter().find(|(<span class="kw">_</span>, <span class="kw-2">&amp;</span>value)| value == index)
                 {
                     <span class="kw-2">*</span>(<span class="self">self
                         </span>.id_map
-                        .get_mut(<span class="kw-2">&amp;</span>swapped_key)
-                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
+                        .get_mut(swapped_key)
+                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[key];
                 }
                 <span class="kw-2">*</span>(<span class="self">self
                     </span>.id_map
-                    .get_mut(<span class="kw-2">&amp;</span>key)
+                    .get_mut(key)
                     .expect(<span class="string">"key should be present in map"</span>)) = index;
             }
         });
@@ -2135,16 +2136,15 @@
     </span><span class="kw">pub fn </span>allocate(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; usize {
         <span class="comment">// Add the new entry into the FxHashMap at the first available sequential ID and first available
         // sequential location.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;<span class="kw-2">&amp;</span>usize&gt; = <span class="self">self</span>.id_map.keys().collect();
-        sorted_keys.sort();
+        </span><span class="kw">let </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.iter().map(|(k, <span class="kw">_</span>)| k).collect();
         <span class="kw">let </span><span class="kw-2">mut </span>sorted_vals: Vec&lt;<span class="kw-2">&amp;</span>usize&gt; = <span class="self">self</span>.id_map.values().collect();
-        sorted_vals.sort();
+        sorted_vals.sort_unstable();
         <span class="kw">let </span>new_key = sorted_keys
             .iter()
             .enumerate()
-            .take_while(|(index, key)| index == <span class="kw-2">**</span>key)
+            .take_while(|(index, key)| index == <span class="kw-2">*</span>key)
             .last()
-            .map_or(<span class="number">0_usize</span>, |(<span class="kw">_</span>, &amp;&amp;key)| key + <span class="number">1</span>);
+            .map_or(<span class="number">0_usize</span>, |(<span class="kw">_</span>, <span class="kw-2">&amp;</span>key)| key + <span class="number">1</span>);
         <span class="kw">let </span>new_val = sorted_vals
             .iter()
             .enumerate()
@@ -2165,10 +2165,8 @@
     </span><span class="kw">pub fn </span>release(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: usize) {
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[id], FlushLevel::HRxRy);
 
-        <span class="kw">let </span>loc = <span class="self">self
-            </span>.id_map
-            .remove(<span class="kw-2">&amp;</span>id)
-            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}."</span>));
+        <span class="kw">let </span>loc = <span class="self">self</span>.id_map[id];
+        <span class="self">self</span>.id_map.remove(id);
 
         <span class="kw">if </span><span class="self">self</span>.id_map.is_empty() {
             <span class="comment">// When no qubits are allocated, we can reset the sparse state to a clean ground, so
@@ -2202,24 +2200,24 @@
     </span><span class="kw">pub fn </span>dump(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; String {
         <span class="comment">// Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.keys().copied().collect();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>sorted_keys: Vec&lt;usize&gt; = <span class="self">self</span>.id_map.iter().map(|(k, <span class="kw">_</span>)| k).collect();
         <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>sorted_keys, FlushLevel::HRxRy);
 
         sorted_keys.sort_unstable();
         sorted_keys.iter().enumerate().for_each(|(index, <span class="kw-2">&amp;</span>key)| {
-            <span class="kw">if </span>index != <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key] {
-                <span class="self">self</span>.swap_qubit_state(<span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key], index);
-                <span class="kw">if let </span><span class="prelude-val">Some</span>((<span class="kw-2">&amp;</span>swapped_key, <span class="kw">_</span>)) =
+            <span class="kw">if </span>index != <span class="self">self</span>.id_map[key] {
+                <span class="self">self</span>.swap_qubit_state(<span class="self">self</span>.id_map[key], index);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>((swapped_key, <span class="kw">_</span>)) =
                     <span class="self">self</span>.id_map.iter().find(|(<span class="kw">_</span>, <span class="kw-2">&amp;</span>value)| value == index)
                 {
                     <span class="kw-2">*</span>(<span class="self">self
                         </span>.id_map
-                        .get_mut(<span class="kw-2">&amp;</span>swapped_key)
-                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[<span class="kw-2">&amp;</span>key];
+                        .get_mut(swapped_key)
+                        .expect(<span class="string">"key should be present in map"</span>)) = <span class="self">self</span>.id_map[key];
                 }
                 <span class="kw-2">*</span>(<span class="self">self
                     </span>.id_map
-                    .get_mut(<span class="kw-2">&amp;</span>key)
+                    .get_mut(key)
                     .expect(<span class="string">"key should be present in map"</span>)) = index;
             }
         });
@@ -2279,7 +2277,7 @@
             .map(|id| {
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(id)
+                    .get(<span class="kw-2">*</span>id)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>))
             })
             .collect();
@@ -2303,7 +2301,7 @@
         <span class="self">self</span>.measure_impl(
             <span class="kw-2">*</span><span class="self">self
                 </span>.id_map
-                .get(<span class="kw-2">&amp;</span>id)
+                .get(id)
                 .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>)),
         )
     }
@@ -2333,7 +2331,7 @@
             .map(|id| {
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(id)
+                    .get(<span class="kw-2">*</span>id)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>))
             })
             .collect();
@@ -2408,42 +2406,42 @@
         <span class="self">self</span>.h_flag.set_bit(qubit1 <span class="kw">as </span>u64, h_val2);
         <span class="self">self</span>.h_flag.set_bit(qubit2 <span class="kw">as </span>u64, h_val1);
 
-        <span class="kw">let </span>x_angle1 = <span class="self">self</span>.rx_queue.get(<span class="kw-2">&amp;</span>qubit1).copied();
-        <span class="kw">let </span>x_angle2 = <span class="self">self</span>.rx_queue.get(<span class="kw-2">&amp;</span>qubit2).copied();
+        <span class="kw">let </span>x_angle1 = <span class="self">self</span>.rx_queue.get(qubit1).copied();
+        <span class="kw">let </span>x_angle2 = <span class="self">self</span>.rx_queue.get(qubit2).copied();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(angle) = x_angle1 {
             <span class="self">self</span>.rx_queue.insert(qubit2, angle);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.rx_queue.remove(<span class="kw-2">&amp;</span>qubit2);
+            <span class="self">self</span>.rx_queue.remove(qubit2);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(angle) = x_angle2 {
             <span class="self">self</span>.rx_queue.insert(qubit1, angle);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.rx_queue.remove(<span class="kw-2">&amp;</span>qubit1);
+            <span class="self">self</span>.rx_queue.remove(qubit1);
         }
 
-        <span class="kw">let </span>y_angle1 = <span class="self">self</span>.ry_queue.get(<span class="kw-2">&amp;</span>qubit1).copied();
-        <span class="kw">let </span>y_angle2 = <span class="self">self</span>.ry_queue.get(<span class="kw-2">&amp;</span>qubit2).copied();
+        <span class="kw">let </span>y_angle1 = <span class="self">self</span>.ry_queue.get(qubit1).copied();
+        <span class="kw">let </span>y_angle2 = <span class="self">self</span>.ry_queue.get(qubit2).copied();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(ry_val) = y_angle1 {
             <span class="self">self</span>.ry_queue.insert(qubit2, ry_val);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.ry_queue.remove(<span class="kw-2">&amp;</span>qubit2);
+            <span class="self">self</span>.ry_queue.remove(qubit2);
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(ry_val) = y_angle2 {
             <span class="self">self</span>.ry_queue.insert(qubit1, ry_val);
         } <span class="kw">else </span>{
-            <span class="self">self</span>.ry_queue.remove(<span class="kw-2">&amp;</span>qubit1);
+            <span class="self">self</span>.ry_queue.remove(qubit1);
         }
 
         <span class="kw">let </span>qubit1_mapped = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
-            .get(<span class="kw-2">&amp;</span>qubit1)
+            .get(qubit1)
             .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {qubit1}"</span>));
         <span class="kw">let </span>qubit2_mapped = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
-            .get(<span class="kw-2">&amp;</span>qubit2)
+            .get(qubit2)
             .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {qubit2}"</span>));
-        <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(<span class="kw-2">&amp;</span>qubit1).unwrap() = qubit2_mapped;
-        <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(<span class="kw-2">&amp;</span>qubit2).unwrap() = qubit1_mapped;
+        <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(qubit1).unwrap() = qubit2_mapped;
+        <span class="kw-2">*</span><span class="self">self</span>.id_map.get_mut(qubit2).unwrap() = qubit1_mapped;
     }
 
     <span class="doccomment">/// Swaps the states of two qubits throughout the sparse state map.
@@ -2492,7 +2490,7 @@
 
         <span class="kw">let </span>target = <span class="kw-2">*</span><span class="self">self
             </span>.id_map
-            .get(<span class="kw-2">&amp;</span>target)
+            .get(target)
             .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {target}"</span>))
             <span class="kw">as </span>u64;
 
@@ -2501,7 +2499,7 @@
             .map(|c| {
                 <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(c)
+                    .get(<span class="kw-2">*</span>c)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {c}"</span>))
                     <span class="kw">as </span>u64
             })
@@ -2519,8 +2517,8 @@
 
     <span class="kw">fn </span>has_queued_hrxy(<span class="kw-2">&amp;</span><span class="self">self</span>, target: usize) -&gt; bool {
         <span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64)
-            || <span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target)
-            || <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target)
+            || <span class="self">self</span>.rx_queue.contains_key(target)
+            || <span class="self">self</span>.ry_queue.contains_key(target)
     }
 
     <span class="kw">fn </span>maybe_flush_queue(<span class="kw-2">&amp;mut </span><span class="self">self</span>, qubits: <span class="kw-2">&amp;</span>[usize], level: FlushLevel) {
@@ -2581,16 +2579,16 @@
     }
 
     <span class="kw">fn </span>flush_rx(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(theta) = <span class="self">self</span>.rx_queue.get(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(theta) = <span class="self">self</span>.rx_queue.get(target) {
             <span class="self">self</span>.mcrotation(<span class="kw-2">&amp;</span>[], <span class="kw-2">*</span>theta, target, <span class="bool-val">false</span>);
-            <span class="self">self</span>.rx_queue.remove(<span class="kw-2">&amp;</span>target);
+            <span class="self">self</span>.rx_queue.remove(target);
         }
     }
 
     <span class="kw">fn </span>flush_ry(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(theta) = <span class="self">self</span>.ry_queue.get(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(theta) = <span class="self">self</span>.ry_queue.get(target) {
             <span class="self">self</span>.mcrotation(<span class="kw-2">&amp;</span>[], <span class="kw-2">*</span>theta, target, <span class="bool-val">true</span>);
-            <span class="self">self</span>.ry_queue.remove(<span class="kw-2">&amp;</span>target);
+            <span class="self">self</span>.ry_queue.remove(target);
         }
     }
 
@@ -2629,7 +2627,7 @@
 
     <span class="doccomment">/// Single qubit X gate.
     </span><span class="kw">pub fn </span>x(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(target) {
             <span class="comment">// XY = -YX, so switch the sign on any queued Ry rotations.
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
@@ -2650,14 +2648,14 @@
 
         <span class="kw">if </span>ctls.len() &gt; <span class="number">1 </span>{
             <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
-        } <span class="kw">else if </span><span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>ctls[<span class="number">0</span>])
-            || <span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>ctls[<span class="number">0</span>])
+        } <span class="kw">else if </span><span class="self">self</span>.ry_queue.contains_key(ctls[<span class="number">0</span>])
+            || <span class="self">self</span>.rx_queue.contains_key(ctls[<span class="number">0</span>])
             || (<span class="self">self</span>.h_flag.bit(ctls[<span class="number">0</span>] <span class="kw">as </span>u64) &amp;&amp; !<span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64))
         {
             <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
         }
 
-        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
         }
 
@@ -2691,7 +2689,7 @@
 
     <span class="doccomment">/// Single qubit Y gate.
     </span><span class="kw">pub fn </span>y(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(target) {
             <span class="comment">// XY = -YX, so flip the sign on any queued Rx rotation.
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
@@ -2709,7 +2707,7 @@
 
         <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
 
-        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRx);
         }
 
@@ -2755,12 +2753,12 @@
 
     <span class="doccomment">/// Single qubit Z gate.
     </span><span class="kw">pub fn </span>z(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(target) {
             <span class="comment">// ZY = -YZ, so flip the sign on any queued Ry rotations.
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
 
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(target) {
             <span class="comment">// ZX = -XZ, so flip the sign on any queued Rx rotations.
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
@@ -2784,13 +2782,13 @@
         </span><span class="kw">let </span>count = ctls.iter().fold(<span class="number">0</span>, |accum, c| {
             accum
                 + i32::from(<span class="self">self</span>.h_flag.bit(<span class="kw-2">*</span>c <span class="kw">as </span>u64))
-                + <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(c) || <span class="self">self</span>.ry_queue.contains_key(c) {
+                + <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">*</span>c) || <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">*</span>c) {
                     <span class="number">2
                 </span>} <span class="kw">else </span>{
                     <span class="number">0
                 </span>}
         }) + i32::from(<span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64))
-            + <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) || <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+            + <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(target) || <span class="self">self</span>.ry_queue.contains_key(target) {
                 <span class="number">2
             </span>} <span class="kw">else </span>{
                 <span class="number">0
@@ -2935,12 +2933,12 @@
 
     <span class="doccomment">/// Single qubit H gate.
     </span><span class="kw">pub fn </span>h(<span class="kw-2">&amp;mut </span><span class="self">self</span>, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(target) {
             <span class="comment">// YH = -HY, so flip the sign on any queued Ry rotations.
             </span><span class="kw-2">*</span>entry <span class="kw-2">*</span>= -<span class="number">1.0</span>;
         }
 
-        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(target) {
             <span class="comment">// Can't commute well with queued Rx, so flush those ops.
             </span><span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRx);
         }
@@ -2952,7 +2950,7 @@
     <span class="doccomment">/// Multi-controlled H gate.
     </span><span class="kw">pub fn </span>mch(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], target: usize) {
         <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target) || <span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(target) || <span class="self">self</span>.rx_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
         }
 
@@ -3123,13 +3121,13 @@
 
     <span class="doccomment">/// Single qubit Rx gate.
     </span><span class="kw">pub fn </span>rx(<span class="kw-2">&amp;mut </span><span class="self">self</span>, theta: f64, target: usize) {
-        <span class="kw">if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) || <span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) || <span class="self">self</span>.ry_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
         }
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.rx_queue.get_mut(target) {
             <span class="kw-2">*</span>entry += theta;
             <span class="kw">if </span>entry.is_nearly_zero() {
-                <span class="self">self</span>.rx_queue.remove(<span class="kw-2">&amp;</span>target);
+                <span class="self">self</span>.rx_queue.remove(target);
             }
         } <span class="kw">else </span>{
             <span class="self">self</span>.rx_queue.insert(target, theta);
@@ -3140,7 +3138,7 @@
     </span><span class="kw">pub fn </span>mcrx(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], theta: f64, target: usize) {
         <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
 
-        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
         } <span class="kw">else if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::H);
@@ -3151,10 +3149,10 @@
 
     <span class="doccomment">/// Single qubit Ry gate.
     </span><span class="kw">pub fn </span>ry(<span class="kw-2">&amp;mut </span><span class="self">self</span>, theta: f64, target: usize) {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(entry) = <span class="self">self</span>.ry_queue.get_mut(target) {
             <span class="kw-2">*</span>entry += theta;
             <span class="kw">if </span>entry.is_nearly_zero() {
-                <span class="self">self</span>.ry_queue.remove(<span class="kw-2">&amp;</span>target);
+                <span class="self">self</span>.ry_queue.remove(target);
             }
         } <span class="kw">else </span>{
             <span class="self">self</span>.ry_queue.insert(target, theta);
@@ -3165,7 +3163,7 @@
     </span><span class="kw">pub fn </span>mcry(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctls: <span class="kw-2">&amp;</span>[usize], theta: f64, target: usize) {
         <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
 
-        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(<span class="kw-2">&amp;</span>target) {
+        <span class="kw">if </span><span class="self">self</span>.rx_queue.contains_key(target) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRx);
         } <span class="kw">else if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) {
             <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::H);
@@ -3224,17 +3222,17 @@
             .for_each(|(target_loc, target)| {
                 <span class="kw">let </span>loc = <span class="kw-2">*</span><span class="self">self
                     </span>.id_map
-                    .get(target)
+                    .get(<span class="kw-2">*</span>target)
                     .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {target}"</span>));
-                <span class="kw">let </span>swap_id = <span class="kw-2">*</span><span class="self">self
+                <span class="kw">let </span>swap_id = <span class="self">self
                     </span>.id_map
                     .iter()
                     .find(|(<span class="kw">_</span>, <span class="kw-2">&amp;</span>value)| value == target_loc)
                     .unwrap()
                     .<span class="number">0</span>;
                 <span class="self">self</span>.swap_qubit_state(loc, target_loc);
-                <span class="kw-2">*</span>(<span class="self">self</span>.id_map.get_mut(<span class="kw-2">&amp;</span>swap_id).unwrap()) = loc;
-                <span class="kw-2">*</span>(<span class="self">self</span>.id_map.get_mut(target).unwrap()) = target_loc;
+                <span class="kw-2">*</span>(<span class="self">self</span>.id_map.get_mut(swap_id).unwrap()) = loc;
+                <span class="kw-2">*</span>(<span class="self">self</span>.id_map.get_mut(<span class="kw-2">*</span>target).unwrap()) = target_loc;
             });
 
         <span class="kw">let </span>op_size = unitary.nrows();
