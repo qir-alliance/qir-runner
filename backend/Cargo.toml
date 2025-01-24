@@ -26,6 +26,10 @@ harness = false
 name = "grover"
 harness = false
 
+[[bench]]
+name = "qubit_management"
+harness = false
+
 [lib]
 crate-type = ["staticlib","rlib"]
 bench = false
