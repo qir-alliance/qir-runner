@@ -40,7 +40,7 @@ impl QuantumSim {
             .map(|c| {
                 *self
                     .id_map
-                    .get(c)
+                    .get(*c)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
@@ -51,7 +51,7 @@ impl QuantumSim {
             .map(|c| {
                 *self
                     .id_map
-                    .get(c)
+                    .get(*c)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
