@@ -6,10 +6,10 @@ use qir_backend::*;
 
 /// Benchmarks large number of qubit allocations and releases.
 pub fn allocate_release(c: &mut Criterion) {
-    c.bench_function("Allocate-Release 10k qubits", |b| {
+    c.bench_function("Allocate-Release 2k qubits", |b| {
         b.iter(|| {
             // Prepare a uniform superposition.
-            let qs = __quantum__rt__qubit_allocate_array(10_000);
+            let qs = __quantum__rt__qubit_allocate_array(2_000);
             unsafe {
                 __quantum__rt__qubit_release_array(qs);
             }
