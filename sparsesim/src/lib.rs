@@ -8,6 +8,7 @@
 //! <a href="https://arxiv.org/abs/2105.01533">Leveraging state sparsity for more efficient quantum simulations</a>.
 
 pub mod exp;
+mod index_map;
 mod nearly_zero;
 
 // Additional test infrastructure is available in matrix_testing that allows comparing the transformations
@@ -16,6 +17,7 @@ mod nearly_zero;
 mod matrix_testing;
 
 use crate::nearly_zero::NearlyZero;
+use index_map::IndexMap;
 use ndarray::{s, Array2};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -26,6 +28,8 @@ use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
 pub type SparseState = FxHashMap<BigUint, Complex64>;
 
+const QUEUE_LIMIT: usize = 10_000;
+
 /// The `QuantumSim` struct contains the necessary state for tracking the simulation. Each instance of a
 /// `QuantumSim` represents an independant simulation.
 pub struct QuantumSim {
@@ -33,7 +37,7 @@ pub struct QuantumSim {
     pub(crate) state: SparseState,
 
     /// The mapping from qubit identifiers to internal state locations.
-    pub(crate) id_map: FxHashMap<usize, usize>,
+    pub(crate) id_map: IndexMap<usize, usize>,
 
     /// The random number generator used for probabilistic operations.
     rng: RefCell<StdRng>,
@@ -42,10 +46,10 @@ pub struct QuantumSim {
     h_flag: BigUint,
 
     /// The map for tracking queued Pauli-X rotations by a given angle for a given qubit.
-    rx_queue: FxHashMap<usize, f64>,
+    rx_queue: IndexMap<usize, f64>,
 
     /// The map for tracking queued Pauli-Y rotations by a given angle for a given qubit.
-    ry_queue: FxHashMap<usize, f64>,
+    ry_queue: IndexMap<usize, f64>,
 
     /// The list of queued gate operations.
     op_queue: Vec<(Vec<usize>, usize, OpCode)>,
@@ -96,16 +100,17 @@ impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
     pub fn new(rng: Option<StdRng>) -> Self {
+        let default_initial_size = 50;
         let mut initial_state = SparseState::default();
         initial_state.insert(BigUint::zero(), Complex64::one());
 
         QuantumSim {
             state: initial_state,
-            id_map: FxHashMap::default(),
+            id_map: IndexMap::with_capacity(default_initial_size),
             rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
-            rx_queue: FxHashMap::default(),
-            ry_queue: FxHashMap::default(),
+            rx_queue: IndexMap::with_capacity(default_initial_size),
+            ry_queue: IndexMap::with_capacity(default_initial_size),
             op_queue: Vec::new(),
         }
     }
@@ -126,24 +131,23 @@ impl QuantumSim {
     pub fn get_state(&mut self) -> (Vec<(BigUint, Complex64)>, usize) {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
-        let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
+        let sorted_keys: Vec<usize> = self.id_map.iter().map(|(k, _)| k).collect();
         self.flush_queue(&sorted_keys, FlushLevel::HRxRy);
 
-        sorted_keys.sort_unstable();
         sorted_keys.iter().enumerate().for_each(|(index, &key)| {
-            if index != self.id_map[&key] {
-                self.swap_qubit_state(self.id_map[&key], index);
-                if let Some((&swapped_key, _)) =
+            if index != self.id_map[key] {
+                self.swap_qubit_state(self.id_map[key], index);
+                if let Some((swapped_key, _)) =
                     self.id_map.iter().find(|(_, &value)| value == index)
                 {
                     *(self
                         .id_map
-                        .get_mut(&swapped_key)
-                        .expect("key should be present in map")) = self.id_map[&key];
+                        .get_mut(swapped_key)
+                        .expect("key should be present in map")) = self.id_map[key];
                 }
                 *(self
                     .id_map
-                    .get_mut(&key)
+                    .get_mut(key)
                     .expect("key should be present in map")) = index;
             }
         });
@@ -160,16 +164,15 @@ impl QuantumSim {
     pub fn allocate(&mut self) -> usize {
         // Add the new entry into the FxHashMap at the first available sequential ID and first available
         // sequential location.
-        let mut sorted_keys: Vec<&usize> = self.id_map.keys().collect();
-        sorted_keys.sort();
+        let sorted_keys: Vec<usize> = self.id_map.iter().map(|(k, _)| k).collect();
         let mut sorted_vals: Vec<&usize> = self.id_map.values().collect();
-        sorted_vals.sort();
+        sorted_vals.sort_unstable();
         let new_key = sorted_keys
             .iter()
             .enumerate()
-            .take_while(|(index, key)| index == **key)
+            .take_while(|(index, key)| index == *key)
             .last()
-            .map_or(0_usize, |(_, &&key)| key + 1);
+            .map_or(0_usize, |(_, &key)| key + 1);
         let new_val = sorted_vals
             .iter()
             .enumerate()
@@ -190,10 +193,8 @@ impl QuantumSim {
     pub fn release(&mut self, id: usize) {
         self.flush_queue(&[id], FlushLevel::HRxRy);
 
-        let loc = self
-            .id_map
-            .remove(&id)
-            .unwrap_or_else(|| panic!("Unable to find qubit with id {id}."));
+        let loc = self.id_map[id];
+        self.id_map.remove(id);
 
         if self.id_map.is_empty() {
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
@@ -227,24 +228,24 @@ impl QuantumSim {
     pub fn dump(&mut self) -> String {
         // Swap all the entries in the state to be ordered by qubit identifier. This makes
         // interpreting the state easier for external consumers that don't have access to the id map.
-        let mut sorted_keys: Vec<usize> = self.id_map.keys().copied().collect();
+        let mut sorted_keys: Vec<usize> = self.id_map.iter().map(|(k, _)| k).collect();
         self.flush_queue(&sorted_keys, FlushLevel::HRxRy);
 
         sorted_keys.sort_unstable();
         sorted_keys.iter().enumerate().for_each(|(index, &key)| {
-            if index != self.id_map[&key] {
-                self.swap_qubit_state(self.id_map[&key], index);
-                if let Some((&swapped_key, _)) =
+            if index != self.id_map[key] {
+                self.swap_qubit_state(self.id_map[key], index);
+                if let Some((swapped_key, _)) =
                     self.id_map.iter().find(|(_, &value)| value == index)
                 {
                     *(self
                         .id_map
-                        .get_mut(&swapped_key)
-                        .expect("key should be present in map")) = self.id_map[&key];
+                        .get_mut(swapped_key)
+                        .expect("key should be present in map")) = self.id_map[key];
                 }
                 *(self
                     .id_map
-                    .get_mut(&key)
+                    .get_mut(key)
                     .expect("key should be present in map")) = index;
             }
         });
@@ -304,7 +305,7 @@ impl QuantumSim {
             .map(|id| {
                 *self
                     .id_map
-                    .get(id)
+                    .get(*id)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"))
             })
             .collect();
@@ -328,7 +329,7 @@ impl QuantumSim {
         self.measure_impl(
             *self
                 .id_map
-                .get(&id)
+                .get(id)
                 .unwrap_or_else(|| panic!("Unable to find qubit with id {id}")),
         )
     }
@@ -358,7 +359,7 @@ impl QuantumSim {
             .map(|id| {
                 *self
                     .id_map
-                    .get(id)
+                    .get(*id)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"))
             })
             .collect();
@@ -433,42 +434,42 @@ impl QuantumSim {
         self.h_flag.set_bit(qubit1 as u64, h_val2);
         self.h_flag.set_bit(qubit2 as u64, h_val1);
 
-        let x_angle1 = self.rx_queue.get(&qubit1).copied();
-        let x_angle2 = self.rx_queue.get(&qubit2).copied();
+        let x_angle1 = self.rx_queue.get(qubit1).copied();
+        let x_angle2 = self.rx_queue.get(qubit2).copied();
         if let Some(angle) = x_angle1 {
             self.rx_queue.insert(qubit2, angle);
         } else {
-            self.rx_queue.remove(&qubit2);
+            self.rx_queue.remove(qubit2);
         }
         if let Some(angle) = x_angle2 {
             self.rx_queue.insert(qubit1, angle);
         } else {
-            self.rx_queue.remove(&qubit1);
+            self.rx_queue.remove(qubit1);
         }
 
-        let y_angle1 = self.ry_queue.get(&qubit1).copied();
-        let y_angle2 = self.ry_queue.get(&qubit2).copied();
+        let y_angle1 = self.ry_queue.get(qubit1).copied();
+        let y_angle2 = self.ry_queue.get(qubit2).copied();
         if let Some(ry_val) = y_angle1 {
             self.ry_queue.insert(qubit2, ry_val);
         } else {
-            self.ry_queue.remove(&qubit2);
+            self.ry_queue.remove(qubit2);
         }
         if let Some(ry_val) = y_angle2 {
             self.ry_queue.insert(qubit1, ry_val);
         } else {
-            self.ry_queue.remove(&qubit1);
+            self.ry_queue.remove(qubit1);
         }
 
         let qubit1_mapped = *self
             .id_map
-            .get(&qubit1)
+            .get(qubit1)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {qubit1}"));
         let qubit2_mapped = *self
             .id_map
-            .get(&qubit2)
+            .get(qubit2)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {qubit2}"));
-        *self.id_map.get_mut(&qubit1).unwrap() = qubit2_mapped;
-        *self.id_map.get_mut(&qubit2).unwrap() = qubit1_mapped;
+        *self.id_map.get_mut(qubit1).unwrap() = qubit2_mapped;
+        *self.id_map.get_mut(qubit2).unwrap() = qubit1_mapped;
     }
 
     /// Swaps the states of two qubits throughout the sparse state map.
@@ -517,7 +518,7 @@ impl QuantumSim {
 
         let target = *self
             .id_map
-            .get(&target)
+            .get(target)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {target}"))
             as u64;
 
@@ -526,7 +527,7 @@ impl QuantumSim {
             .map(|c| {
                 *self
                     .id_map
-                    .get(c)
+                    .get(*c)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {c}"))
                     as u64
             })
@@ -536,13 +537,16 @@ impl QuantumSim {
     }
 
     fn enqueue_op(&mut self, target: usize, ctls: Vec<usize>, op: OpCode) {
+        if self.op_queue.len() == QUEUE_LIMIT {
+            self.flush_ops();
+        }
         self.op_queue.push((ctls, target, op));
     }
 
     fn has_queued_hrxy(&self, target: usize) -> bool {
         self.h_flag.bit(target as u64)
-            || self.rx_queue.contains_key(&target)
-            || self.ry_queue.contains_key(&target)
+            || self.rx_queue.contains_key(target)
+            || self.ry_queue.contains_key(target)
     }
 
     fn maybe_flush_queue(&mut self, qubits: &[usize], level: FlushLevel) {
@@ -603,16 +607,16 @@ impl QuantumSim {
     }
 
     fn flush_rx(&mut self, target: usize) {
-        if let Some(theta) = self.rx_queue.get(&target) {
+        if let Some(theta) = self.rx_queue.get(target) {
             self.mcrotation(&[], *theta, target, false);
-            self.rx_queue.remove(&target);
+            self.rx_queue.remove(target);
         }
     }
 
     fn flush_ry(&mut self, target: usize) {
-        if let Some(theta) = self.ry_queue.get(&target) {
+        if let Some(theta) = self.ry_queue.get(target) {
             self.mcrotation(&[], *theta, target, true);
-            self.ry_queue.remove(&target);
+            self.ry_queue.remove(target);
         }
     }
 
@@ -651,7 +655,7 @@ impl QuantumSim {
 
     /// Single qubit X gate.
     pub fn x(&mut self, target: usize) {
-        if let Some(entry) = self.ry_queue.get_mut(&target) {
+        if let Some(entry) = self.ry_queue.get_mut(target) {
             // XY = -YX, so switch the sign on any queued Ry rotations.
             *entry *= -1.0;
         }
@@ -672,14 +676,14 @@ impl QuantumSim {
 
         if ctls.len() > 1 {
             self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
-        } else if self.ry_queue.contains_key(&ctls[0])
-            || self.rx_queue.contains_key(&ctls[0])
+        } else if self.ry_queue.contains_key(ctls[0])
+            || self.rx_queue.contains_key(ctls[0])
             || (self.h_flag.bit(ctls[0] as u64) && !self.h_flag.bit(target as u64))
         {
             self.flush_queue(ctls, FlushLevel::HRxRy);
         }
 
-        if self.ry_queue.contains_key(&target) {
+        if self.ry_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRxRy);
         }
 
@@ -713,7 +717,7 @@ impl QuantumSim {
 
     /// Single qubit Y gate.
     pub fn y(&mut self, target: usize) {
-        if let Some(entry) = self.rx_queue.get_mut(&target) {
+        if let Some(entry) = self.rx_queue.get_mut(target) {
             // XY = -YX, so flip the sign on any queued Rx rotation.
             *entry *= -1.0;
         }
@@ -731,7 +735,7 @@ impl QuantumSim {
 
         self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
 
-        if self.rx_queue.contains_key(&target) {
+        if self.rx_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRx);
         }
 
@@ -777,12 +781,12 @@ impl QuantumSim {
 
     /// Single qubit Z gate.
     pub fn z(&mut self, target: usize) {
-        if let Some(entry) = self.ry_queue.get_mut(&target) {
+        if let Some(entry) = self.ry_queue.get_mut(target) {
             // ZY = -YZ, so flip the sign on any queued Ry rotations.
             *entry *= -1.0;
         }
 
-        if let Some(entry) = self.rx_queue.get_mut(&target) {
+        if let Some(entry) = self.rx_queue.get_mut(target) {
             // ZX = -XZ, so flip the sign on any queued Rx rotations.
             *entry *= -1.0;
         }
@@ -806,13 +810,13 @@ impl QuantumSim {
         let count = ctls.iter().fold(0, |accum, c| {
             accum
                 + i32::from(self.h_flag.bit(*c as u64))
-                + if self.rx_queue.contains_key(c) || self.ry_queue.contains_key(c) {
+                + if self.rx_queue.contains_key(*c) || self.ry_queue.contains_key(*c) {
                     2
                 } else {
                     0
                 }
         }) + i32::from(self.h_flag.bit(target as u64))
-            + if self.rx_queue.contains_key(&target) || self.ry_queue.contains_key(&target) {
+            + if self.rx_queue.contains_key(target) || self.ry_queue.contains_key(target) {
                 2
             } else {
                 0
@@ -957,12 +961,12 @@ impl QuantumSim {
 
     /// Single qubit H gate.
     pub fn h(&mut self, target: usize) {
-        if let Some(entry) = self.ry_queue.get_mut(&target) {
+        if let Some(entry) = self.ry_queue.get_mut(target) {
             // YH = -HY, so flip the sign on any queued Ry rotations.
             *entry *= -1.0;
         }
 
-        if self.rx_queue.contains_key(&target) {
+        if self.rx_queue.contains_key(target) {
             // Can't commute well with queued Rx, so flush those ops.
             self.flush_queue(&[target], FlushLevel::HRx);
         }
@@ -974,7 +978,7 @@ impl QuantumSim {
     /// Multi-controlled H gate.
     pub fn mch(&mut self, ctls: &[usize], target: usize) {
         self.flush_queue(ctls, FlushLevel::HRxRy);
-        if self.ry_queue.contains_key(&target) || self.rx_queue.contains_key(&target) {
+        if self.ry_queue.contains_key(target) || self.rx_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRxRy);
         }
 
@@ -1145,13 +1149,13 @@ impl QuantumSim {
 
     /// Single qubit Rx gate.
     pub fn rx(&mut self, theta: f64, target: usize) {
-        if self.h_flag.bit(target as u64) || self.ry_queue.contains_key(&target) {
+        if self.h_flag.bit(target as u64) || self.ry_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRxRy);
         }
-        if let Some(entry) = self.rx_queue.get_mut(&target) {
+        if let Some(entry) = self.rx_queue.get_mut(target) {
             *entry += theta;
             if entry.is_nearly_zero() {
-                self.rx_queue.remove(&target);
+                self.rx_queue.remove(target);
             }
         } else {
             self.rx_queue.insert(target, theta);
@@ -1162,7 +1166,7 @@ impl QuantumSim {
     pub fn mcrx(&mut self, ctls: &[usize], theta: f64, target: usize) {
         self.flush_queue(ctls, FlushLevel::HRxRy);
 
-        if self.ry_queue.contains_key(&target) {
+        if self.ry_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRxRy);
         } else if self.h_flag.bit(target as u64) {
             self.flush_queue(&[target], FlushLevel::H);
@@ -1173,10 +1177,10 @@ impl QuantumSim {
 
     /// Single qubit Ry gate.
     pub fn ry(&mut self, theta: f64, target: usize) {
-        if let Some(entry) = self.ry_queue.get_mut(&target) {
+        if let Some(entry) = self.ry_queue.get_mut(target) {
             *entry += theta;
             if entry.is_nearly_zero() {
-                self.ry_queue.remove(&target);
+                self.ry_queue.remove(target);
             }
         } else {
             self.ry_queue.insert(target, theta);
@@ -1187,7 +1191,7 @@ impl QuantumSim {
     pub fn mcry(&mut self, ctls: &[usize], theta: f64, target: usize) {
         self.flush_queue(ctls, FlushLevel::HRxRy);
 
-        if self.rx_queue.contains_key(&target) {
+        if self.rx_queue.contains_key(target) {
             self.flush_queue(&[target], FlushLevel::HRx);
         } else if self.h_flag.bit(target as u64) {
             self.flush_queue(&[target], FlushLevel::H);
@@ -1246,17 +1250,17 @@ impl QuantumSim {
             .for_each(|(target_loc, target)| {
                 let loc = *self
                     .id_map
-                    .get(target)
+                    .get(*target)
                     .unwrap_or_else(|| panic!("Unable to find qubit with id {target}"));
-                let swap_id = *self
+                let swap_id = self
                     .id_map
                     .iter()
                     .find(|(_, &value)| value == target_loc)
                     .unwrap()
                     .0;
                 self.swap_qubit_state(loc, target_loc);
-                *(self.id_map.get_mut(&swap_id).unwrap()) = loc;
-                *(self.id_map.get_mut(target).unwrap()) = target_loc;
+                *(self.id_map.get_mut(swap_id).unwrap()) = loc;
+                *(self.id_map.get_mut(*target).unwrap()) = target_loc;
             });
 
         let op_size = unitary.nrows();
@@ -1953,5 +1957,16 @@ mod tests {
             },
             3,
         );
+    }
+
+    #[test]
+    fn test_op_queue_flushes_at_limit() {
+        let mut sim = QuantumSim::default();
+        let q = sim.allocate();
+        for _ in 0..10_002 {
+            sim.x(q);
+        }
+        assert_eq!(sim.op_queue.len(), 2);
+        assert_eq!(sim.state.len(), 1);
     }
 }
