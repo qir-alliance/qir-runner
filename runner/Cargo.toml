@@ -13,6 +13,8 @@ qir-backend = { path = "../backend" }
 clap = { workspace = true }
 inkwell = { workspace = true }
 msvc_spectre_libs = { workspace = true }
+wasmtime = "29.0.1"
+tempfile = "3.3"
 
 [[bin]]
 name = "qir-runner"

@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies.qirlib]
 git = "https://github.com/qir-alliance/pyqir"
-branch = "main"
+branch = "iadavis/wasm-prototype"
 default-features = false
 features = []
 
 [features]
-default = []
+default = ["llvm14-0"]
 llvm11-0 = ["qirlib/llvm11-0-no-llvm-linking", "qirlib/build-llvm"]
 llvm12-0 = ["qirlib/llvm12-0-no-llvm-linking", "qirlib/build-llvm"]
 llvm13-0 = ["qirlib/llvm13-0-no-llvm-linking", "qirlib/build-llvm"]

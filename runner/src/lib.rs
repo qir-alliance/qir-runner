@@ -4,6 +4,15 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(unused)]
 
+use std::{
+    borrow::Cow,
+    error::Error,
+    ffi::{c_char, c_void, CStr, CString},
+    mem::MaybeUninit,
+    ptr::null,
+    sync::Once,
+};
+
 mod cli;
 pub use cli::main;
 
@@ -16,6 +25,20 @@ use inkwell::{
     attributes::AttributeLoc,
     context::Context,
     execution_engine::ExecutionEngine,
+    llvm_sys::{
+        analysis::{LLVMVerifierFailureAction, LLVMVerifyModule},
+        core::LLVMDisposeMessage,
+        prelude::LLVMModuleRef,
+        target::{
+            LLVMInitializeWebAssemblyAsmParser, LLVMInitializeWebAssemblyAsmPrinter,
+            LLVMInitializeWebAssemblyDisassembler, LLVMInitializeWebAssemblyTarget,
+            LLVMInitializeWebAssemblyTargetInfo, LLVMInitializeWebAssemblyTargetMC,
+        },
+        target_machine::{
+            LLVMCodeGenFileType, LLVMCodeGenOptLevel, LLVMCodeModel, LLVMCreateTargetMachine,
+            LLVMGetTargetFromTriple, LLVMRelocMode, LLVMTargetMachineEmitToFile,
+        },
+    },
     memory_buffer::MemoryBuffer,
     module::Module,
     passes::{PassBuilderOptions, PassManager},
@@ -30,6 +53,21 @@ use std::{
     path::Path,
     ptr::null_mut,
 };
+
+use wasmtime::{ArrayRef, Caller, Engine, Linker, Rooted, Store};
+
+static LLVM_INIT: Once = Once::new();
+
+pub(crate) fn ensure_init() {
+    LLVM_INIT.call_once(|| unsafe {
+        LLVMInitializeWebAssemblyTargetInfo();
+        LLVMInitializeWebAssemblyTarget();
+        LLVMInitializeWebAssemblyTargetMC();
+        LLVMInitializeWebAssemblyAsmPrinter();
+        LLVMInitializeWebAssemblyAsmParser();
+        LLVMInitializeWebAssemblyDisassembler();
+    });
+}
 
 /// # Errors
 ///
@@ -72,6 +110,96 @@ pub fn run_bitcode(
     run_module(&module, entry_point, shots, output_writer)
 }
 
+fn to_c_str(mut s: &str) -> Cow<'_, CStr> {
+    if s.is_empty() {
+        s = "\0";
+    }
+    if !s.chars().rev().any(|ch| ch == '\0') {
+        return Cow::from(CString::new(s).expect("CString::new failed"));
+    }
+
+    unsafe { Cow::from(CStr::from_ptr(s.as_ptr() as *const _)) }
+}
+
+pub unsafe fn verify(module: LLVMModuleRef) -> Option<String> {
+    let action = LLVMVerifierFailureAction::LLVMReturnStatusAction;
+    let mut error = std::ptr::null_mut();
+    if LLVMVerifyModule(module, action, &mut error) == 0 {
+        None
+    } else {
+        let error_cstr = CStr::from_ptr(error);
+        let string = error_cstr.to_str().unwrap().to_string();
+        LLVMDisposeMessage(error);
+        Some(string)
+    }
+}
+
+unsafe fn write_wasm_to_file(module: LLVMModuleRef, file_path: &str) -> Result<(), String> {
+    if let Some(error) = verify(module) {
+        return Err(error);
+    }
+
+    ensure_init();
+
+    let level = LLVMCodeGenOptLevel::LLVMCodeGenLevelAggressive;
+    let reloc_mode = LLVMRelocMode::LLVMRelocDynamicNoPic;
+    let code_model = LLVMCodeModel::LLVMCodeModelLarge;
+
+    let triple = "wasm32-unknown-unknown";
+    let mut target = std::ptr::null_mut();
+    let mut err_string = MaybeUninit::uninit();
+    let success =
+        LLVMGetTargetFromTriple(triple.as_ptr().cast(), &mut target, err_string.as_mut_ptr());
+
+    if success != 0 {
+        let error_ptr = err_string.assume_init();
+        let message = CStr::from_ptr(error_ptr)
+            .to_str()
+            .expect("Failed to get error string");
+        let message_string = message.to_string();
+        LLVMDisposeMessage(error_ptr);
+        return Err(message_string);
+    }
+
+    let target_machine = unsafe {
+        LLVMCreateTargetMachine(
+            target,
+            triple.as_ptr().cast(),
+            "generic\0".as_ptr().cast(),
+            null(),
+            level.into(),
+            reloc_mode.into(),
+            code_model.into(),
+        )
+    };
+
+    if target_machine.is_null() {
+        return Err("Failed to create target machine".to_string());
+    }
+    let mut err_string = MaybeUninit::uninit();
+    
+    let file = to_c_str(file_path);
+    let success: i32 = LLVMTargetMachineEmitToFile(
+        target_machine,
+        module,
+        file.as_ptr().cast_mut().cast(),
+        LLVMCodeGenFileType::LLVMObjectFile,
+        err_string.as_mut_ptr(),
+    );
+
+    if success != 0 {
+        let error_ptr = err_string.assume_init();
+        let message = CStr::from_ptr(error_ptr)
+            .to_str()
+            .expect("Failed to get error string");
+        let message_string = message.to_string();
+        LLVMDisposeMessage(error_ptr);
+        return Err(message_string);
+    }
+    // TODO: Need to link the wasm file to get it fully compiled.
+    Ok(())
+}
+
 fn run_module(
     module: &Module,
     entry_point: Option<&str>,
@@ -82,28 +210,7 @@ fn run_module(
         .verify()
         .map_err(|e| format!("Failed to verify module: {}", e.to_string()))?;
 
-    Target::initialize_native(&InitializationConfig::default())?;
-    let default_triple = TargetMachine::get_default_triple();
-    let target = Target::from_triple(&default_triple).map_err(|e| e.to_string())?;
-    if !target.has_asm_backend() {
-        return Err("Target doesn't have an ASM backend.".to_owned());
-    }
-    if !target.has_target_machine() {
-        return Err("Target doesn't have a target machine.".to_owned());
-    }
-
-    run_basic_passes_on(module, &default_triple, &target)?;
-
-    inkwell::support::load_library_permanently(Path::new(""));
-
-    let execution_engine = module
-        .create_jit_execution_engine(OptimizationLevel::None)
-        .map_err(|e| e.to_string())?;
-
-    bind_functions(module, &execution_engine)?;
-
     let entry_point = choose_entry_point(module_functions(module), entry_point)?;
-    // TODO: need a cleaner way to get the attr strings for metadata
     let attrs: Vec<(String, String)> = entry_point
         .attributes(AttributeLoc::Function)
         .iter()
@@ -120,6 +227,34 @@ fn run_module(
             )
         })
         .collect();
+    let entry_point_name = entry_point.get_name().to_string_lossy().to_string();
+
+    use tempfile::NamedTempFile;
+    let mut temp_file = NamedTempFile::new().unwrap();
+    let temp_path = temp_file.path().to_string_lossy().into_owned();
+
+    let mut buffer = Vec::new();
+    unsafe {
+        write_wasm_to_file(module.as_mut_ptr(), &temp_path)?;
+        temp_file.read_to_end(&mut buffer).unwrap();
+    }
+
+    let engine = Engine::default();
+    struct MarkerData {};
+    let mut store = Store::new(&engine, MarkerData {});
+    let mut linker = Linker::new(&engine);
+  
+
+    bind_functions( &linker)?;
+
+    let module = wasmtime::Module::new(&engine, &buffer).map_err(|e| format!("{e}"))?;
+    let instance = linker
+        .instantiate(&mut store, &module)
+        .map_err(|e| format!("{e}"))?;
+    
+    let main = instance
+        .get_typed_func::<(), ()>(&mut store, &entry_point_name)
+        .unwrap();
 
     for _ in 1..=shots {
         output_writer
@@ -140,7 +275,7 @@ fn run_module(
         }
 
         __quantum__rt__initialize(null_mut());
-        unsafe { run_entry_point(&execution_engine, entry_point)? }
+        main.call(&mut store, ()).map_err(|e| format!("{e}"))?;
 
         // Write the saved output records to the output_writer
         OUTPUT.with(|output| {
@@ -260,287 +395,177 @@ fn run_basic_passes_on(
 }
 
 #[allow(clippy::too_many_lines)]
-fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result<(), String> {
-    let mut uses_legacy = vec![];
-    let mut declarations: HashMap<String, FunctionValue> = HashMap::default();
-    for func in module_functions(module).filter(|f| {
-        f.count_basic_blocks() == 0
-            && !f
-                .get_name()
-                .to_str()
-                .expect("Unable to coerce function name into str.")
-                .starts_with("llvm.")
-    }) {
-        declarations.insert(
-            func.get_name()
-                .to_str()
-                .expect("Unable to coerce function name into str.")
-                .to_owned(),
-            func,
-        );
-    }
-
-    macro_rules! bind {
-        ($func:ident, $param_count:expr) => {
-            if let Some(func) = declarations.get(stringify!($func)) {
-                if func.get_params().len() != $param_count {
-                    return Err(format!(
-                        "Function '{}' has mismatched parameters: expected {}, found {}",
-                        stringify!($func),
-                        $param_count,
-                        func.get_params().len()
-                    ));
-                }
-                execution_engine.add_global_mapping(func, $func as usize);
-                declarations.remove(stringify!($func));
-            }
-        };
-    }
-
-    macro_rules! legacy_output {
-        ($func:ident) => {
-            if let Some(func) = declarations.get(stringify!($func)) {
-                execution_engine.add_global_mapping(
-                    func,
-                    qir_backend::output_recording::legacy::$func as usize,
-                );
-                declarations.remove(stringify!($func));
-                Some(true)
-            } else {
-                None
-            }
-        };
-    }
-
-    macro_rules! bind_output_record {
-        ($func:ident) => {
-            if let Some(func) = declarations.get(stringify!($func)) {
-                if func.get_params().len() == 1 {
-                    execution_engine.add_global_mapping(
-                        func,
-                        qir_backend::output_recording::legacy::$func as usize,
-                    );
-                    declarations.remove(stringify!($func));
-                    Some(true)
-                } else {
-                    execution_engine.add_global_mapping(func, $func as usize);
-                    declarations.remove(stringify!($func));
-                    Some(false)
-                }
-            } else {
-                None
-            }
-        };
-    }
-
-    // Legacy output methods
-    uses_legacy.push(legacy_output!(__quantum__rt__array_end_record_output));
-    uses_legacy.push(legacy_output!(__quantum__rt__array_start_record_output));
-    uses_legacy.push(legacy_output!(__quantum__rt__tuple_end_record_output));
-    uses_legacy.push(legacy_output!(__quantum__rt__tuple_start_record_output));
-
-    bind!(__quantum__rt__initialize, 1);
-    bind!(__quantum__qis__arccos__body, 1);
-    bind!(__quantum__qis__arcsin__body, 1);
-    bind!(__quantum__qis__arctan__body, 1);
-    bind!(__quantum__qis__arctan2__body, 2);
-    bind!(__quantum__qis__assertmeasurementprobability__body, 6);
-    bind!(__quantum__qis__assertmeasurementprobability__ctl, 6);
-    bind!(__quantum__qis__ccx__body, 3);
-    bind!(__quantum__qis__cnot__body, 2);
-    bind!(__quantum__qis__cos__body, 1);
-    bind!(__quantum__qis__cosh__body, 1);
-    bind!(__quantum__qis__cx__body, 2);
-    bind!(__quantum__qis__cz__body, 2);
-    bind!(__quantum__qis__drawrandomdouble__body, 2);
-    bind!(__quantum__qis__drawrandomint__body, 2);
-    bind!(__quantum__qis__dumpmachine__body, 1);
-    bind!(__quantum__qis__exp__body, 3);
-    bind!(__quantum__qis__exp__adj, 3);
-    bind!(__quantum__qis__exp__ctl, 2);
-    bind!(__quantum__qis__exp__ctladj, 2);
-    bind!(__quantum__qis__h__body, 1);
-    bind!(__quantum__qis__h__ctl, 2);
-    bind!(__quantum__qis__ieeeremainder__body, 2);
-    bind!(__quantum__qis__infinity__body, 0);
-    bind!(__quantum__qis__isinf__body, 1);
-    bind!(__quantum__qis__isnan__body, 1);
-    bind!(__quantum__qis__isnegativeinfinity__body, 1);
-    bind!(__quantum__qis__log__body, 1);
-    bind!(__quantum__qis__measure__body, 2);
-    bind!(__quantum__qis__mresetz__body, 2);
-    bind!(__quantum__qis__mz__body, 2);
-    bind!(__quantum__qis__nan__body, 0);
-    bind!(__quantum__qis__r__adj, 3);
-    bind!(__quantum__qis__r__body, 3);
-    bind!(__quantum__qis__r__ctl, 2);
-    bind!(__quantum__qis__r__ctladj, 2);
-    bind!(__quantum__qis__read_result__body, 1);
-    bind!(__quantum__qis__reset__body, 1);
-    bind!(__quantum__qis__rx__body, 2);
-    bind!(__quantum__qis__rx__ctl, 2);
-    bind!(__quantum__qis__rxx__body, 3);
-    bind!(__quantum__qis__ry__body, 2);
-    bind!(__quantum__qis__ry__ctl, 2);
-    bind!(__quantum__qis__ryy__body, 3);
-    bind!(__quantum__qis__rz__body, 2);
-    bind!(__quantum__qis__rz__ctl, 2);
-    bind!(__quantum__qis__rzz__body, 3);
-    bind!(__quantum__qis__s__adj, 1);
-    bind!(__quantum__qis__s__body, 1);
-    bind!(__quantum__qis__s__ctl, 2);
-    bind!(__quantum__qis__s__ctladj, 2);
-    bind!(__quantum__qis__sin__body, 1);
-    bind!(__quantum__qis__sinh__body, 1);
-    bind!(__quantum__qis__sqrt__body, 1);
-    bind!(__quantum__qis__swap__body, 2);
-    bind!(__quantum__qis__t__adj, 1);
-    bind!(__quantum__qis__t__body, 1);
-    bind!(__quantum__qis__t__ctl, 2);
-    bind!(__quantum__qis__t__ctladj, 2);
-    bind!(__quantum__qis__tan__body, 1);
-    bind!(__quantum__qis__tanh__body, 1);
-    bind!(__quantum__qis__x__body, 1);
-    bind!(__quantum__qis__x__ctl, 2);
-    bind!(__quantum__qis__y__body, 1);
-    bind!(__quantum__qis__y__ctl, 2);
-    bind!(__quantum__qis__z__body, 1);
-    bind!(__quantum__qis__z__ctl, 2);
-    bind!(__quantum__rt__array_concatenate, 2);
-    bind!(__quantum__rt__array_copy, 2);
-    bind!(__quantum__rt__array_create_1d, 2);
-
-    // New calls
-    bind!(__quantum__rt__array_record_output, 2);
-    bind!(__quantum__rt__tuple_record_output, 2);
-
-    // calls with unlabeled signature variants
-    uses_legacy.push(bind_output_record!(__quantum__rt__bool_record_output));
-    uses_legacy.push(bind_output_record!(__quantum__rt__double_record_output));
-    uses_legacy.push(bind_output_record!(__quantum__rt__int_record_output));
-
-    // results need special handling as they aren't in the std lib
-    uses_legacy.push(
-        if let Some(func) = declarations.get("__quantum__rt__result_record_output") {
-            if func.get_params().len() == 1 {
-                execution_engine.add_global_mapping(
-                    func,
-                    qir_backend::legacy_output::__quantum__rt__result_record_output as usize,
-                );
-                declarations.remove("__quantum__rt__result_record_output");
-                Some(true)
-            } else {
-                execution_engine
-                    .add_global_mapping(func, __quantum__rt__result_record_output as usize);
-                declarations.remove("__quantum__rt__result_record_output");
-                Some(false)
-            }
-        } else {
-            None
+fn bind_functions<Simulator>(
+    linker: &Linker<MarkerData>,
+) -> Result<(), Box<dyn Error>> {
+    linker
+    .func_wrap(
+        "env",
+        "__linear_memory",
+        || {
+            
         },
-    );
+    )
+    .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__initialize",
+            |_: i32| {
+                __quantum__rt__initialize(null_mut());
+            },
+        )
+        .unwrap();
 
-    // calls to __quantum__qis__m__body may use either dynamic or static results, so bind to the right
-    // implementation based on number of arguments.
-    if let Some(func) = declarations.get("__quantum__qis__m__body") {
-        if func.get_params().len() == 2 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__mz__body as usize);
-        } else if func.get_params().len() == 1 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__m__body as usize);
-        } else {
-            return Err(format!(
-                "Function '__quantum__qis__m__body' has mismatched parameters: expected 1 or 2, found {}",
-                func.get_params().len()
-            ));
-        }
-        declarations.remove("__quantum__qis__m__body");
-    }
+    linker
+        .func_wrap("env", "__quantum__qis__h__body", |qubit: i32| {
+            __quantum__qis__h__body(qubit as *mut c_void);
+        })
+        .unwrap();
 
-    bind!(__quantum__rt__array_get_element_ptr_1d, 2);
-    bind!(__quantum__rt__array_get_size_1d, 1);
-    bind!(quantum__rt__array_slice_1d, 3);
-    bind!(__quantum__rt__array_update_alias_count, 2);
-    bind!(__quantum__rt__array_update_reference_count, 2);
-    bind!(__quantum__rt__bigint_add, 2);
-    bind!(__quantum__rt__bigint_bitand, 2);
-    bind!(__quantum__rt__bigint_bitnot, 1);
-    bind!(__quantum__rt__bigint_bitor, 2);
-    bind!(__quantum__rt__bigint_bitxor, 2);
-    bind!(__quantum__rt__bigint_create_array, 2);
-    bind!(__quantum__rt__bigint_create_i64, 1);
-    bind!(__quantum__rt__bigint_divide, 2);
-    bind!(__quantum__rt__bigint_equal, 2);
-    bind!(__quantum__rt__bigint_get_data, 1);
-    bind!(__quantum__rt__bigint_get_length, 1);
-    bind!(__quantum__rt__bigint_greater, 2);
-    bind!(__quantum__rt__bigint_greater_eq, 2);
-    bind!(__quantum__rt__bigint_modulus, 2);
-    bind!(__quantum__rt__bigint_multiply, 2);
-    bind!(__quantum__rt__bigint_negate, 1);
-    bind!(__quantum__rt__bigint_power, 2);
-    bind!(__quantum__rt__bigint_shiftleft, 2);
-    bind!(__quantum__rt__bigint_shiftright, 2);
-    bind!(__quantum__rt__bigint_subtract, 2);
-    bind!(__quantum__rt__bigint_to_string, 1);
-    bind!(__quantum__rt__bigint_update_reference_count, 2);
-    bind!(__quantum__rt__bool_to_string, 1);
-    bind!(__quantum__rt__callable_copy, 2);
-    bind!(__quantum__rt__callable_create, 3);
-    bind!(__quantum__rt__callable_invoke, 3);
-    bind!(__quantum__rt__callable_make_adjoint, 1);
-    bind!(__quantum__rt__callable_make_controlled, 1);
-    bind!(__quantum__rt__callable_update_alias_count, 2);
-    bind!(__quantum__rt__callable_update_reference_count, 2);
-    bind!(__quantum__rt__capture_update_alias_count, 2);
-    bind!(__quantum__rt__capture_update_reference_count, 2);
-    bind!(__quantum__rt__double_to_string, 1);
-    bind!(__quantum__rt__fail, 1);
-    bind!(__quantum__rt__int_to_string, 1);
-    bind!(__quantum__rt__memory_allocate, 1);
-    bind!(__quantum__rt__message, 1);
-    bind!(__quantum__rt__pauli_to_string, 1);
-    bind!(__quantum__rt__qubit_allocate, 0);
-    bind!(__quantum__rt__qubit_allocate_array, 1);
-    bind!(__quantum__rt__qubit_release, 1);
-    bind!(__quantum__rt__qubit_release_array, 1);
-    bind!(__quantum__rt__qubit_to_string, 1);
-    bind!(__quantum__rt__result_equal, 2);
-    bind!(quantum__rt__range_to_string, 1);
-    bind!(__quantum__rt__result_get_one, 0);
-    bind!(__quantum__rt__result_get_zero, 0);
-    bind!(__quantum__rt__result_to_string, 1);
-    bind!(__quantum__rt__result_update_reference_count, 2);
-    bind!(__quantum__rt__string_concatenate, 2);
-    bind!(__quantum__rt__string_create, 1);
-    bind!(__quantum__rt__string_equal, 2);
-    bind!(__quantum__rt__string_get_data, 1);
-    bind!(__quantum__rt__string_get_length, 1);
-    bind!(__quantum__rt__string_update_reference_count, 2);
-    bind!(__quantum__rt__tuple_copy, 2);
-    bind!(__quantum__rt__tuple_create, 1);
-    bind!(__quantum__rt__tuple_update_alias_count, 2);
-    bind!(__quantum__rt__tuple_update_reference_count, 2);
+    linker
+        .func_wrap("env", "__quantum__qis__x__body", |qubit: i32| {
+            __quantum__qis__x__body(qubit as *mut c_void);
+        })
+        .unwrap();
+    linker
+        .func_wrap("env", "__quantum__qis__y__body", |qubit: i32| {
+            __quantum__qis__y__body(qubit as *mut c_void);
+        })
+        .unwrap();
+    linker
+        .func_wrap("env", "__quantum__qis__z__body", |qubit: i32| {
+            __quantum__qis__z__body(qubit as *mut c_void);
+        })
+        .unwrap();
+    linker
+        .func_wrap("env", "__quantum__qis__t__body", |qubit: i32| {
+            __quantum__qis__t__body(qubit as *mut c_void);
+        })
+        .unwrap();
+    linker
+        .func_wrap("env", "__quantum__qis__s__body", |qubit: i32| {
+            __quantum__qis__s__body(qubit as *mut c_void);
+        })
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__qis__cx__body",
+            |control: i32, target: i32| {
+                __quantum__qis__cx__body(control as *mut c_void, target as *mut c_void);
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__qis__cy__body",
+            |control: i32, target: i32| {
+                __quantum__qis__cy__body(control as *mut c_void, target as *mut c_void);
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__qis__cz__body",
+            |control: i32, target: i32| {
+                __quantum__qis__cz__body(control as *mut c_void, target as *mut c_void);
+            },
+        )
+        .unwrap();
+    linker
+    .func_wrap(
+        "env",
+        "__quantum__qis__ccx__body",
+        |control1: i32, control2:i32, target: i32| {
+            __quantum__qis__ccx__body(control1 as *mut c_void, control2 as *mut c_void, target as *mut c_void);
+        },
+    )
+    .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__qis__mresetz__body",
+            |qubit: i32, result: i32| {
+                __quantum__qis__mresetz__body(qubit as *mut c_void, result as *mut c_void);
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__qis__read_result__body",
+            |result: i32| -> i32 {
+                __quantum__qis__read_result__body(result as *mut c_void) as i32
+            },
+        )
+        .unwrap();
 
-    if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
-        || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
-    {
-        Err("Use of legacy and current output recording functions in the same program is not supported".to_string())
-    } else if declarations.is_empty() {
-        Ok(())
-    } else {
-        let keys = declarations.keys().collect::<Vec<_>>();
-        let (first, rest) = keys
-            .split_first()
-            .expect("Declarations list should be non-empty.");
-        Err(format!(
-            "Failed to link some declared functions: {}",
-            rest.iter().fold((*first).to_string(), |mut accum, f| {
-                accum.push_str(", ");
-                accum.push_str(f);
-                accum
-            })
-        ))
-    }
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__array_record_output",
+            |value: i64, tag: i32| unsafe {
+                __quantum__rt__array_record_output(value, null_mut());
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__tuple_record_output",
+            |value: i64, tag: i32| unsafe {
+                __quantum__rt__tuple_record_output(value, null_mut());
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__result_record_output",
+            |value: i64, tag: i32| unsafe {
+                __quantum__rt__result_record_output(value as *mut c_void, null_mut());
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__bool_record_output",
+            |value: i32, tag: i32| unsafe {
+                __quantum__rt__bool_record_output(value != 0, null_mut());
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__int_record_output",
+            |value: i64, tag: i32| unsafe {
+                __quantum__rt__int_record_output(value, null_mut());
+            },
+        )
+        .unwrap();
+    linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__double_record_output",
+            |value: f64, tag: i32| unsafe {
+                __quantum__rt__double_record_output(value, null_mut());
+            },
+        )
+        .unwrap();
+
+        linker
+        .func_wrap(
+            "env",
+            "__quantum__rt__qubit_allocate",
+            ||->i32{ unsafe {
+                __quantum__rt__qubit_allocate() as i32
+            }},
+        )
+        .unwrap();
+    Ok(())
 }
