@@ -16,6 +16,12 @@ msvc_spectre_libs = { workspace = true }
 wasmtime = "29.0.1"
 tempfile = "3.3"
 
+[dependencies.qirlib]
+git = "https://github.com/qir-alliance/pyqir"
+branch = "iadavis/wasm-prototype"
+default-features = false
+features = ["external-llvm-linking", "llvm14-0"]
+
 [[bin]]
 name = "qir-runner"
 path = "src/main.rs"

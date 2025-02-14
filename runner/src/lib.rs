@@ -21,30 +21,19 @@ pub use qir_backend::{
     result_bool::*, strings::*, tuples::*, *,
 };
 
+use qirlib::module::compile_wasm;
+
 use inkwell::{
     attributes::AttributeLoc,
     context::Context,
-    execution_engine::ExecutionEngine,
     llvm_sys::{
         analysis::{LLVMVerifierFailureAction, LLVMVerifyModule},
         core::LLVMDisposeMessage,
         prelude::LLVMModuleRef,
-        target::{
-            LLVMInitializeWebAssemblyAsmParser, LLVMInitializeWebAssemblyAsmPrinter,
-            LLVMInitializeWebAssemblyDisassembler, LLVMInitializeWebAssemblyTarget,
-            LLVMInitializeWebAssemblyTargetInfo, LLVMInitializeWebAssemblyTargetMC,
-        },
-        target_machine::{
-            LLVMCodeGenFileType, LLVMCodeGenOptLevel, LLVMCodeModel, LLVMCreateTargetMachine,
-            LLVMGetTargetFromTriple, LLVMRelocMode, LLVMTargetMachineEmitToFile,
-        },
     },
     memory_buffer::MemoryBuffer,
     module::Module,
-    passes::{PassBuilderOptions, PassManager},
-    targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple},
     values::FunctionValue,
-    OptimizationLevel,
 };
 use std::{
     collections::HashMap,
@@ -56,18 +45,6 @@ use std::{
 
 use wasmtime::{ArrayRef, Caller, Engine, Linker, Rooted, Store};
 
-static LLVM_INIT: Once = Once::new();
-
-pub(crate) fn ensure_init() {
-    LLVM_INIT.call_once(|| unsafe {
-        LLVMInitializeWebAssemblyTargetInfo();
-        LLVMInitializeWebAssemblyTarget();
-        LLVMInitializeWebAssemblyTargetMC();
-        LLVMInitializeWebAssemblyAsmPrinter();
-        LLVMInitializeWebAssemblyAsmParser();
-        LLVMInitializeWebAssemblyDisassembler();
-    });
-}
 
 /// # Errors
 ///
@@ -110,95 +87,8 @@ pub fn run_bitcode(
     run_module(&module, entry_point, shots, output_writer)
 }
 
-fn to_c_str(mut s: &str) -> Cow<'_, CStr> {
-    if s.is_empty() {
-        s = "\0";
-    }
-    if !s.chars().rev().any(|ch| ch == '\0') {
-        return Cow::from(CString::new(s).expect("CString::new failed"));
-    }
 
-    unsafe { Cow::from(CStr::from_ptr(s.as_ptr() as *const _)) }
-}
-
-pub unsafe fn verify(module: LLVMModuleRef) -> Option<String> {
-    let action = LLVMVerifierFailureAction::LLVMReturnStatusAction;
-    let mut error = std::ptr::null_mut();
-    if LLVMVerifyModule(module, action, &mut error) == 0 {
-        None
-    } else {
-        let error_cstr = CStr::from_ptr(error);
-        let string = error_cstr.to_str().unwrap().to_string();
-        LLVMDisposeMessage(error);
-        Some(string)
-    }
-}
-
-unsafe fn write_wasm_to_file(module: LLVMModuleRef, file_path: &str) -> Result<(), String> {
-    if let Some(error) = verify(module) {
-        return Err(error);
-    }
-
-    ensure_init();
-
-    let level = LLVMCodeGenOptLevel::LLVMCodeGenLevelAggressive;
-    let reloc_mode = LLVMRelocMode::LLVMRelocDynamicNoPic;
-    let code_model = LLVMCodeModel::LLVMCodeModelLarge;
-
-    let triple = "wasm32-unknown-unknown";
-    let mut target = std::ptr::null_mut();
-    let mut err_string = MaybeUninit::uninit();
-    let success =
-        LLVMGetTargetFromTriple(triple.as_ptr().cast(), &mut target, err_string.as_mut_ptr());
-
-    if success != 0 {
-        let error_ptr = err_string.assume_init();
-        let message = CStr::from_ptr(error_ptr)
-            .to_str()
-            .expect("Failed to get error string");
-        let message_string = message.to_string();
-        LLVMDisposeMessage(error_ptr);
-        return Err(message_string);
-    }
-
-    let target_machine = unsafe {
-        LLVMCreateTargetMachine(
-            target,
-            triple.as_ptr().cast(),
-            "generic\0".as_ptr().cast(),
-            null(),
-            level.into(),
-            reloc_mode.into(),
-            code_model.into(),
-        )
-    };
-
-    if target_machine.is_null() {
-        return Err("Failed to create target machine".to_string());
-    }
-    let mut err_string = MaybeUninit::uninit();
-    
-    let file = to_c_str(file_path);
-    let success: i32 = LLVMTargetMachineEmitToFile(
-        target_machine,
-        module,
-        file.as_ptr().cast_mut().cast(),
-        LLVMCodeGenFileType::LLVMObjectFile,
-        err_string.as_mut_ptr(),
-    );
-
-    if success != 0 {
-        let error_ptr = err_string.assume_init();
-        let message = CStr::from_ptr(error_ptr)
-            .to_str()
-            .expect("Failed to get error string");
-        let message_string = message.to_string();
-        LLVMDisposeMessage(error_ptr);
-        return Err(message_string);
-    }
-    // TODO: Need to link the wasm file to get it fully compiled.
-    Ok(())
-}
+pub struct MarkerData {}
 
 fn run_module(
     module: &Module,
@@ -235,17 +125,16 @@ fn run_module(
 
     let mut buffer = Vec::new();
     unsafe {
-        write_wasm_to_file(module.as_mut_ptr(), &temp_path)?;
-        temp_file.read_to_end(&mut buffer).unwrap();
+        buffer = compile_wasm(module.as_mut_ptr()).unwrap();
     }
 
     let engine = Engine::default();
-    struct MarkerData {};
+    
     let mut store = Store::new(&engine, MarkerData {});
     let mut linker = Linker::new(&engine);
   
 
-    bind_functions( &linker)?;
+    bind_functions::<MarkerData>(&mut linker).map_err(|e| e.to_string())?;
 
     let module = wasmtime::Module::new(&engine, &buffer).map_err(|e| format!("{e}"))?;
     let instance = linker
@@ -309,18 +198,6 @@ fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String
     }
 }
 
-unsafe fn run_entry_point(
-    execution_engine: &ExecutionEngine,
-    entry_point: FunctionValue,
-) -> Result<(), String> {
-    if entry_point.count_params() == 0 {
-        execution_engine.run_function(entry_point, &[]);
-        Ok(())
-    } else {
-        Err("Entry point has parameters or a non-void return type.".to_owned())
-    }
-}
-
 fn choose_entry_point<'ctx>(
     functions: impl Iterator<Item = FunctionValue<'ctx>>,
     name: Option<&str>,
@@ -364,49 +241,10 @@ fn is_entry_point(function: FunctionValue) -> bool {
             .is_some()
 }
 
-fn run_basic_passes_on(
-    module: &Module,
-    target_triple: &TargetTriple,
-    target: &Target,
-) -> Result<(), String> {
-    // Description of this syntax:
-    // https://github.com/llvm/llvm-project/blob/2ba08386156ef25913b1bee170d8fe95aaceb234/llvm/include/llvm/Passes/PassBuilder.h#L308-L347
-    const BASIC_PASS_PIPELINE: &str = "globaldce,strip-dead-prototypes";
-
-    // Boilerplate taken from here:
-    // https://github.com/TheDan64/inkwell/blob/5c9f7fcbb0a667f7391b94beb65f1a670ad13221/examples/kaleidoscope/main.rs#L86-L95
-    let target_machine = target
-        .create_target_machine(
-            target_triple,
-            "generic",
-            "",
-            OptimizationLevel::None,
-            RelocMode::Default,
-            CodeModel::Default,
-        )
-        .ok_or("Unable to create TargetMachine from Target")?;
-    module
-        .run_passes(
-            BASIC_PASS_PIPELINE,
-            &target_machine,
-            PassBuilderOptions::create(),
-        )
-        .map_err(|e| e.to_string())
-}
-
 #[allow(clippy::too_many_lines)]
 fn bind_functions<Simulator>(
-    linker: &Linker<MarkerData>,
+    linker: &mut Linker<MarkerData>,
 ) -> Result<(), Box<dyn Error>> {
-    linker
-    .func_wrap(
-        "env",
-        "__linear_memory",
-        || {
-            
-        },
-    )
-    .unwrap();
     linker
         .func_wrap(
             "env",
@@ -458,6 +296,15 @@ fn bind_functions<Simulator>(
         )
         .unwrap();
     linker
+    .func_wrap(
+        "env",
+        "__quantum__qis__cnot__body",
+        |control: i32, target: i32| {
+            __quantum__qis__cx__body(control as *mut c_void, target as *mut c_void);
+        },
+    )
+    .unwrap();
+    linker
         .func_wrap(
             "env",
             "__quantum__qis__cy__body",
@@ -494,6 +341,15 @@ fn bind_functions<Simulator>(
         )
         .unwrap();
     linker
+    .func_wrap(
+        "env",
+        "__quantum__qis__mz__body",
+        |qubit: i32, result: i32| {
+            __quantum__qis__mz__body(qubit as *mut c_void, result as *mut c_void);
+        },
+    )
+    .unwrap();
+    linker
         .func_wrap(
             "env",
             "__quantum__qis__read_result__body",
@@ -525,7 +381,7 @@ fn bind_functions<Simulator>(
         .func_wrap(
             "env",
             "__quantum__rt__result_record_output",
-            |value: i64, tag: i32| unsafe {
+            |value: i32, tag: i32| unsafe {
                 __quantum__rt__result_record_output(value as *mut c_void, null_mut());
             },
         )
