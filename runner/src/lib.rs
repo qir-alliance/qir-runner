@@ -5,12 +5,7 @@
 #![allow(unused)]
 
 use std::{
-    borrow::Cow,
-    error::Error,
-    ffi::{c_char, c_void, CStr, CString},
-    mem::MaybeUninit,
-    ptr::null,
-    sync::Once,
+    borrow::Cow, error::Error, ffi::{c_char, c_void, CStr, CString}, mem::MaybeUninit, ptr::null, sync::Once
 };
 
 mod cli;
@@ -26,11 +21,6 @@ use qirlib::module::compile_wasm;
 use inkwell::{
     attributes::AttributeLoc,
     context::Context,
-    llvm_sys::{
-        analysis::{LLVMVerifierFailureAction, LLVMVerifyModule},
-        core::LLVMDisposeMessage,
-        prelude::LLVMModuleRef,
-    },
     memory_buffer::MemoryBuffer,
     module::Module,
     values::FunctionValue,
@@ -43,7 +33,7 @@ use std::{
     ptr::null_mut,
 };
 
-use wasmtime::{ArrayRef, Caller, Engine, Linker, Rooted, Store};
+use wasmtime::{ArrayRef, Caller, Engine, Extern, Linker, Rooted, Store};
 
 
 /// # Errors
@@ -131,12 +121,14 @@ fn run_module(
     let engine = Engine::default();
     
     let mut store = Store::new(&engine, MarkerData {});
+    
     let mut linker = Linker::new(&engine);
   
+    let mut module = wasmtime::Module::new(&engine, &buffer).map_err(|e| format!("{e}"))?;
 
-    bind_functions::<MarkerData>(&mut linker).map_err(|e| e.to_string())?;
+    bind_functions::<MarkerData>(&mut linker, &mut module).map_err(|e| e.to_string())?;
 
-    let module = wasmtime::Module::new(&engine, &buffer).map_err(|e| format!("{e}"))?;
+    
     let instance = linker
         .instantiate(&mut store, &module)
         .map_err(|e| format!("{e}"))?;
@@ -244,6 +236,7 @@ fn is_entry_point(function: FunctionValue) -> bool {
 #[allow(clippy::too_many_lines)]
 fn bind_functions<Simulator>(
     linker: &mut Linker<MarkerData>,
+    module: &mut wasmtime::Module,
 ) -> Result<(), Box<dyn Error>> {
     linker
         .func_wrap(
