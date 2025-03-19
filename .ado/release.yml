@@ -26,7 +26,7 @@ variables:
   RUST_TOOLCHAIN_VERSION: "1.84"
   PYTHON_VERSION: "3.11"
   LLVM_VERSION: 14
-  AUDITWHEEL_TAG: "manylinux_2_31_x86_64"
+  AUDITWHEEL_TAG: "manylinux_2_35"
 
 resources:
   repositories:
@@ -41,9 +41,14 @@ parameters:
   default:
   - name: linux_x86_64
     poolName: 'Azure-Pipelines-DevTools-EO'
-    imageName: 'ubuntu-20.04'
+    imageName: 'ubuntu-22.04'
     os: linux
     arch: x86_64
+  - name: linux_aarch64
+    poolName: 'Azure-Pipelines-DevTools-ARM64-EO'
+    imageName: 'mariner-2.0-arm64'
+    os: linux
+    arch: aarch64
   - name: mac_universal
     poolName: 'Azure Pipelines'
     imageName: 'macOS-latest'
@@ -60,6 +65,8 @@ extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
     sdl:
+      autobaseline:
+        enableForGitHub: true
       sourceAnalysisPool:
         name: 'Azure-Pipelines-DevTools-EO'
         image: windows-2022
@@ -74,6 +81,8 @@ extends:
             name: ${{ target.poolName }}
             image: ${{ target.imageName }}
             os: ${{ target.os }}
+            ${{ if eq(target.arch, 'aarch64') }}:
+              hostArchitecture: Arm64
           variables:
             arch: ${{ target.arch }}
             ${{ if target.ARCHFLAGS }}:
@@ -114,7 +123,7 @@ extends:
           - task: UsePythonVersion@0
             inputs:
               versionSpec: $(PYTHON_VERSION)
-            condition: succeeded()
+            condition: and(succeeded(), ne(variables['arch'], 'aarch64'))
 
           # Build or restore LLVM
           - pwsh: New-Item -ItemType Directory -Path $(LLVM_DIRECTORY) -Force
@@ -162,7 +171,12 @@ extends:
           - script: |
               sudo apt-get install -y ninja-build
             displayName: Install build dependencies
-            condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), ne(variables.CACHE_RESTORED, 'true'))
+            condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'x86_64'), ne(variables.CACHE_RESTORED, 'true'))
+
+          - script: |
+              sudo tdnf install ninja-build cmake -y
+            displayName: Install c++ build tools on mariner
+            condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'), ne(variables.CACHE_RESTORED, 'true'))
 
           - script: |
               brew install ninja
@@ -173,6 +187,16 @@ extends:
               choco install --accept-license -y ninja
             displayName: Install build dependencies
             condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables.CACHE_RESTORED, 'true'))
+
+          # on mariner we need to install:
+          # ld with binutils
+          # crt1.o and others with glibc-devel
+          # std lib headers with kernel-headers
+          # ninja and cmake for building LLVM
+          - script: |
+              sudo tdnf install binutils glibc-devel kernel-headers -y
+            displayName: Install c++ build tools on mariner
+            condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
           # build and install LLVM
           - pwsh: |
@@ -217,11 +241,14 @@ extends:
             condition: and(succeeded(), ne(variables['Agent.OS'], 'Linux'))
 
           - script: |
-              python -m pip install -r pip/requirements-manylinux.txt
               python -m build --verbose --wheel --outdir target/raw-wheels ./pip
               rm -rf target/wheels
               python -m build --verbose --sdist --outdir target/wheels ./pip
-              auditwheel repair --plat $(AUDITWHEEL_TAG) --wheel-dir target/wheels target/raw-wheels/*.whl
+              python -m venv .venv
+              source .venv/bin/activate
+              python -m pip install -r pip/requirements-manylinux.txt
+              auditwheel repair --plat "$(AUDITWHEEL_TAG)_${{ target.arch }}" --wheel-dir target/wheels target/raw-wheels/*.whl
+              deactivate
             displayName: Create Linux Python wheel and run Auditwheel
             condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
 
@@ -311,21 +338,18 @@ extends:
             ls $(System.DefaultWorkingDirectory)/target/wheels
           displayName: Display Py Artifacts in Publishing Dir
 
-        - task: EsrpRelease@7
+        - task: EsrpRelease@9
           displayName: Publish Py Packages
           inputs:
-            ConnectedServiceName: 'ESRP Signing Connection'
-            KeyVaultName: 'kv-aqua-esrp-001'
-            AuthCertName: 'EsrpAuthCert'
-            SignCertName: 'EsrpSignCert'
-            ClientId: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
-            Intent: 'PackageDistribution'
-            ContentType: 'PyPi'
-            FolderLocation: '$(System.DefaultWorkingDirectory)/target/wheels'
-            WaitForReleaseCompletion: true
-            Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
-            Approvers: 'billti@microsoft.com'
-            # Auto-inserted Debugging defaults:
-            ServiceEndpointUrl: 'https://api.esrp.microsoft.com'
-            MainPublisher: 'ESRPRELPACMAN' # Default ESRP v7 publisher. Do not change.
-            DomainTenantId: '72f988bf-86f1-41af-91ab-2d7cd011db47'
+            connectedservicename: 'PME ESRP Azure Connection'
+            usemanagedidentity: true
+            keyvaultname: 'quantum-esrp-kv'
+            signcertname: ESRPCert
+            clientid: '832c049d-cd07-4c1c-bfa5-c07250d190cb'
+            contenttype: PyPi
+            domaintenantid: '975f013f-7f24-47e8-a7d3-abc4752bf346'
+            folderlocation: '$(System.DefaultWorkingDirectory)/target/wheels'
+            waitforreleasecompletion: true
+            owners: 'billti@microsoft.com'
+            approvers: 'billti@microsoft.com'
+            mainpublisher: ESRPRELPACMAN
