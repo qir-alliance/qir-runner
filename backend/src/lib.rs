@@ -564,7 +564,7 @@ pub unsafe extern "C" fn __quantum__qis__r__ctl(
                 });
             }
         }
-    };
+    }
 
     __quantum__rt__tuple_update_reference_count(rot_arg_tuple, -1);
 }

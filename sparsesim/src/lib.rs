@@ -269,7 +269,7 @@ impl QuantumSim {
                 .write_str(&format!("MAP: {:?}", self.id_map))
                 .expect("Failed to write output");
             output.write_str(&nl).expect("Failed to write output");
-        };
+        }
         output
             .write_str("STATE: [ ")
             .expect("Failed to write output");
