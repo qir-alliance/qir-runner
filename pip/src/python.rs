@@ -70,7 +70,7 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
 ///     runtime functions. Default is `None`. When no callback is provided,
 ///     the output is printed to the console.
 #[pyfunction]
-#[pyo3(text_signature = "(path, entry_point, shots, rng_seed, output_fn)")]
+#[pyo3(signature = (path, entry_point=None, shots=None, rng_seed=None, output_fn=None))]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn run(
     py: Python,
