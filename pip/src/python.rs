@@ -6,7 +6,6 @@ use std::ffi::OsString;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::wrap_pyfunction;
 use runner::OUTPUT;
 
 struct OptionalCallbackReceiver<'a> {
@@ -45,7 +44,7 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
                     PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
-                    ),
+                    )?,
                 )
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
             Ok(msg.len())
@@ -121,7 +120,7 @@ pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
 }
 
 #[pymodule]
-fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _native<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add_class::<Output>()?;
