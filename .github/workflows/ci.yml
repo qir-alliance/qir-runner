@@ -18,7 +18,7 @@ env:
 jobs:
   fmt:
     name: Code Style
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM and Clang
@@ -28,7 +28,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.84.0
+          toolchain: 1.86.0
           components: rustfmt clippy
       - name: cargo fmt
         run: cargo fmt -v --all -- --check
@@ -39,10 +39,10 @@ jobs:
       - name: cargo doc
         run: cargo doc -vv --all --no-deps
 
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.9
       - name: Install Python packages
         run: |
           python -m pip install -U pip
@@ -59,7 +59,7 @@ jobs:
 
   benches:
     name: Benches
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM and Clang
@@ -80,8 +80,16 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - { os: "ubuntu-20.04", arch: "amd64", env: { AUDITWHEEL_TAG: "manylinux_2_31_x86_64" } }
-          - { os: "ubuntu-22.04", arch: "amd64", env: { AUDITWHEEL_TAG: "manylinux_2_35_x86_64" } }
+          - {
+              os: "ubuntu-22.04",
+              arch: "amd64",
+              env: { AUDITWHEEL_TAG: "manylinux_2_35_x86_64" },
+            }
+          - {
+              os: "ubuntu-24.04",
+              arch: "amd64",
+              env: { AUDITWHEEL_TAG: "manylinux_2_39_x86_64" },
+            }
           - { os: "windows-2019", arch: "amd64", env: {} }
           - { os: "macos-14", arch: "arm64", env: {} }
     steps:
@@ -89,7 +97,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.84.0
+          toolchain: 1.86.0
           components: rustfmt clippy
       - name: Install LLVM
         uses: ./.github/actions/install-llvm
@@ -102,10 +110,10 @@ jobs:
         run: cargo build -vv --release
       - name: Test
         run: cargo test -vv --release -- --nocapture
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: 3.8
+          python-version: 3.9
         if: ${{ matrix.config.os != 'macos-14' }}
       - name: Install Unconditional Python packages
         run: |
@@ -114,18 +122,18 @@ jobs:
       - name: Install Auditwheel Python packages for Linux
         run: |
           python -m pip install -r pip/requirements-manylinux.txt
-        if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.config.os == 'ubuntu-22.04' || matrix.config.os == 'ubuntu-24.04' }}
       - name: Package Non-Linux
         run: |
           python -m build --verbose --sdist --outdir target/wheels ./pip
           python -m build --verbose --wheel ./pip
-        if: ${{ matrix.config.os != 'ubuntu-20.04' && matrix.config.os != 'ubuntu-22.04' }}
+        if: ${{ matrix.config.os != 'ubuntu-22.04' && matrix.config.os != 'ubuntu-24.04' }}
       - name: Package Linux
         run: |
           python -m build --verbose --sdist --outdir target/wheels ./pip
           python -m build --verbose --wheel --outdir target/raw-wheels ./pip
           auditwheel repair --plat $AUDITWHEEL_TAG --wheel-dir target/wheels target/raw-wheels/*.whl
-        if: ${{ matrix.config.os == 'ubuntu-20.04' || matrix.config.os == 'ubuntu-22.04' }}
+        if: ${{ matrix.config.os == 'ubuntu-22.04' || matrix.config.os == 'ubuntu-24.04' }}
       - name: Install Test Python packages
         run: python -m pip install -r pip/requirements-test.txt
       - name: Test Wheel
@@ -182,7 +190,7 @@ jobs:
           name: wheels
           pattern: wheel-artifacts-*
   docs:
-    runs-on: "ubuntu-22.04"
+    runs-on: ubuntu-latest
     needs: fmt
     steps:
       - uses: actions/checkout@v4

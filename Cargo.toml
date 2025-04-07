@@ -14,7 +14,7 @@ homepage = "https://github.com/qir-alliance/qir-runner"
 repository = "https://github.com/qir-alliance/qir-runner"
 edition = "2021"
 license = "MIT"
-version = "0.7.5"
+version = "0.7.6"
 
 [profile.release]
 debug = 1
@@ -29,6 +29,6 @@ ndarray = "0.15.4"
 num-bigint = { version = "0.4.5", default-features = false }
 num-complex = "0.4"
 num-traits = "0.2.19"
-pyo3 = "0.20"
+pyo3 = "0.24"
 rand = "0.8.5"
 rustc-hash = "1.1.0"
