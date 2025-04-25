@@ -391,6 +391,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__s__body, 1);
     bind!(__quantum__qis__s__ctl, 2);
     bind!(__quantum__qis__s__ctladj, 2);
+    bind!(__quantum__qis__sx__body, 1);
     bind!(__quantum__qis__sin__body, 1);
     bind!(__quantum__qis__sinh__body, 1);
     bind!(__quantum__qis__sqrt__body, 1);

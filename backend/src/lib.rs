@@ -431,6 +431,14 @@ multicontrolled_qubit_rotation!(
     QuantumSim::mcrz
 );
 
+/// QIR API for performing the SX gate on the given qubit.
+#[no_mangle]
+pub extern "C" fn __quantum__qis__sx__body(qubit: *mut c_void) {
+    __quantum__qis__h__body(qubit);
+    __quantum__qis__s__body(qubit);
+    __quantum__qis__h__body(qubit);
+}
+
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
 #[no_mangle]
 pub extern "C" fn __quantum__qis__rxx__body(
