@@ -14,7 +14,7 @@ homepage = "https://github.com/qir-alliance/qir-runner"
 repository = "https://github.com/qir-alliance/qir-runner"
 edition = "2021"
 license = "MIT"
-version = "0.8.0"
+version = "0.8.1"
 
 [profile.release]
 debug = 1
