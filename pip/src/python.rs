@@ -100,7 +100,7 @@ pub(crate) fn run(
 }
 
 #[pyfunction]
-#[pyo3(text_signature = "(args)")]
+#[pyo3(signature = (args = None))]
 pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
     match args {
         Some(args) => {
