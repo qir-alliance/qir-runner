@@ -32,6 +32,4 @@ def test_main_works_without_args() -> None:
     try:
         _native.main()
     except RuntimeError as ex:
-        assert str(ex).startswith(
-            "error: the following required arguments were not provided"
-        )
+        assert "For more information, try '--help'" in str(ex)
