@@ -1988,4 +1988,20 @@
 <a href=#1988 id=1988 data-nosnippet>1988</a>            <span class="number">2</span>,
 <a href=#1989 id=1989 data-nosnippet>1989</a>        );
 <a href=#1990 id=1990 data-nosnippet>1990</a>    }
-<a href=#1991 id=1991 data-nosnippet>1991</a>}</code></pre></div></section></main></body></html>
+<a href=#1991 id=1991 data-nosnippet>1991</a>
+<a href=#1992 id=1992 data-nosnippet>1992</a>    <span class="attr">#[test]
+<a href=#1993 id=1993 data-nosnippet>1993</a>    </span><span class="kw">fn </span>test_global_phase_dropped_when_all_qubits_released() {
+<a href=#1994 id=1994 data-nosnippet>1994</a>        <span class="kw">let </span><span class="kw-2">mut </span>sim = QuantumSim::default();
+<a href=#1995 id=1995 data-nosnippet>1995</a>        <span class="kw">let </span>q = sim.allocate();
+<a href=#1996 id=1996 data-nosnippet>1996</a>        sim.x(q);
+<a href=#1997 id=1997 data-nosnippet>1997</a>        sim.z(q);
+<a href=#1998 id=1998 data-nosnippet>1998</a>        sim.release(q);
+<a href=#1999 id=1999 data-nosnippet>1999</a>        <span class="kw">let _ </span>= sim.allocate();
+<a href=#2000 id=2000 data-nosnippet>2000</a>        <span class="kw">let </span>(state, count) = sim.get_state();
+<a href=#2001 id=2001 data-nosnippet>2001</a>        <span class="macro">assert_eq!</span>(count, <span class="number">1</span>);
+<a href=#2002 id=2002 data-nosnippet>2002</a>        <span class="macro">assert_eq!</span>(state.len(), <span class="number">1</span>);
+<a href=#2003 id=2003 data-nosnippet>2003</a>        <span class="kw">let </span>(index, value) = state.first().unwrap();
+<a href=#2004 id=2004 data-nosnippet>2004</a>        <span class="macro">assert_eq!</span>(index, <span class="kw-2">&amp;</span>BigUint::zero());
+<a href=#2005 id=2005 data-nosnippet>2005</a>        <span class="macro">assert_eq!</span>(value, <span class="kw-2">&amp;</span>Complex64::one());
+<a href=#2006 id=2006 data-nosnippet>2006</a>    }
+<a href=#2007 id=2007 data-nosnippet>2007</a>}</code></pre></div></section></main></body></html>
