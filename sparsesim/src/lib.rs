@@ -1972,16 +1972,20 @@ mod tests {
 
     #[test]
     fn test_cx_after_h_ry_executes_queued_operations_in_order() {
-        assert_operation_equal_referenced(|sim, qs| {
-            sim.h(qs[0]);
-            sim.ry(PI, qs[0]);
-            sim.h(qs[1]);
-            sim.mcx(&[qs[1]], qs[0]);
-        }, |sim, qs| {
-            sim.mcx(&[qs[1]], qs[0]);
-            sim.h(qs[1]);
-            sim.ry(-PI, qs[0]);
-            sim.h(qs[0]);
-        }, 2);
+        assert_operation_equal_referenced(
+            |sim, qs| {
+                sim.h(qs[0]);
+                sim.ry(PI, qs[0]);
+                sim.h(qs[1]);
+                sim.mcx(&[qs[1]], qs[0]);
+            },
+            |sim, qs| {
+                sim.mcx(&[qs[1]], qs[0]);
+                sim.h(qs[1]);
+                sim.ry(-PI, qs[0]);
+                sim.h(qs[0]);
+            },
+            2,
+        );
     }
 }
