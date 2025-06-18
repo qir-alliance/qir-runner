@@ -14621,7 +14621,7 @@ SOFTWARE.
 
 
 
-qir-backend 0.8.1 - SPDX: MIT - MIT License
+qir-backend 0.8.2 - SPDX: MIT - MIT License
 https://crates.io/crates/qir-backend
 
 MIT License
@@ -14636,7 +14636,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 
-qir-stdlib 0.8.1 - SPDX: MIT - MIT License
+qir-stdlib 0.8.2 - SPDX: MIT - MIT License
 https://crates.io/crates/qir-stdlib
 
 MIT License
@@ -14666,7 +14666,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 
-quantum-sparse-sim 0.8.1 - SPDX: MIT - MIT License
+quantum-sparse-sim 0.8.2 - SPDX: MIT - MIT License
 https://crates.io/crates/quantum-sparse-sim
 
 MIT License
@@ -14681,7 +14681,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 
-runner 0.8.1 - SPDX: MIT - MIT License
+runner 0.8.2 - SPDX: MIT - MIT License
 https://crates.io/crates/runner
 
 MIT License
