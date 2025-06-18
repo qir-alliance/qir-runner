@@ -674,6 +674,10 @@ impl QuantumSim {
             return;
         }
 
+        if self.ry_queue.contains_key(target) {
+            self.flush_queue(&[target], FlushLevel::HRxRy);
+        }
+
         if ctls.len() > 1 {
             self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
         } else if self.ry_queue.contains_key(ctls[0])
@@ -681,10 +685,6 @@ impl QuantumSim {
             || (self.h_flag.bit(ctls[0] as u64) && !self.h_flag.bit(target as u64))
         {
             self.flush_queue(ctls, FlushLevel::HRxRy);
-        }
-
-        if self.ry_queue.contains_key(target) {
-            self.flush_queue(&[target], FlushLevel::HRxRy);
         }
 
         if self.h_flag.bit(target as u64) {
@@ -1968,5 +1968,20 @@ mod tests {
         }
         assert_eq!(sim.op_queue.len(), 2);
         assert_eq!(sim.state.len(), 1);
+    }
+
+    #[test]
+    fn test_cx_after_h_ry_executes_queued_operations_in_order() {
+        assert_operation_equal_referenced(|sim, qs| {
+            sim.h(qs[0]);
+            sim.ry(PI, qs[0]);
+            sim.h(qs[1]);
+            sim.mcx(&[qs[1]], qs[0]);
+        }, |sim, qs| {
+            sim.mcx(&[qs[1]], qs[0]);
+            sim.h(qs[1]);
+            sim.ry(-PI, qs[0]);
+            sim.h(qs[0]);
+        }, 2);
     }
 }
