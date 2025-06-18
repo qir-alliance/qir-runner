@@ -1988,4 +1988,20 @@ mod tests {
             2,
         );
     }
+
+    #[test]
+    fn test_global_phase_dropped_when_all_qubits_released() {
+        let mut sim = QuantumSim::default();
+        let q = sim.allocate();
+        sim.x(q);
+        sim.z(q);
+        sim.release(q);
+        let _ = sim.allocate();
+        let (state, count) = sim.get_state();
+        assert_eq!(count, 1);
+        assert_eq!(state.len(), 1);
+        let (index, value) = state.first().unwrap();
+        assert_eq!(index, &BigUint::zero());
+        assert_eq!(value, &Complex64::one());
+    }
 }
