@@ -674,17 +674,17 @@
 <a href=#674 id=674 data-nosnippet>674</a>            <span class="kw">return</span>;
 <a href=#675 id=675 data-nosnippet>675</a>        }
 <a href=#676 id=676 data-nosnippet>676</a>
-<a href=#677 id=677 data-nosnippet>677</a>        <span class="kw">if </span>ctls.len() &gt; <span class="number">1 </span>{
-<a href=#678 id=678 data-nosnippet>678</a>            <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
-<a href=#679 id=679 data-nosnippet>679</a>        } <span class="kw">else if </span><span class="self">self</span>.ry_queue.contains_key(ctls[<span class="number">0</span>])
-<a href=#680 id=680 data-nosnippet>680</a>            || <span class="self">self</span>.rx_queue.contains_key(ctls[<span class="number">0</span>])
-<a href=#681 id=681 data-nosnippet>681</a>            || (<span class="self">self</span>.h_flag.bit(ctls[<span class="number">0</span>] <span class="kw">as </span>u64) &amp;&amp; !<span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64))
-<a href=#682 id=682 data-nosnippet>682</a>        {
-<a href=#683 id=683 data-nosnippet>683</a>            <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
-<a href=#684 id=684 data-nosnippet>684</a>        }
-<a href=#685 id=685 data-nosnippet>685</a>
-<a href=#686 id=686 data-nosnippet>686</a>        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(target) {
-<a href=#687 id=687 data-nosnippet>687</a>            <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+<a href=#677 id=677 data-nosnippet>677</a>        <span class="kw">if </span><span class="self">self</span>.ry_queue.contains_key(target) {
+<a href=#678 id=678 data-nosnippet>678</a>            <span class="self">self</span>.flush_queue(<span class="kw-2">&amp;</span>[target], FlushLevel::HRxRy);
+<a href=#679 id=679 data-nosnippet>679</a>        }
+<a href=#680 id=680 data-nosnippet>680</a>
+<a href=#681 id=681 data-nosnippet>681</a>        <span class="kw">if </span>ctls.len() &gt; <span class="number">1 </span>{
+<a href=#682 id=682 data-nosnippet>682</a>            <span class="self">self</span>.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+<a href=#683 id=683 data-nosnippet>683</a>        } <span class="kw">else if </span><span class="self">self</span>.ry_queue.contains_key(ctls[<span class="number">0</span>])
+<a href=#684 id=684 data-nosnippet>684</a>            || <span class="self">self</span>.rx_queue.contains_key(ctls[<span class="number">0</span>])
+<a href=#685 id=685 data-nosnippet>685</a>            || (<span class="self">self</span>.h_flag.bit(ctls[<span class="number">0</span>] <span class="kw">as </span>u64) &amp;&amp; !<span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64))
+<a href=#686 id=686 data-nosnippet>686</a>        {
+<a href=#687 id=687 data-nosnippet>687</a>            <span class="self">self</span>.flush_queue(ctls, FlushLevel::HRxRy);
 <a href=#688 id=688 data-nosnippet>688</a>        }
 <a href=#689 id=689 data-nosnippet>689</a>
 <a href=#690 id=690 data-nosnippet>690</a>        <span class="kw">if </span><span class="self">self</span>.h_flag.bit(target <span class="kw">as </span>u64) {
@@ -1969,4 +1969,23 @@
 <a href=#1969 id=1969 data-nosnippet>1969</a>        <span class="macro">assert_eq!</span>(sim.op_queue.len(), <span class="number">2</span>);
 <a href=#1970 id=1970 data-nosnippet>1970</a>        <span class="macro">assert_eq!</span>(sim.state.len(), <span class="number">1</span>);
 <a href=#1971 id=1971 data-nosnippet>1971</a>    }
-<a href=#1972 id=1972 data-nosnippet>1972</a>}</code></pre></div></section></main></body></html>
+<a href=#1972 id=1972 data-nosnippet>1972</a>
+<a href=#1973 id=1973 data-nosnippet>1973</a>    <span class="attr">#[test]
+<a href=#1974 id=1974 data-nosnippet>1974</a>    </span><span class="kw">fn </span>test_cx_after_h_ry_executes_queued_operations_in_order() {
+<a href=#1975 id=1975 data-nosnippet>1975</a>        assert_operation_equal_referenced(
+<a href=#1976 id=1976 data-nosnippet>1976</a>            |sim, qs| {
+<a href=#1977 id=1977 data-nosnippet>1977</a>                sim.h(qs[<span class="number">0</span>]);
+<a href=#1978 id=1978 data-nosnippet>1978</a>                sim.ry(PI, qs[<span class="number">0</span>]);
+<a href=#1979 id=1979 data-nosnippet>1979</a>                sim.h(qs[<span class="number">1</span>]);
+<a href=#1980 id=1980 data-nosnippet>1980</a>                sim.mcx(<span class="kw-2">&amp;</span>[qs[<span class="number">1</span>]], qs[<span class="number">0</span>]);
+<a href=#1981 id=1981 data-nosnippet>1981</a>            },
+<a href=#1982 id=1982 data-nosnippet>1982</a>            |sim, qs| {
+<a href=#1983 id=1983 data-nosnippet>1983</a>                sim.mcx(<span class="kw-2">&amp;</span>[qs[<span class="number">1</span>]], qs[<span class="number">0</span>]);
+<a href=#1984 id=1984 data-nosnippet>1984</a>                sim.h(qs[<span class="number">1</span>]);
+<a href=#1985 id=1985 data-nosnippet>1985</a>                sim.ry(-PI, qs[<span class="number">0</span>]);
+<a href=#1986 id=1986 data-nosnippet>1986</a>                sim.h(qs[<span class="number">0</span>]);
+<a href=#1987 id=1987 data-nosnippet>1987</a>            },
+<a href=#1988 id=1988 data-nosnippet>1988</a>            <span class="number">2</span>,
+<a href=#1989 id=1989 data-nosnippet>1989</a>        );
+<a href=#1990 id=1990 data-nosnippet>1990</a>    }
+<a href=#1991 id=1991 data-nosnippet>1991</a>}</code></pre></div></section></main></body></html>
