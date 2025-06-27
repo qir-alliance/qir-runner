@@ -90,7 +90,7 @@ jobs:
               arch: "amd64",
               env: { AUDITWHEEL_TAG: "manylinux_2_39_x86_64" },
             }
-          - { os: "windows-2019", arch: "amd64", env: {} }
+          - { os: "windows-2022", arch: "amd64", env: {} }
           - { os: "macos-14", arch: "arm64", env: {} }
     steps:
       - uses: actions/checkout@v4
@@ -160,14 +160,14 @@ jobs:
         run: |
           Copy-Item -Path ./target/release/libqir_stdlib.a -Destination ./target/stdlib -Force
         shell: pwsh
-        if: ${{ matrix.config.os != 'windows-2019' }}
+        if: ${{ matrix.config.os != 'windows-2022' }}
 
       - name: Organize qir-stdlib artifacts (Windows)
         run: |
           Copy-Item -Path ./target/release/qir_stdlib.lib -Destination ./target/stdlib -Force
           Copy-Item -Path ./stdlib/include/qir_stdlib.def -Destination ./target/stdlib -Force
         shell: pwsh
-        if: ${{ matrix.config.os == 'windows-2019' }}
+        if: ${{ matrix.config.os == 'windows-2022' }}
 
       - name: qir-stdlib Artifact
         uses: actions/upload-artifact@v4
