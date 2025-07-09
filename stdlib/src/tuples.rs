@@ -3,12 +3,12 @@
 
 use crate::update_counts;
 use std::{
-    mem::{size_of, ManuallyDrop},
+    mem::{ManuallyDrop, size_of},
     rc::Rc,
 };
 
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__tuple_create(size: u64) -> *mut *const Vec<u8> {
     let mut mem = vec![
         0_u8;
@@ -25,37 +25,43 @@ pub extern "C" fn __quantum__rt__tuple_create(size: u64) -> *mut *const Vec<u8> 
 }
 
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__tuple_copy(
     raw_tup: *mut *const Vec<u8>,
     force: bool,
 ) -> *mut *const Vec<u8> {
-    let rc = ManuallyDrop::new(Rc::from_raw(*(raw_tup).wrapping_sub(1)));
-    if force || Rc::weak_count(&rc) > 0 {
-        let mut copy = rc.as_ref().clone();
-        let header = copy.as_mut_ptr().cast::<*const Vec<u8>>();
-        *header = Rc::into_raw(Rc::new(copy));
-        header.wrapping_add(1)
-    } else {
-        let _ = Rc::into_raw(Rc::clone(&rc));
-        raw_tup
+    unsafe {
+        let rc = ManuallyDrop::new(Rc::from_raw(*(raw_tup).wrapping_sub(1)));
+        if force || Rc::weak_count(&rc) > 0 {
+            let mut copy = rc.as_ref().clone();
+            let header = copy.as_mut_ptr().cast::<*const Vec<u8>>();
+            *header = Rc::into_raw(Rc::new(copy));
+            header.wrapping_add(1)
+        } else {
+            let _ = Rc::into_raw(Rc::clone(&rc));
+            raw_tup
+        }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__tuple_update_reference_count(
     raw_tup: *mut *const Vec<u8>,
     update: i32,
 ) {
-    update_counts(*raw_tup.wrapping_sub(1), update, false);
+    unsafe {
+        update_counts(*raw_tup.wrapping_sub(1), update, false);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__tuple_update_alias_count(
     raw_tup: *mut *const Vec<u8>,
     update: i32,
 ) {
-    update_counts(*raw_tup.wrapping_sub(1), update, true);
+    unsafe {
+        update_counts(*raw_tup.wrapping_sub(1), update, true);
+    }
 }
 
 #[cfg(test)]

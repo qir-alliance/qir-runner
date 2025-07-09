@@ -7,11 +7,11 @@
 // in favor of having high level languages decompose into CNOT and single qubit rotations (see
 // https://github.com/microsoft/qsharp-runtime/issues/999 and https://github.com/microsoft/QuantumLibraries/issues/579).
 
-use crate::{ensure_sufficient_qubits, SIM_STATE};
+use crate::{SIM_STATE, ensure_sufficient_qubits};
 use qir_stdlib::{
-    arrays::{QirArray, __quantum__rt__array_get_element_ptr_1d, __quantum__rt__array_get_size_1d},
-    tuples::{__quantum__rt__tuple_create, __quantum__rt__tuple_update_reference_count},
     Pauli,
+    arrays::{__quantum__rt__array_get_element_ptr_1d, __quantum__rt__array_get_size_1d, QirArray},
+    tuples::{__quantum__rt__tuple_create, __quantum__rt__tuple_update_reference_count},
 };
 use quantum_sparse_sim::exp::Pauli as SparsePauli;
 use std::{
@@ -33,7 +33,7 @@ fn map_pauli(pauli: Pauli) -> SparsePauli {
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__exp__body(
     paulis: *const QirArray,
     theta: c_double,
@@ -42,18 +42,22 @@ pub unsafe extern "C" fn __quantum__qis__exp__body(
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
 
-        let paulis_size = __quantum__rt__array_get_size_1d(paulis);
+        let paulis_size = unsafe { __quantum__rt__array_get_size_1d(paulis) };
         let paulis: Vec<SparsePauli> = (0..paulis_size)
             .map(|index| {
-                map_pauli(*__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>())
+                map_pauli(unsafe {
+                    *__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>()
+                })
             })
             .collect();
 
-        let qubits_size = __quantum__rt__array_get_size_1d(qubits);
+        let qubits_size = unsafe { __quantum__rt__array_get_size_1d(qubits) };
         let targets: Vec<usize> = (0..qubits_size)
             .map(|index| {
-                let qubit_id = *__quantum__rt__array_get_element_ptr_1d(qubits, index)
-                    .cast::<*mut c_void>() as usize;
+                let qubit_id = unsafe {
+                    *__quantum__rt__array_get_element_ptr_1d(qubits, index).cast::<*mut c_void>()
+                        as usize
+                };
                 ensure_sufficient_qubits(&mut state.sim, qubit_id, &mut state.max_qubit_id);
                 qubit_id
             })
@@ -67,13 +71,15 @@ pub unsafe extern "C" fn __quantum__qis__exp__body(
 /// # Safety
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__exp__adj(
     paulis: *const QirArray,
     theta: c_double,
     qubits: *const QirArray,
 ) {
-    __quantum__qis__exp__body(paulis, -theta, qubits);
+    unsafe {
+        __quantum__qis__exp__body(paulis, -theta, qubits);
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -89,39 +95,42 @@ struct ExpArgs {
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__exp__ctl(
     ctls: *const QirArray,
     arg_tuple: *mut *const Vec<u8>,
 ) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
-        let args = *arg_tuple.cast::<ExpArgs>();
+        let args = unsafe { *arg_tuple.cast::<ExpArgs>() };
 
-        let ctls_size = __quantum__rt__array_get_size_1d(ctls);
+        let ctls_size = unsafe { __quantum__rt__array_get_size_1d(ctls) };
         let ctls: Vec<usize> = (0..ctls_size)
             .map(|index| {
-                let qubit_id = *__quantum__rt__array_get_element_ptr_1d(ctls, index)
-                    .cast::<*mut c_void>() as usize;
+                let qubit_id = unsafe {
+                    *__quantum__rt__array_get_element_ptr_1d(ctls, index).cast::<*mut c_void>()
+                } as usize;
                 ensure_sufficient_qubits(&mut state.sim, qubit_id, &mut state.max_qubit_id);
                 qubit_id
             })
             .collect();
 
-        let paulis_size = __quantum__rt__array_get_size_1d(args.paulis);
+        let paulis_size = unsafe { __quantum__rt__array_get_size_1d(args.paulis) };
         let paulis: Vec<SparsePauli> = (0..paulis_size)
             .map(|index| {
-                map_pauli(
-                    *__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::<Pauli>(),
-                )
+                map_pauli(unsafe {
+                    *__quantum__rt__array_get_element_ptr_1d(args.paulis, index).cast::<Pauli>()
+                })
             })
             .collect();
 
-        let qubits_size = __quantum__rt__array_get_size_1d(args.qubits);
+        let qubits_size = unsafe { __quantum__rt__array_get_size_1d(args.qubits) };
         let targets: Vec<usize> = (0..qubits_size)
             .map(|index| {
-                let qubit_id = *__quantum__rt__array_get_element_ptr_1d(args.qubits, index)
-                    .cast::<*mut c_void>() as usize;
+                let qubit_id = unsafe {
+                    *__quantum__rt__array_get_element_ptr_1d(args.qubits, index)
+                        .cast::<*mut c_void>()
+                } as usize;
                 ensure_sufficient_qubits(&mut state.sim, qubit_id, &mut state.max_qubit_id);
                 qubit_id
             })
@@ -136,19 +145,21 @@ pub unsafe extern "C" fn __quantum__qis__exp__ctl(
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__exp__ctladj(
     ctls: *const QirArray,
     arg_tuple: *mut *const Vec<u8>,
 ) {
-    let args = *arg_tuple.cast::<ExpArgs>();
+    let args = unsafe { *arg_tuple.cast::<ExpArgs>() };
     let new_args = ExpArgs {
         paulis: args.paulis,
         theta: -args.theta,
         qubits: args.qubits,
     };
     let new_arg_tuple = __quantum__rt__tuple_create(size_of::<ExpArgs>() as u64);
-    *new_arg_tuple.cast::<ExpArgs>() = new_args;
-    __quantum__qis__exp__ctl(ctls, new_arg_tuple);
-    __quantum__rt__tuple_update_reference_count(new_arg_tuple, -1);
+    unsafe {
+        *new_arg_tuple.cast::<ExpArgs>() = new_args;
+        __quantum__qis__exp__ctl(ctls, new_arg_tuple);
+        __quantum__rt__tuple_update_reference_count(new_arg_tuple, -1);
+    }
 }

@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use num_traits::{One, Zero};
 use std::ops::ControlFlow;
 
-use crate::{nearly_zero::NearlyZero, FlushLevel, QuantumSim, SparseState};
+use crate::{FlushLevel, QuantumSim, SparseState, nearly_zero::NearlyZero};
 
 pub enum Pauli {
     I,

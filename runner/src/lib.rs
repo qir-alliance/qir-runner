@@ -13,6 +13,7 @@ pub use qir_backend::{
 };
 
 use inkwell::{
+    OptimizationLevel,
     attributes::AttributeLoc,
     context::Context,
     execution_engine::ExecutionEngine,
@@ -21,7 +22,6 @@ use inkwell::{
     passes::{PassBuilderOptions, PassManager},
     targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple},
     values::FunctionValue,
-    OptimizationLevel,
 };
 use std::{
     collections::HashMap,
@@ -178,11 +178,13 @@ unsafe fn run_entry_point(
     execution_engine: &ExecutionEngine,
     entry_point: FunctionValue,
 ) -> Result<(), String> {
-    if entry_point.count_params() == 0 {
-        execution_engine.run_function(entry_point, &[]);
-        Ok(())
-    } else {
-        Err("Entry point has parameters or a non-void return type.".to_owned())
+    unsafe {
+        if entry_point.count_params() == 0 {
+            execution_engine.run_function(entry_point, &[]);
+            Ok(())
+        } else {
+            Err("Entry point has parameters or a non-void return type.".to_owned())
+        }
     }
 }
 

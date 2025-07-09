@@ -28,7 +28,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.86.0
+          toolchain: 1.88.0
           components: rustfmt clippy
       - name: cargo fmt
         run: cargo fmt -v --all -- --check
@@ -97,7 +97,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.86.0
+          toolchain: 1.88.0
           components: rustfmt clippy
       - name: Install LLVM
         uses: ./.github/actions/install-llvm

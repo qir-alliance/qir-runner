@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use clap::error::ErrorKind;
-use clap::{arg, crate_version, value_parser, Command};
+use clap::{Command, arg, crate_version, value_parser};
 use std::env::{self, ArgsOs};
 use std::{ffi::OsString, path::PathBuf};
 

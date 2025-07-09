@@ -13,7 +13,7 @@ pub struct Range {
     pub end: i64,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn quantum__rt__range_to_string(input: Range) -> *const CString {
     let mut range_str = input.start.to_string() + "..";
     if input.step != 1 {
@@ -24,12 +24,12 @@ pub extern "C" fn quantum__rt__range_to_string(input: Range) -> *const CString {
     convert(&range_str)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn quantum__rt__array_slice_1d(
     arr: *const QirArray,
     range: Range,
 ) -> *const QirArray {
-    let array = &*arr;
+    let array = unsafe { &*arr };
     let item_size: i64 = array
         .elem_size
         .try_into()
