@@ -18,11 +18,11 @@ mod matrix_testing;
 
 use crate::nearly_zero::NearlyZero;
 use index_map::IndexMap;
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, ToPrimitive, Zero};
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{Rng, SeedableRng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
@@ -138,7 +138,7 @@ impl QuantumSim {
             if index != self.id_map[key] {
                 self.swap_qubit_state(self.id_map[key], index);
                 if let Some((swapped_key, _)) =
-                    self.id_map.iter().find(|(_, &value)| value == index)
+                    self.id_map.iter().find(|&(_, &value)| value == index)
                 {
                     *(self
                         .id_map
@@ -236,7 +236,7 @@ impl QuantumSim {
             if index != self.id_map[key] {
                 self.swap_qubit_state(self.id_map[key], index);
                 if let Some((swapped_key, _)) =
-                    self.id_map.iter().find(|(_, &value)| value == index)
+                    self.id_map.iter().find(|&(_, &value)| value == index)
                 {
                     *(self
                         .id_map
@@ -337,7 +337,7 @@ impl QuantumSim {
     /// Utility that performs the actual measurement and collapse of the state for the given
     /// location.
     fn measure_impl(&mut self, loc: usize) -> bool {
-        let random_sample = self.rng.borrow_mut().gen::<f64>();
+        let random_sample = self.rng.borrow_mut().r#gen::<f64>();
         let res = random_sample < self.check_joint_probability(&[loc]);
         self.collapse(loc, res);
         res
@@ -364,7 +364,7 @@ impl QuantumSim {
             })
             .collect();
 
-        let random_sample = self.rng.borrow_mut().gen::<f64>();
+        let random_sample = self.rng.borrow_mut().r#gen::<f64>();
         let res = random_sample < self.check_joint_probability(&locs);
         self.joint_collapse(&locs, res);
         res
@@ -1255,7 +1255,7 @@ impl QuantumSim {
                 let swap_id = self
                     .id_map
                     .iter()
-                    .find(|(_, &value)| value == target_loc)
+                    .find(|&(_, &value)| value == target_loc)
                     .unwrap()
                     .0;
                 self.swap_qubit_state(loc, target_loc);

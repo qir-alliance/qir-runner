@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 use core::f64::consts::FRAC_1_SQRT_2;
-use ndarray::{array, Array2};
+use ndarray::{Array2, array};
 use num_complex::Complex64;
 use num_traits::One;
 use num_traits::Zero;
 
-use crate::{nearly_zero::NearlyZero, QuantumSim};
+use crate::{QuantumSim, nearly_zero::NearlyZero};
 
 /// Returns a unitary matrix representing the `X` operation.
 #[must_use]

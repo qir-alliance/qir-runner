@@ -3,11 +3,12 @@
 
 use std::ffi::c_void;
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use qir_backend::*;
 
 /// Benchmarks a simple Grover's search on 2 qubits for the pattern |01⟩. This has the benefit of
 /// being a deterministic instance of the algorithm, such that the correct pattern is always found with 100% probability.
+#[allow(clippy::manual_dangling_ptr)]
 pub fn grover(c: &mut Criterion) {
     c.bench_function("Simple Grover's Search Program", |b| {
         b.iter(|| {

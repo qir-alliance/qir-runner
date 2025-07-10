@@ -21,7 +21,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::ffi::c_char;
 use std::ffi::c_double;
-use std::ffi::{c_void, CString};
+use std::ffi::{CString, c_void};
 use std::io::Write;
 use std::mem::size_of;
 
@@ -57,7 +57,7 @@ pub fn set_rng_seed(seed: u64) {
 }
 
 /// Initializes the execution environment.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__initialize(_: *mut c_char) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -84,45 +84,47 @@ unsafe fn map_to_z_basis(
     paulis: *const QirArray,
     qubits: *const QirArray,
 ) -> Vec<(Pauli, usize)> {
-    let paulis_size = __quantum__rt__array_get_size_1d(paulis);
-    let qubits_size = __quantum__rt__array_get_size_1d(qubits);
-    if paulis_size != qubits_size {
-        __quantum__rt__fail(__quantum__rt__string_create(
-            CString::new("Pauli array and Qubit array must be the same size.")
-                .expect("Unable to allocate memory for failure message string.")
-                .as_bytes_with_nul()
-                .as_ptr() as *mut c_char,
-        ));
-    }
-
-    let combined_list: Vec<(Pauli, usize)> = (0..paulis_size)
-        .filter_map(|index| {
-            let p =
-                *__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>() as Pauli;
-            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, index).cast::<*mut c_void>()
-                as usize;
-            if let Pauli::I = p {
-                None
-            } else {
-                ensure_sufficient_qubits(&mut state.sim, q, &mut state.max_qubit_id);
-                Some((p, q))
-            }
-        })
-        .collect();
-
-    for (pauli, qubit) in &combined_list {
-        match pauli {
-            Pauli::X => state.sim.h(*qubit),
-            Pauli::Y => {
-                state.sim.h(*qubit);
-                state.sim.s(*qubit);
-                state.sim.h(*qubit);
-            }
-            _ => (),
+    unsafe {
+        let paulis_size = __quantum__rt__array_get_size_1d(paulis);
+        let qubits_size = __quantum__rt__array_get_size_1d(qubits);
+        if paulis_size != qubits_size {
+            __quantum__rt__fail(__quantum__rt__string_create(
+                CString::new("Pauli array and Qubit array must be the same size.")
+                    .expect("Unable to allocate memory for failure message string.")
+                    .as_bytes_with_nul()
+                    .as_ptr() as *mut c_char,
+            ));
         }
-    }
 
-    combined_list
+        let combined_list: Vec<(Pauli, usize)> = (0..paulis_size)
+            .filter_map(|index| {
+                let p = *__quantum__rt__array_get_element_ptr_1d(paulis, index).cast::<Pauli>()
+                    as Pauli;
+                let q = *__quantum__rt__array_get_element_ptr_1d(qubits, index)
+                    .cast::<*mut c_void>() as usize;
+                if let Pauli::I = p {
+                    None
+                } else {
+                    ensure_sufficient_qubits(&mut state.sim, q, &mut state.max_qubit_id);
+                    Some((p, q))
+                }
+            })
+            .collect();
+
+        for (pauli, qubit) in &combined_list {
+            match pauli {
+                Pauli::X => state.sim.h(*qubit),
+                Pauli::Y => {
+                    state.sim.h(*qubit);
+                    state.sim.s(*qubit);
+                    state.sim.h(*qubit);
+                }
+                _ => (),
+            }
+        }
+
+        combined_list
+    }
 }
 
 /// Given a vector of Pauli and qubit id pairs, unmaps from the computational basis back into the given
@@ -145,7 +147,7 @@ macro_rules! single_qubit_gate {
     ($(#[$meta:meta])*
     $qir_name:ident, $gate:expr) => {
         $(#[$meta])*
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn $qir_name(qubit: *mut c_void) {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
@@ -202,7 +204,7 @@ macro_rules! controlled_qubit_gate {
     ($(#[$meta:meta])*
     $qir_name:ident, $gate:expr, 1) => {
         $(#[$meta])*
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn $qir_name(control: *mut c_void, target: *mut c_void) {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
@@ -217,7 +219,7 @@ macro_rules! controlled_qubit_gate {
     ($(#[$meta:meta])*
     $qir_name:ident, $gate:expr, 2) => {
         $(#[$meta])*
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn $qir_name(
             control_1: *mut c_void,
             control_2: *mut c_void,
@@ -270,7 +272,7 @@ macro_rules! single_qubit_rotation {
     ($(#[$meta:meta])*
     $qir_name:ident, $gate:expr) => {
         $(#[$meta])*
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         pub extern "C" fn $qir_name(theta: c_double, qubit: *mut c_void) {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
@@ -305,9 +307,9 @@ macro_rules! multicontrolled_qubit_gate {
         /// # Safety
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::cast_ptr_alignment)]
-        pub unsafe extern "C" fn $qir_name(ctls: *const QirArray, qubit: *mut c_void) {
+        pub unsafe extern "C" fn $qir_name(ctls: *const QirArray, qubit: *mut c_void) { unsafe {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
                 ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
@@ -323,7 +325,7 @@ macro_rules! multicontrolled_qubit_gate {
 
                 $gate(&mut state.sim, &ctls_list, qubit as usize);
             });
-        }
+        }}
     };
 }
 
@@ -382,12 +384,12 @@ macro_rules! multicontrolled_qubit_rotation {
         /// # Safety
         ///
         /// This function should only be called with arrays and tuples created by the QIR runtime library.
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::cast_ptr_alignment)]
         pub unsafe extern "C" fn $qir_name(
             ctls: *const QirArray,
             arg_tuple: *mut *const Vec<u8>,
-        ) {
+        ) { unsafe {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
 
@@ -411,7 +413,7 @@ macro_rules! multicontrolled_qubit_rotation {
                     args.qubit as usize,
                 );
             });
-        }
+        }}
     };
 }
 
@@ -432,7 +434,7 @@ multicontrolled_qubit_rotation!(
 );
 
 /// QIR API for performing the SX gate on the given qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__sx__body(qubit: *mut c_void) {
     __quantum__qis__h__body(qubit);
     __quantum__qis__s__body(qubit);
@@ -440,7 +442,7 @@ pub extern "C" fn __quantum__qis__sx__body(qubit: *mut c_void) {
 }
 
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__rxx__body(
     theta: c_double,
     qubit1: *mut c_void,
@@ -458,7 +460,7 @@ pub extern "C" fn __quantum__qis__rxx__body(
 }
 
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__ryy__body(
     theta: c_double,
     qubit1: *mut c_void,
@@ -484,7 +486,7 @@ pub extern "C" fn __quantum__qis__ryy__body(
 }
 
 /// QIR API for applying a joint rotation Pauli-Z rotation with the given angle for the two target qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__rzz__body(
     theta: c_double,
     qubit1: *mut c_void,
@@ -496,7 +498,7 @@ pub extern "C" fn __quantum__qis__rzz__body(
 }
 
 /// QIR API for applying a rotation about the given Pauli axis with the given angle and qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__r__body(pauli: Pauli, theta: c_double, qubit: *mut c_void) {
     match pauli {
         Pauli::I => (),
@@ -507,7 +509,7 @@ pub extern "C" fn __quantum__qis__r__body(pauli: Pauli, theta: c_double, qubit: 
 }
 
 /// QIR API for applying an adjoint rotation about the given Pauli axis with the given angle and qubit.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__r__adj(pauli: Pauli, theta: c_double, qubit: *mut c_void) {
     __quantum__qis__r__body(pauli, -theta, qubit);
 }
@@ -525,81 +527,90 @@ struct PauliRotationArgs {
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__r__ctl(
     ctls: *const QirArray,
     arg_tuple: *mut *const Vec<u8>,
 ) {
-    let args = *arg_tuple.cast::<PauliRotationArgs>();
-    let rot_args = RotationArgs {
-        theta: args.theta,
-        qubit: args.qubit,
-    };
-    let rot_arg_tuple = __quantum__rt__tuple_create(size_of::<RotationArgs>() as u64);
-    *rot_arg_tuple.cast::<RotationArgs>() = rot_args;
+    unsafe {
+        let args = *arg_tuple.cast::<PauliRotationArgs>();
+        let rot_args = RotationArgs {
+            theta: args.theta,
+            qubit: args.qubit,
+        };
+        let rot_arg_tuple = __quantum__rt__tuple_create(size_of::<RotationArgs>() as u64);
+        *rot_arg_tuple.cast::<RotationArgs>() = rot_args;
 
-    match args.pauli {
-        Pauli::X => __quantum__qis__rx__ctl(ctls, rot_arg_tuple),
-        Pauli::Y => __quantum__qis__ry__ctl(ctls, rot_arg_tuple),
-        Pauli::Z => __quantum__qis__rz__ctl(ctls, rot_arg_tuple),
-        Pauli::I => {
-            if __quantum__rt__array_get_size_1d(ctls) > 0 {
-                SIM_STATE.with(|sim_state| {
-                    let state = &mut *sim_state.borrow_mut();
+        match args.pauli {
+            Pauli::X => __quantum__qis__rx__ctl(ctls, rot_arg_tuple),
+            Pauli::Y => __quantum__qis__ry__ctl(ctls, rot_arg_tuple),
+            Pauli::Z => __quantum__qis__rz__ctl(ctls, rot_arg_tuple),
+            Pauli::I => {
+                if __quantum__rt__array_get_size_1d(ctls) > 0 {
+                    SIM_STATE.with(|sim_state| {
+                        let state = &mut *sim_state.borrow_mut();
 
-                    ensure_sufficient_qubits(
-                        &mut state.sim,
-                        args.qubit as usize,
-                        &mut state.max_qubit_id,
-                    );
-                    let ctls_size = __quantum__rt__array_get_size_1d(ctls);
-                    let ctls_list: Vec<usize> = (0..ctls_size)
-                        .map(|index| {
-                            let q = *__quantum__rt__array_get_element_ptr_1d(ctls, index)
-                                .cast::<*mut c_void>() as usize;
-                            ensure_sufficient_qubits(&mut state.sim, q, &mut state.max_qubit_id);
-                            q
-                        })
-                        .collect();
-
-                    if let Some((head, rest)) = ctls_list.split_first() {
-                        state.sim.mcphase(
-                            rest,
-                            Complex64::exp(Complex64::new(0.0, -args.theta / 2.0)),
-                            *head,
+                        ensure_sufficient_qubits(
+                            &mut state.sim,
+                            args.qubit as usize,
+                            &mut state.max_qubit_id,
                         );
-                    }
-                });
+                        let ctls_size = __quantum__rt__array_get_size_1d(ctls);
+                        let ctls_list: Vec<usize> = (0..ctls_size)
+                            .map(|index| {
+                                let q = *__quantum__rt__array_get_element_ptr_1d(ctls, index)
+                                    .cast::<*mut c_void>()
+                                    as usize;
+                                ensure_sufficient_qubits(
+                                    &mut state.sim,
+                                    q,
+                                    &mut state.max_qubit_id,
+                                );
+                                q
+                            })
+                            .collect();
+
+                        if let Some((head, rest)) = ctls_list.split_first() {
+                            state.sim.mcphase(
+                                rest,
+                                Complex64::exp(Complex64::new(0.0, -args.theta / 2.0)),
+                                *head,
+                            );
+                        }
+                    });
+                }
             }
         }
-    }
 
-    __quantum__rt__tuple_update_reference_count(rot_arg_tuple, -1);
+        __quantum__rt__tuple_update_reference_count(rot_arg_tuple, -1);
+    }
 }
 
 /// QIR API for applying an adjoint controlled rotation about the given Pauli axis with the given angle and qubit.
 /// # Safety
 ///
 /// This function should only be called with arrays and tuples created by the QIR runtime library.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__r__ctladj(
     ctls: *const QirArray,
     arg_tuple: *mut *const Vec<u8>,
 ) {
-    let args = *arg_tuple.cast::<PauliRotationArgs>();
-    let new_args = PauliRotationArgs {
-        pauli: args.pauli,
-        theta: -args.theta,
-        qubit: args.qubit,
-    };
-    let new_arg_tuple = __quantum__rt__tuple_create(size_of::<PauliRotationArgs>() as u64);
-    *new_arg_tuple.cast::<PauliRotationArgs>() = new_args;
-    __quantum__qis__r__ctl(ctls, new_arg_tuple);
-    __quantum__rt__tuple_update_reference_count(new_arg_tuple, -1);
+    unsafe {
+        let args = *arg_tuple.cast::<PauliRotationArgs>();
+        let new_args = PauliRotationArgs {
+            pauli: args.pauli,
+            theta: -args.theta,
+            qubit: args.qubit,
+        };
+        let new_arg_tuple = __quantum__rt__tuple_create(size_of::<PauliRotationArgs>() as u64);
+        *new_arg_tuple.cast::<PauliRotationArgs>() = new_args;
+        __quantum__qis__r__ctl(ctls, new_arg_tuple);
+        __quantum__rt__tuple_update_reference_count(new_arg_tuple, -1);
+    }
 }
 
 /// QIR API for applying a SWAP gate to the given qubits.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__swap__body(qubit1: *mut c_void, qubit2: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -611,7 +622,7 @@ pub extern "C" fn __quantum__qis__swap__body(qubit1: *mut c_void, qubit2: *mut c
 }
 
 /// QIR API for resetting the given qubit in the computational basis.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__reset__body(qubit: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -627,7 +638,7 @@ pub extern "C" fn __quantum__qis__reset__body(qubit: *mut c_void) {
 /// then resetting it in the computational basis.
 #[allow(clippy::missing_panics_doc)]
 // reason="Panics can only occur if the result that was just collected is not found in the BitVec, which should not happen."
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void, result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -654,7 +665,7 @@ pub extern "C" fn __quantum__qis__mresetz__body(qubit: *mut c_void, result: *mut
 /// QIR API for measuring the given qubit in the computation basis and storing the measured value with the given result identifier.
 #[allow(clippy::missing_panics_doc)]
 // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -677,7 +688,7 @@ pub extern "C" fn __quantum__qis__mz__body(qubit: *mut c_void, result: *mut c_vo
 /// indicates a |1⟩ state and false indicates a |0⟩ state.
 #[allow(clippy::missing_panics_doc)]
 // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool {
     SIM_STATE.with(|sim_state| {
         let res = &mut sim_state.borrow_mut().res;
@@ -686,15 +697,13 @@ pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool
             res.resize(res_id + 1, false);
         }
 
-        let b = *res
-            .get(res_id)
-            .expect("Result with given id missing after expansion.");
-        b
+        *res.get(res_id)
+            .expect("Result with given id missing after expansion.")
     })
 }
 
 /// QIR API that measures a given qubit in the computational basis, returning a runtime managed result value.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__m__body(qubit: *mut c_void) -> *mut c_void {
     SIM_STATE.with(|sim_state| {
         let state = &mut *sim_state.borrow_mut();
@@ -716,31 +725,33 @@ pub extern "C" fn __quantum__qis__m__body(qubit: *mut c_void) -> *mut c_void {
 ///
 /// This function will panic if the provided paulis and qubits arrays are not of the same size.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__measure__body(
     paulis: *const QirArray,
     qubits: *const QirArray,
 ) -> *mut c_void {
-    SIM_STATE.with(|sim_state| {
-        let mut state = sim_state.borrow_mut();
+    unsafe {
+        SIM_STATE.with(|sim_state| {
+            let mut state = sim_state.borrow_mut();
 
-        let combined_list = map_to_z_basis(&mut state, paulis, qubits);
+            let combined_list = map_to_z_basis(&mut state, paulis, qubits);
 
-        let res = state.sim.joint_measure(
-            &combined_list
-                .iter()
-                .map(|(_, q)| *q)
-                .collect::<Vec<usize>>(),
-        );
+            let res = state.sim.joint_measure(
+                &combined_list
+                    .iter()
+                    .map(|(_, q)| *q)
+                    .collect::<Vec<usize>>(),
+            );
 
-        unmap_from_z_basis(&mut state, combined_list);
+            unmap_from_z_basis(&mut state, combined_list);
 
-        if res {
-            __quantum__rt__result_get_one()
-        } else {
-            __quantum__rt__result_get_zero()
-        }
-    })
+            if res {
+                __quantum__rt__result_get_one()
+            } else {
+                __quantum__rt__result_get_zero()
+            }
+        })
+    }
 }
 
 /// Rust API for checking internal simulator state and returning true only if the given qubit is in exactly the |0⟩ state.
@@ -758,7 +769,7 @@ pub fn qubit_is_zero(qubit: *mut c_void) -> bool {
 /// # Safety
 ///
 /// This function should only be called with arrays created by the QIR runtime library.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__body(
     paulis: *const QirArray,
     qubits: *const QirArray,
@@ -767,28 +778,30 @@ pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__body(
     msg: *const CString,
     tol: c_double,
 ) {
-    SIM_STATE.with(|sim_state| {
-        let mut state = sim_state.borrow_mut();
+    unsafe {
+        SIM_STATE.with(|sim_state| {
+            let mut state = sim_state.borrow_mut();
 
-        let combined_list = map_to_z_basis(&mut state, paulis, qubits);
+            let combined_list = map_to_z_basis(&mut state, paulis, qubits);
 
-        let mut actual_prob = state.sim.joint_probability(
-            &combined_list
-                .iter()
-                .map(|(_, q)| *q)
-                .collect::<Vec<usize>>(),
-        );
+            let mut actual_prob = state.sim.joint_probability(
+                &combined_list
+                    .iter()
+                    .map(|(_, q)| *q)
+                    .collect::<Vec<usize>>(),
+            );
 
-        if __quantum__rt__result_equal(result, __quantum__rt__result_get_zero()) {
-            actual_prob = 1.0 - actual_prob;
-        }
+            if __quantum__rt__result_equal(result, __quantum__rt__result_get_zero()) {
+                actual_prob = 1.0 - actual_prob;
+            }
 
-        if (actual_prob - prob).abs() > tol {
-            __quantum__rt__fail(msg);
-        }
+            if (actual_prob - prob).abs() > tol {
+                __quantum__rt__fail(msg);
+            }
 
-        unmap_from_z_basis(&mut state, combined_list);
-    });
+            unmap_from_z_basis(&mut state, combined_list);
+        });
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -808,20 +821,22 @@ struct AssertMeasurementProbabilityArgs {
 /// # Safety
 ///
 /// This function should only be called with arrays created by the QIR runtime library.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__qis__assertmeasurementprobability__ctl(
     _ctls: *const QirArray,
     arg_tuple: *mut *const Vec<u8>,
 ) {
-    let args = *arg_tuple.cast::<AssertMeasurementProbabilityArgs>();
-    __quantum__qis__assertmeasurementprobability__body(
-        args.paulis,
-        args.qubits,
-        args.result,
-        args.prob,
-        args.msg,
-        args.tol,
-    );
+    unsafe {
+        let args = *arg_tuple.cast::<AssertMeasurementProbabilityArgs>();
+        __quantum__qis__assertmeasurementprobability__body(
+            args.paulis,
+            args.qubits,
+            args.result,
+            args.prob,
+            args.msg,
+            args.tol,
+        );
+    }
 }
 
 pub mod legacy_output {
@@ -830,8 +845,8 @@ pub mod legacy_output {
     use qir_stdlib::output_recording::record_output_str;
 
     use crate::{
-        result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
         SIM_STATE,
+        result_bool::{__quantum__rt__result_equal, __quantum__rt__result_get_one},
     };
 
     #[allow(clippy::missing_panics_doc)]
@@ -863,32 +878,34 @@ pub mod legacy_output {
 // reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
 /// # Safety
 /// This function will panic if the tag cannot be written to the output buffer.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__result_record_output(
     result: *mut c_void,
     tag: *mut c_char,
 ) {
-    SIM_STATE.with(|sim_state| {
-        let res = &mut sim_state.borrow_mut().res;
-        let res_id = result as usize;
-        let b = if res.is_empty() {
-            // No static measurements have been used, so default to dynamic handling.
-            __quantum__rt__result_equal(result, __quantum__rt__result_get_one())
-        } else {
-            if res.len() < res_id + 1 {
-                res.resize(res_id + 1, false);
-            }
-            *res.get(res_id)
-                .expect("Result with given id missing after expansion.")
-        };
+    unsafe {
+        SIM_STATE.with(|sim_state| {
+            let res = &mut sim_state.borrow_mut().res;
+            let res_id = result as usize;
+            let b = if res.is_empty() {
+                // No static measurements have been used, so default to dynamic handling.
+                __quantum__rt__result_equal(result, __quantum__rt__result_get_one())
+            } else {
+                if res.len() < res_id + 1 {
+                    res.resize(res_id + 1, false);
+                }
+                *res.get(res_id)
+                    .expect("Result with given id missing after expansion.")
+            };
 
-        let val: i64 = i64::from(b);
-        record_output("RESULT", &val, tag).expect("Failed to write result output");
-    });
+            let val: i64 = i64::from(b);
+            record_output("RESULT", &val, tag).expect("Failed to write result output");
+        });
+    }
 }
 
 /// QIR API that allocates the next available qubit in the simulation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__qubit_allocate() -> *mut c_void {
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
@@ -906,7 +923,7 @@ pub extern "C" fn __quantum__rt__qubit_allocate() -> *mut c_void {
 /// # Panics
 /// This function will panic if the requested array size is too large to be described with the system pointer size.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__qubit_allocate_array(size: u64) -> *const QirArray {
     let arr = __quantum__rt__array_create_1d(
         size_of::<usize>()
@@ -928,17 +945,19 @@ pub extern "C" fn __quantum__rt__qubit_allocate_array(size: u64) -> *const QirAr
 ///
 /// This function should only be called with arrays created by `__quantum__rt__qubit_allocate_array`.
 #[allow(clippy::cast_ptr_alignment)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__qubit_release_array(arr: *const QirArray) {
-    for index in 0..__quantum__rt__array_get_size_1d(arr) {
-        let elem = __quantum__rt__array_get_element_ptr_1d(arr, index).cast::<*mut c_void>();
-        __quantum__rt__qubit_release(*elem);
+    unsafe {
+        for index in 0..__quantum__rt__array_get_size_1d(arr) {
+            let elem = __quantum__rt__array_get_element_ptr_1d(arr, index).cast::<*mut c_void>();
+            __quantum__rt__qubit_release(*elem);
+        }
+        __quantum__rt__array_update_alias_count(arr, -1);
     }
-    __quantum__rt__array_update_alias_count(arr, -1);
 }
 
 /// QIR API for releasing the given qubit from the simulation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__qubit_release(qubit: *mut c_void) {
     SIM_STATE.with(|sim_state| {
         let mut state = sim_state.borrow_mut();
@@ -949,7 +968,7 @@ pub extern "C" fn __quantum__rt__qubit_release(qubit: *mut c_void) {
 /// QIR API for getting the string interpretation of a qubit identifier.
 /// # Panics
 /// This function will panic if memory cannot be allocated for the underyling string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__qubit_to_string(qubit: *mut c_void) -> *const CString {
     unsafe {
         __quantum__rt__string_create(
@@ -975,7 +994,7 @@ pub fn capture_quantum_state() -> (Vec<(BigUint, Complex64)>, usize) {
 /// QIR API for dumping full internal simulator state.
 /// # Panics
 /// This function will panic if the output buffer is not available.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
     if !location.is_null() {
         unimplemented!("Dump to location is not implemented.")
@@ -1002,12 +1021,13 @@ pub extern "C" fn __quantum__qis__dumpmachine__body(location: *mut c_void) {
 }
 
 /// QIR API for the barrier operation. This is a no-op in simulation.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__barrier__body() {
     // No-op
 }
 
 #[cfg(test)]
+#[allow(clippy::manual_dangling_ptr)]
 mod tests {
     use std::{f64::consts::PI, ffi::c_void, ptr::null_mut};
 
@@ -1020,16 +1040,16 @@ mod tests {
         __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
         __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
         __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, capture_quantum_state, map_to_z_basis, qubit_is_zero,
-        result_bool::__quantum__rt__result_get_one, unmap_from_z_basis, SIM_STATE,
+        __quantum__rt__result_equal, SIM_STATE, capture_quantum_state, map_to_z_basis,
+        qubit_is_zero, result_bool::__quantum__rt__result_get_one, unmap_from_z_basis,
     };
     use num_bigint::BigUint;
     use qir_stdlib::{
+        Pauli,
         arrays::{
             __quantum__rt__array_create_1d, __quantum__rt__array_get_element_ptr_1d,
             __quantum__rt__array_update_reference_count,
         },
-        Pauli,
     };
 
     #[test]
@@ -1094,30 +1114,32 @@ mod tests {
     #[test]
     fn test_map_unmap_are_adjoint() {
         unsafe fn check_map_unmap(pauli: Pauli) {
-            let check_qubit = __quantum__rt__qubit_allocate();
-            let qubits = __quantum__rt__qubit_allocate_array(1);
-            let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
-            let paulis = __quantum__rt__array_create_1d(1, 1);
-            *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = pauli;
+            unsafe {
+                let check_qubit = __quantum__rt__qubit_allocate();
+                let qubits = __quantum__rt__qubit_allocate_array(1);
+                let q = *__quantum__rt__array_get_element_ptr_1d(qubits, 0).cast::<*mut c_void>();
+                let paulis = __quantum__rt__array_create_1d(1, 1);
+                *__quantum__rt__array_get_element_ptr_1d(paulis, 0).cast::<Pauli>() = pauli;
 
-            __quantum__qis__h__body(check_qubit);
-            __quantum__qis__cnot__body(check_qubit, q);
+                __quantum__qis__h__body(check_qubit);
+                __quantum__qis__cnot__body(check_qubit, q);
 
-            SIM_STATE.with(|sim_state| {
-                let state = &mut *sim_state.borrow_mut();
-                let combined_list = map_to_z_basis(state, paulis, qubits);
-                unmap_from_z_basis(state, combined_list);
-            });
+                SIM_STATE.with(|sim_state| {
+                    let state = &mut *sim_state.borrow_mut();
+                    let combined_list = map_to_z_basis(state, paulis, qubits);
+                    unmap_from_z_basis(state, combined_list);
+                });
 
-            __quantum__qis__cnot__body(check_qubit, q);
-            __quantum__qis__h__body(check_qubit);
+                __quantum__qis__cnot__body(check_qubit, q);
+                __quantum__qis__h__body(check_qubit);
 
-            assert!(qubit_is_zero(q));
-            assert!(qubit_is_zero(check_qubit));
+                assert!(qubit_is_zero(q));
+                assert!(qubit_is_zero(check_qubit));
 
-            __quantum__rt__array_update_reference_count(paulis, -1);
-            __quantum__rt__qubit_release_array(qubits);
-            __quantum__rt__qubit_release(check_qubit);
+                __quantum__rt__array_update_reference_count(paulis, -1);
+                __quantum__rt__qubit_release_array(qubits);
+                __quantum__rt__qubit_release(check_qubit);
+            }
         }
 
         unsafe {

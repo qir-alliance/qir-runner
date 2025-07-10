@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use std::{
-    ffi::{c_char, c_double, CStr, CString},
+    ffi::{CStr, CString, c_char, c_double},
     fmt::Display,
     io::{Read, Write},
 };
@@ -94,65 +94,80 @@ pub fn record_output_str(val: &str) -> std::io::Result<()> {
 /// # Errors
 /// Returns an error if the write fails.
 pub unsafe fn record_output(ty: &str, val: &dyn Display, tag: *mut c_char) -> std::io::Result<()> {
-    OUTPUT.with(|output| {
-        let mut output = output.borrow_mut();
-        output
-            .write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))
-            .expect("Failed to write output");
-        if !tag.is_null() {
-            output.write_all(b"\t").expect("Failed to write output");
+    unsafe {
+        OUTPUT.with(|output| {
+            let mut output = output.borrow_mut();
             output
-                .write_all(CStr::from_ptr(tag).to_bytes())
+                .write_fmt(format_args!("OUTPUT\t{ty}\t{val}"))
                 .expect("Failed to write output");
-        }
-        output.write_newline();
-    });
-    Ok(())
+            if !tag.is_null() {
+                output.write_all(b"\t").expect("Failed to write output");
+                output
+                    .write_all(CStr::from_ptr(tag).to_bytes())
+                    .expect("Failed to write output");
+            }
+            output.write_newline();
+        });
+        Ok(())
+    }
 }
 
 /// Inserts a marker in the generated output that indicates the
 /// start of an array and how many array elements it has. The second
 /// parameter defines a string label for the array. Depending on
 /// the output schema, the label is included in the output or omitted.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_record_output(val: i64, tag: *mut c_char) {
-    record_output("ARRAY", &val, tag).expect("Failed to write array output");
+    unsafe {
+        record_output("ARRAY", &val, tag).expect("Failed to write array output");
+    }
 }
 
 /// Inserts a marker in the generated output that indicates the
 /// start of a tuple and how many tuple elements it has. The second
 /// parameter defines a string label for the tuple. Depending on
 /// the output schema, the label is included in the output or omitted.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__tuple_record_output(val: i64, tag: *mut c_char) {
-    record_output("TUPLE", &val, tag).expect("Failed to write tuple output");
+    unsafe {
+        record_output("TUPLE", &val, tag).expect("Failed to write tuple output");
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__int_record_output(val: i64, tag: *mut c_char) {
-    record_output("INT", &val, tag).expect("Failed to write int output");
+    unsafe {
+        record_output("INT", &val, tag).expect("Failed to write int output");
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__double_record_output(val: c_double, tag: *mut c_char) {
-    record_output("DOUBLE", &double_to_string(val), tag).expect("Failed to write double output");
+    unsafe {
+        record_output("DOUBLE", &double_to_string(val), tag)
+            .expect("Failed to write double output");
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bool_record_output(val: bool, tag: *mut c_char) {
-    record_output("BOOL", &val, tag).expect("Failed to write bool output");
+    unsafe {
+        record_output("BOOL", &val, tag).expect("Failed to write bool output");
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__message_record_output(str: *const CString) {
-    record_output_str(&format!(
-        "INFO\t{}",
-        (*str)
-            .to_str()
-            .expect("Unable to convert input string")
-            .escape_default()
-    ))
-    .expect("Failed to write message output");
+    unsafe {
+        record_output_str(&format!(
+            "INFO\t{}",
+            (*str)
+                .to_str()
+                .expect("Unable to convert input string")
+                .escape_default()
+        ))
+        .expect("Failed to write message output");
+    }
 }
 
 pub mod legacy {
@@ -200,12 +215,16 @@ pub mod legacy {
 
     #[allow(non_snake_case)]
     pub unsafe extern "C" fn __quantum__rt__array_record_output(val: i64) {
-        super::__quantum__rt__array_record_output(val, null_mut());
+        unsafe {
+            super::__quantum__rt__array_record_output(val, null_mut());
+        }
     }
 
     #[allow(non_snake_case)]
     pub unsafe extern "C" fn __quantum__rt__tuple_record_output(val: i64) {
-        super::__quantum__rt__tuple_record_output(val, null_mut());
+        unsafe {
+            super::__quantum__rt__tuple_record_output(val, null_mut());
+        }
     }
 }
 

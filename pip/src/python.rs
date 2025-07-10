@@ -46,7 +46,7 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
                     )?,
                 )
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+                .map_err(std::io::Error::other)?;
             Ok(msg.len())
         } else {
             std::io::stdout().write(buf)

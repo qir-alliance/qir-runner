@@ -3,7 +3,7 @@
 
 use std::io::BufWriter;
 
-use runner::{run_bitcode, run_file, OUTPUT};
+use runner::{OUTPUT, run_bitcode, run_file};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -352,5 +352,10 @@ fn barrier_is_noop() {
     let mut stream = BufWriter::new(Vec::new());
     let result = run_bitcode(bitcode, None, 1, &mut stream);
     assert!(result.is_ok());
-    assert_eq!(String::from_utf8(stream.into_inner().unwrap()).unwrap().replace("\r\n", "\n"), "START\nMETADATA\tentry_point\nMETADATA\toutput_labeling_schema\nMETADATA\tqir_profiles\tbase_profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\nOUTPUT\tRESULT\t0\nEND\t0\n");
+    assert_eq!(
+        String::from_utf8(stream.into_inner().unwrap())
+            .unwrap()
+            .replace("\r\n", "\n"),
+        "START\nMETADATA\tentry_point\nMETADATA\toutput_labeling_schema\nMETADATA\tqir_profiles\tbase_profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\nOUTPUT\tRESULT\t0\nEND\t0\n"
+    );
 }

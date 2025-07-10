@@ -3,31 +3,32 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use qir_stdlib::strings::__quantum__rt__string_create;
-use std::ffi::{c_char, c_void, CString};
+use std::ffi::{CString, c_char, c_void};
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__result_get_zero() -> *mut c_void {
     std::ptr::null_mut()
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
+#[allow(clippy::manual_dangling_ptr)]
 pub extern "C" fn __quantum__rt__result_get_one() -> *mut c_void {
     1 as *mut c_void
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__result_equal(r1: *mut c_void, r2: *mut c_void) -> bool {
     r1 == r2
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__result_update_reference_count(_res: *mut c_void, _update: i32) {
     // no-op
 }
 
 /// # Panics
 /// This function panics if the memory cannot be allocated for the result string.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__result_to_string(res: *mut c_void) -> *const CString {
     unsafe {
         __quantum__rt__string_create(
