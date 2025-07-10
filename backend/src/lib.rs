@@ -702,6 +702,15 @@ pub extern "C" fn __quantum__qis__read_result__body(result: *mut c_void) -> bool
     })
 }
 
+/// QIR API that reads the Boolean value corresponding to the given result identifier, where true
+/// indicates a |1⟩ state and false indicates a |0⟩ state.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[unsafe(no_mangle)]
+pub extern "C" fn __quantum__rt__read_result(result: *mut c_void) -> bool {
+    __quantum__qis__read_result__body(result)
+}
+
 /// QIR API that measures a given qubit in the computational basis, returning a runtime managed result value.
 #[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__m__body(qubit: *mut c_void) -> *mut c_void {
