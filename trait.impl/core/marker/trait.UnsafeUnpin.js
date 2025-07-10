@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["qir_stdlib",[["impl UnsafeUnpin for <a class=\"enum\" href=\"qir_stdlib/enum.Pauli.html\" title=\"enum qir_stdlib::Pauli\">Pauli</a>",1,["qir_stdlib::Pauli"]],["impl UnsafeUnpin for <a class=\"struct\" href=\"qir_stdlib/arrays/struct.QirArray.html\" title=\"struct qir_stdlib::arrays::QirArray\">QirArray</a>",1,["qir_stdlib::arrays::QirArray"]],["impl UnsafeUnpin for <a class=\"struct\" href=\"qir_stdlib/callables/struct.Callable.html\" title=\"struct qir_stdlib::callables::Callable\">Callable</a>",1,["qir_stdlib::callables::Callable"]],["impl UnsafeUnpin for <a class=\"struct\" href=\"qir_stdlib/output_recording/struct.OutputRecorder.html\" title=\"struct qir_stdlib::output_recording::OutputRecorder\">OutputRecorder</a>",1,["qir_stdlib::output_recording::OutputRecorder"]],["impl UnsafeUnpin for <a class=\"struct\" href=\"qir_stdlib/range_support/struct.Range.html\" title=\"struct qir_stdlib::range_support::Range\">Range</a>",1,["qir_stdlib::range_support::Range"]]]],["quantum_sparse_sim",[["impl UnsafeUnpin for <a class=\"enum\" href=\"quantum_sparse_sim/exp/enum.Pauli.html\" title=\"enum quantum_sparse_sim::exp::Pauli\">Pauli</a>",1,["quantum_sparse_sim::exp::Pauli"]],["impl UnsafeUnpin for <a class=\"struct\" href=\"quantum_sparse_sim/struct.QuantumSim.html\" title=\"struct quantum_sparse_sim::QuantumSim\">QuantumSim</a>",1,["quantum_sparse_sim::QuantumSim"]]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[982,405]}
