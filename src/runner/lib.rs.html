@@ -510,41 +510,42 @@
 <a href=#510 id=510 data-nosnippet>510</a>    <span class="macro">bind!</span>(__quantum__rt__qubit_release, <span class="number">1</span>);
 <a href=#511 id=511 data-nosnippet>511</a>    <span class="macro">bind!</span>(__quantum__rt__qubit_release_array, <span class="number">1</span>);
 <a href=#512 id=512 data-nosnippet>512</a>    <span class="macro">bind!</span>(__quantum__rt__qubit_to_string, <span class="number">1</span>);
-<a href=#513 id=513 data-nosnippet>513</a>    <span class="macro">bind!</span>(__quantum__rt__result_equal, <span class="number">2</span>);
-<a href=#514 id=514 data-nosnippet>514</a>    <span class="macro">bind!</span>(quantum__rt__range_to_string, <span class="number">1</span>);
-<a href=#515 id=515 data-nosnippet>515</a>    <span class="macro">bind!</span>(__quantum__rt__result_get_one, <span class="number">0</span>);
-<a href=#516 id=516 data-nosnippet>516</a>    <span class="macro">bind!</span>(__quantum__rt__result_get_zero, <span class="number">0</span>);
-<a href=#517 id=517 data-nosnippet>517</a>    <span class="macro">bind!</span>(__quantum__rt__result_to_string, <span class="number">1</span>);
-<a href=#518 id=518 data-nosnippet>518</a>    <span class="macro">bind!</span>(__quantum__rt__result_update_reference_count, <span class="number">2</span>);
-<a href=#519 id=519 data-nosnippet>519</a>    <span class="macro">bind!</span>(__quantum__rt__string_concatenate, <span class="number">2</span>);
-<a href=#520 id=520 data-nosnippet>520</a>    <span class="macro">bind!</span>(__quantum__rt__string_create, <span class="number">1</span>);
-<a href=#521 id=521 data-nosnippet>521</a>    <span class="macro">bind!</span>(__quantum__rt__string_equal, <span class="number">2</span>);
-<a href=#522 id=522 data-nosnippet>522</a>    <span class="macro">bind!</span>(__quantum__rt__string_get_data, <span class="number">1</span>);
-<a href=#523 id=523 data-nosnippet>523</a>    <span class="macro">bind!</span>(__quantum__rt__string_get_length, <span class="number">1</span>);
-<a href=#524 id=524 data-nosnippet>524</a>    <span class="macro">bind!</span>(__quantum__rt__string_update_reference_count, <span class="number">2</span>);
-<a href=#525 id=525 data-nosnippet>525</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_copy, <span class="number">2</span>);
-<a href=#526 id=526 data-nosnippet>526</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_create, <span class="number">1</span>);
-<a href=#527 id=527 data-nosnippet>527</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_update_alias_count, <span class="number">2</span>);
-<a href=#528 id=528 data-nosnippet>528</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_update_reference_count, <span class="number">2</span>);
-<a href=#529 id=529 data-nosnippet>529</a>
-<a href=#530 id=530 data-nosnippet>530</a>    <span class="kw">if </span>!(uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| b)
-<a href=#531 id=531 data-nosnippet>531</a>        || uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| !b))
-<a href=#532 id=532 data-nosnippet>532</a>    {
-<a href=#533 id=533 data-nosnippet>533</a>        <span class="prelude-val">Err</span>(<span class="string">"Use of legacy and current output recording functions in the same program is not supported"</span>.to_string())
-<a href=#534 id=534 data-nosnippet>534</a>    } <span class="kw">else if </span>declarations.is_empty() {
-<a href=#535 id=535 data-nosnippet>535</a>        <span class="prelude-val">Ok</span>(())
-<a href=#536 id=536 data-nosnippet>536</a>    } <span class="kw">else </span>{
-<a href=#537 id=537 data-nosnippet>537</a>        <span class="kw">let </span>keys = declarations.keys().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-<a href=#538 id=538 data-nosnippet>538</a>        <span class="kw">let </span>(first, rest) = keys
-<a href=#539 id=539 data-nosnippet>539</a>            .split_first()
-<a href=#540 id=540 data-nosnippet>540</a>            .expect(<span class="string">"Declarations list should be non-empty."</span>);
-<a href=#541 id=541 data-nosnippet>541</a>        <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
-<a href=#542 id=542 data-nosnippet>542</a>            <span class="string">"Failed to link some declared functions: {}"</span>,
-<a href=#543 id=543 data-nosnippet>543</a>            rest.iter().fold((<span class="kw-2">*</span>first).to_string(), |<span class="kw-2">mut </span>accum, f| {
-<a href=#544 id=544 data-nosnippet>544</a>                accum.push_str(<span class="string">", "</span>);
-<a href=#545 id=545 data-nosnippet>545</a>                accum.push_str(f);
-<a href=#546 id=546 data-nosnippet>546</a>                accum
-<a href=#547 id=547 data-nosnippet>547</a>            })
-<a href=#548 id=548 data-nosnippet>548</a>        ))
-<a href=#549 id=549 data-nosnippet>549</a>    }
-<a href=#550 id=550 data-nosnippet>550</a>}</code></pre></div></section></main></body></html>
+<a href=#513 id=513 data-nosnippet>513</a>    <span class="macro">bind!</span>(__quantum__rt__read_result, <span class="number">1</span>);
+<a href=#514 id=514 data-nosnippet>514</a>    <span class="macro">bind!</span>(__quantum__rt__result_equal, <span class="number">2</span>);
+<a href=#515 id=515 data-nosnippet>515</a>    <span class="macro">bind!</span>(quantum__rt__range_to_string, <span class="number">1</span>);
+<a href=#516 id=516 data-nosnippet>516</a>    <span class="macro">bind!</span>(__quantum__rt__result_get_one, <span class="number">0</span>);
+<a href=#517 id=517 data-nosnippet>517</a>    <span class="macro">bind!</span>(__quantum__rt__result_get_zero, <span class="number">0</span>);
+<a href=#518 id=518 data-nosnippet>518</a>    <span class="macro">bind!</span>(__quantum__rt__result_to_string, <span class="number">1</span>);
+<a href=#519 id=519 data-nosnippet>519</a>    <span class="macro">bind!</span>(__quantum__rt__result_update_reference_count, <span class="number">2</span>);
+<a href=#520 id=520 data-nosnippet>520</a>    <span class="macro">bind!</span>(__quantum__rt__string_concatenate, <span class="number">2</span>);
+<a href=#521 id=521 data-nosnippet>521</a>    <span class="macro">bind!</span>(__quantum__rt__string_create, <span class="number">1</span>);
+<a href=#522 id=522 data-nosnippet>522</a>    <span class="macro">bind!</span>(__quantum__rt__string_equal, <span class="number">2</span>);
+<a href=#523 id=523 data-nosnippet>523</a>    <span class="macro">bind!</span>(__quantum__rt__string_get_data, <span class="number">1</span>);
+<a href=#524 id=524 data-nosnippet>524</a>    <span class="macro">bind!</span>(__quantum__rt__string_get_length, <span class="number">1</span>);
+<a href=#525 id=525 data-nosnippet>525</a>    <span class="macro">bind!</span>(__quantum__rt__string_update_reference_count, <span class="number">2</span>);
+<a href=#526 id=526 data-nosnippet>526</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_copy, <span class="number">2</span>);
+<a href=#527 id=527 data-nosnippet>527</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_create, <span class="number">1</span>);
+<a href=#528 id=528 data-nosnippet>528</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_update_alias_count, <span class="number">2</span>);
+<a href=#529 id=529 data-nosnippet>529</a>    <span class="macro">bind!</span>(__quantum__rt__tuple_update_reference_count, <span class="number">2</span>);
+<a href=#530 id=530 data-nosnippet>530</a>
+<a href=#531 id=531 data-nosnippet>531</a>    <span class="kw">if </span>!(uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| b)
+<a href=#532 id=532 data-nosnippet>532</a>        || uses_legacy.iter().filter_map(|<span class="kw-2">&amp;</span>b| b).all(|b| !b))
+<a href=#533 id=533 data-nosnippet>533</a>    {
+<a href=#534 id=534 data-nosnippet>534</a>        <span class="prelude-val">Err</span>(<span class="string">"Use of legacy and current output recording functions in the same program is not supported"</span>.to_string())
+<a href=#535 id=535 data-nosnippet>535</a>    } <span class="kw">else if </span>declarations.is_empty() {
+<a href=#536 id=536 data-nosnippet>536</a>        <span class="prelude-val">Ok</span>(())
+<a href=#537 id=537 data-nosnippet>537</a>    } <span class="kw">else </span>{
+<a href=#538 id=538 data-nosnippet>538</a>        <span class="kw">let </span>keys = declarations.keys().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+<a href=#539 id=539 data-nosnippet>539</a>        <span class="kw">let </span>(first, rest) = keys
+<a href=#540 id=540 data-nosnippet>540</a>            .split_first()
+<a href=#541 id=541 data-nosnippet>541</a>            .expect(<span class="string">"Declarations list should be non-empty."</span>);
+<a href=#542 id=542 data-nosnippet>542</a>        <span class="prelude-val">Err</span>(<span class="macro">format!</span>(
+<a href=#543 id=543 data-nosnippet>543</a>            <span class="string">"Failed to link some declared functions: {}"</span>,
+<a href=#544 id=544 data-nosnippet>544</a>            rest.iter().fold((<span class="kw-2">*</span>first).to_string(), |<span class="kw-2">mut </span>accum, f| {
+<a href=#545 id=545 data-nosnippet>545</a>                accum.push_str(<span class="string">", "</span>);
+<a href=#546 id=546 data-nosnippet>546</a>                accum.push_str(f);
+<a href=#547 id=547 data-nosnippet>547</a>                accum
+<a href=#548 id=548 data-nosnippet>548</a>            })
+<a href=#549 id=549 data-nosnippet>549</a>        ))
+<a href=#550 id=550 data-nosnippet>550</a>    }
+<a href=#551 id=551 data-nosnippet>551</a>}</code></pre></div></section></main></body></html>
