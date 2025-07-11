@@ -510,6 +510,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__qubit_release, 1);
     bind!(__quantum__rt__qubit_release_array, 1);
     bind!(__quantum__rt__qubit_to_string, 1);
+    bind!(__quantum__rt__read_result, 1);
     bind!(__quantum__rt__result_equal, 2);
     bind!(quantum__rt__range_to_string, 1);
     bind!(__quantum__rt__result_get_one, 0);
