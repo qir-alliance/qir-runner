@@ -453,7 +453,6 @@ pub extern "C" fn __quantum__qis__phasedx__body(
     __quantum__qis__rz__body(-theta2, qubit);
 }
 
-
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
 #[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__rxx__body(
