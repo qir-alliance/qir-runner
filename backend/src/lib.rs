@@ -441,7 +441,7 @@ pub extern "C" fn __quantum__qis__sx__body(qubit: *mut c_void) {
     __quantum__qis__h__body(qubit);
 }
 
-/// QIR API for performing the PhasedX gate on the given qubit.
+/// QIR API for performing the `PhasedX` gate on the given qubit.
 #[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__phasedx__body(
     qubit: *mut c_void,
