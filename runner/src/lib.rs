@@ -374,6 +374,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__mresetz__body, 2);
     bind!(__quantum__qis__mz__body, 2);
     bind!(__quantum__qis__nan__body, 0);
+    bind!(__quantum__qis__phasedx__body, 3);
     bind!(__quantum__qis__r__adj, 3);
     bind!(__quantum__qis__r__body, 3);
     bind!(__quantum__qis__r__ctl, 2);
