@@ -42,6 +42,10 @@ pub fn sx_gate(c: &mut Criterion) {
     bench_single_qubit_gate!(c, __quantum__qis__sx__body, "SX Gate");
 }
 
+pub fn phasedx_gate(c: &mut Criterion) {
+    bench_single_qubit_gate!(c, __quantum__qis__phasedx__body, "PhasedX Gate");
+}
+
 pub fn s_gate(c: &mut Criterion) {
     bench_single_qubit_gate!(c, __quantum__qis__s__body, "S Gate");
 }
