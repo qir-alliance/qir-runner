@@ -65,18 +65,24 @@ pub(crate) enum OpCode {
     Sadj,
     T,
     Tadj,
+    Rz(f64),
 }
 
+type OpTransform = Box<dyn FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64)>;
+
 impl OpCode {
-    fn as_transform(self) -> impl FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64) {
+    fn as_transform(self) -> OpTransform {
         match self {
-            OpCode::X => QuantumSim::x_transform,
-            OpCode::Y => QuantumSim::y_transform,
-            OpCode::Z => QuantumSim::z_transform,
-            OpCode::S => QuantumSim::s_transform,
-            OpCode::Sadj => QuantumSim::sadj_transform,
-            OpCode::T => QuantumSim::t_transform,
-            OpCode::Tadj => QuantumSim::tadj_transform,
+            OpCode::X => Box::new(QuantumSim::x_transform),
+            OpCode::Y => Box::new(QuantumSim::y_transform),
+            OpCode::Z => Box::new(QuantumSim::z_transform),
+            OpCode::S => Box::new(QuantumSim::s_transform),
+            OpCode::Sadj => Box::new(QuantumSim::sadj_transform),
+            OpCode::T => Box::new(QuantumSim::t_transform),
+            OpCode::Tadj => Box::new(QuantumSim::tadj_transform),
+            OpCode::Rz(theta) => Box::new(move |(index, val), target| {
+                QuantumSim::rz_transform((index, val), theta, target)
+            }),
         }
     }
 }
@@ -944,19 +950,15 @@ impl QuantumSim {
 
     /// Single qubit Rz gate.
     pub fn rz(&mut self, theta: f64, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, |(index, val), target| {
-            Self::rz_transform((index, val), theta, target)
-        });
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::Rz(theta));
     }
 
     /// Multi-controlled Rz gate.
     pub fn mcrz(&mut self, ctls: &[usize], theta: f64, target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, |(index, val), target| {
-            Self::rz_transform((index, val), theta, target)
-        });
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::Rz(theta));
     }
 
     /// Single qubit H gate.
