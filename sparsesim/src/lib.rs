@@ -68,25 +68,6 @@ pub(crate) enum OpCode {
     Rz(f64),
 }
 
-type OpTransform = Box<dyn FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64)>;
-
-impl OpCode {
-    fn as_transform(self) -> OpTransform {
-        match self {
-            OpCode::X => Box::new(QuantumSim::x_transform),
-            OpCode::Y => Box::new(QuantumSim::y_transform),
-            OpCode::Z => Box::new(QuantumSim::z_transform),
-            OpCode::S => Box::new(QuantumSim::s_transform),
-            OpCode::Sadj => Box::new(QuantumSim::sadj_transform),
-            OpCode::T => Box::new(QuantumSim::t_transform),
-            OpCode::Tadj => Box::new(QuantumSim::tadj_transform),
-            OpCode::Rz(theta) => Box::new(move |(index, val), target| {
-                QuantumSim::rz_transform((index, val), theta, target)
-            }),
-        }
-    }
-}
-
 /// Levels for flushing of queued gates.
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum FlushLevel {
@@ -598,7 +579,34 @@ impl QuantumSim {
                             (index, value),
                             |(index, value), (ctls, target, op)| {
                                 if ctls.iter().all(|c| index.bit(*c)) {
-                                    op.as_transform()((index, value), *target)
+                                    match op {
+                                        OpCode::X => {
+                                            QuantumSim::x_transform((index, value), *target)
+                                        }
+                                        OpCode::Y => {
+                                            QuantumSim::y_transform((index, value), *target)
+                                        }
+                                        OpCode::Z => {
+                                            QuantumSim::z_transform((index, value), *target)
+                                        }
+                                        OpCode::S => {
+                                            QuantumSim::s_transform((index, value), *target)
+                                        }
+                                        OpCode::Sadj => {
+                                            QuantumSim::sadj_transform((index, value), *target)
+                                        }
+                                        OpCode::T => {
+                                            QuantumSim::t_transform((index, value), *target)
+                                        }
+                                        OpCode::Tadj => {
+                                            QuantumSim::tadj_transform((index, value), *target)
+                                        }
+                                        OpCode::Rz(theta) => QuantumSim::rz_transform(
+                                            (index, value),
+                                            *theta,
+                                            *target,
+                                        ),
+                                    }
                                 } else {
                                     (index, value)
                                 }
