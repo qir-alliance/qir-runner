@@ -26,7 +26,8 @@ use rand::{Rng, SeedableRng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
-pub type SparseState = FxHashMap<BigUint, Complex64>;
+type SparseState = Vec<(BigUint, Complex64)>;
+type SparseStateMap = FxHashMap<BigUint, Complex64>;
 
 const QUEUE_LIMIT: usize = 10_000;
 
@@ -88,8 +89,7 @@ impl QuantumSim {
     #[must_use]
     pub fn new(rng: Option<StdRng>) -> Self {
         let default_initial_size = 50;
-        let mut initial_state = SparseState::default();
-        initial_state.insert(BigUint::zero(), Complex64::one());
+        let initial_state = vec![(BigUint::zero(), Complex64::one())];
 
         QuantumSim {
             state: initial_state,
@@ -139,7 +139,7 @@ impl QuantumSim {
             }
         });
 
-        let mut state = self.state.clone().drain().collect::<Vec<_>>();
+        let mut state = self.state.clone();
         state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         (state, sorted_keys.len())
     }
@@ -186,9 +186,8 @@ impl QuantumSim {
         if self.id_map.is_empty() {
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
-            let mut initial_state = SparseState::default();
-            initial_state.insert(BigUint::zero(), Complex64::one());
-            self.state = initial_state;
+            self.op_queue.clear();
+            self.state = vec![(BigUint::zero(), Complex64::one())];
         } else {
             // Measure and collapse the state for this qubit.
             let res = self.measure_impl(loc);
@@ -196,14 +195,11 @@ impl QuantumSim {
             // If the result of measurement was true then we must set the bit for this qubit in every key
             // to zero to "reset" the qubit.
             if res {
-                self.state =
-                    self.state
-                        .drain()
-                        .fold(SparseState::default(), |mut accum, (mut k, v)| {
-                            k.set_bit(loc as u64, false);
-                            accum.insert(k, v);
-                            accum
-                        });
+                self.state.iter_mut().for_each(|(k, _)| {
+                    if k.bit(loc as u64) {
+                        k.set_bit(loc as u64, false);
+                    }
+                });
             }
         }
     }
@@ -243,7 +239,7 @@ impl QuantumSim {
     /// Utility function that performs the actual output of state (and optionally map) to screen. Can
     /// be called internally from other functions to aid in debugging and does not perform any modification
     /// of the internal structures.
-    fn dump_impl(&self, print_id_map: bool) -> String {
+    fn dump_impl(&mut self, print_id_map: bool) -> String {
         #[cfg(windows)]
         const LINE_ENDING: &[u8] = b"\r\n";
         #[cfg(not(windows))]
@@ -260,15 +256,11 @@ impl QuantumSim {
         output
             .write_str("STATE: [ ")
             .expect("Failed to write output");
-        let mut sorted_keys = self.state.keys().collect::<Vec<_>>();
-        sorted_keys.sort_unstable();
-        for key in sorted_keys {
+
+        self.state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        for (key, value) in &self.state {
             output
-                .write_str(&format!(
-                    "|{}\u{27e9}: {}, ",
-                    key,
-                    self.state.get(key).map_or_else(Complex64::zero, |v| *v)
-                ))
+                .write_str(&format!("|{key}\u{27e9}: {value}, "))
                 .expect("Failed to write output");
         }
         output.write_str("]").expect("Failed to write output");
@@ -325,8 +317,9 @@ impl QuantumSim {
     /// location.
     fn measure_impl(&mut self, loc: usize) -> bool {
         let random_sample = self.rng.borrow_mut().r#gen::<f64>();
-        let res = random_sample < self.check_joint_probability(&[loc]);
-        self.collapse(loc, res);
+        let prob = self.check_joint_probability(&[loc]);
+        let res = random_sample < prob;
+        self.collapse(loc, res, prob);
         res
     }
 
@@ -352,20 +345,25 @@ impl QuantumSim {
             .collect();
 
         let random_sample = self.rng.borrow_mut().r#gen::<f64>();
-        let res = random_sample < self.check_joint_probability(&locs);
-        self.joint_collapse(&locs, res);
+        let prob = self.check_joint_probability(&locs);
+        let res = random_sample < prob;
+        self.joint_collapse(&locs, res, prob);
         res
     }
 
     /// Utility to get the sum of all probabilies where an odd number of the bits at the given locations
     /// are set. This corresponds to the probability of jointly measuring those qubits in the computational
     /// basis.
-    fn check_joint_probability(&self, locs: &[usize]) -> f64 {
+    fn check_joint_probability(&mut self, locs: &[usize]) -> f64 {
         let mask = locs.iter().fold(BigUint::zero(), |accum, loc| {
             accum | (BigUint::one() << loc)
         });
-        self.state.iter().fold(0.0_f64, |accum, (index, val)| {
-            if (index & &mask).count_ones() & 1 > 0 {
+
+        let ops = self.take_ops();
+
+        self.state.iter_mut().fold(0.0_f64, |accum, (index, val)| {
+            apply_ops(&ops, index, val);
+            if (&*index & &mask).count_ones() & 1 > 0 {
                 accum + val.norm_sqr()
             } else {
                 accum
@@ -373,38 +371,55 @@ impl QuantumSim {
         })
     }
 
+    /// Takes ownership of the queued operations and returns them, clearing the `op_queue`.
+    /// This also resolves and checks the qubits for each operation, mapping them to their locations.
+    fn take_ops(&mut self) -> Vec<(Vec<u64>, u64, OpCode)> {
+        let ops = self
+            .op_queue
+            .iter()
+            .map(|(ctls, target, op)| {
+                let (target, ctls) = self.resolve_and_check_qubits(*target, ctls);
+                (ctls, target, *op)
+            })
+            .collect::<Vec<_>>();
+        self.op_queue.clear();
+        ops
+    }
+
     /// Utility to collapse the probability at the given location based on the boolean value. This means
     /// that if the given value is 'true' then all keys in the sparse state where the given location
     /// has a zero bit will be reduced to zero and removed. Then the sparse state is normalized.
-    fn collapse(&mut self, loc: usize, val: bool) {
-        self.joint_collapse(&[loc], val);
+    fn collapse(&mut self, loc: usize, val: bool, scaling_denominator: f64) {
+        self.joint_collapse(&[loc], val, scaling_denominator);
     }
 
     /// Utility to collapse the joint probability of a particular set of locations in the sparse state.
     /// The entries that do not correspond to the given boolean value are removed, and then the whole
     /// state is normalized.
-    fn joint_collapse(&mut self, locs: &[usize], val: bool) {
+    fn joint_collapse(&mut self, locs: &[usize], val: bool, scaling_denominator: f64) {
         let mask = locs.iter().fold(BigUint::zero(), |accum, loc| {
             accum | (BigUint::one() << loc)
         });
 
-        let mut new_state = SparseState::default();
-        let mut scaling_denominator = 0.0;
-        for (k, v) in self.state.drain() {
-            if ((&k & &mask).count_ones() & 1 > 0) == val {
-                new_state.insert(k, v);
-                scaling_denominator += v.norm_sqr();
-            }
-        }
-
         // Normalize the new state using the accumulated scaling.
-        let scaling = 1.0 / scaling_denominator.sqrt();
-        for (k, v) in new_state.drain() {
-            let scaled_value = v * scaling;
-            if !scaled_value.is_nearly_zero() {
-                self.state.insert(k, scaled_value);
-            }
-        }
+        let scaling = 1.0
+            / (if val {
+                scaling_denominator
+            } else {
+                1.0 - scaling_denominator
+            })
+            .sqrt();
+        self.state = self
+            .state
+            .drain(..)
+            .filter_map(|(k, v)| {
+                if (&k & &mask).count_ones() & 1 == u64::from(val) {
+                    Some((k, v * scaling))
+                } else {
+                    None
+                }
+            })
+            .collect();
     }
 
     /// Swaps the mapped ids for the given qubits.
@@ -470,20 +485,14 @@ impl QuantumSim {
         let (q1, q2) = (qubit1 as u64, qubit2 as u64);
 
         // Swap entries in the sparse state to correspond to swapping of two qubits' locations.
-        self.state = self
-            .state
-            .drain()
-            .fold(SparseState::default(), |mut accum, (k, v)| {
-                if k.bit(q1) == k.bit(q2) {
-                    accum.insert(k, v);
-                } else {
-                    let mut new_k = k.clone();
-                    new_k.set_bit(q1, !k.bit(q1));
-                    new_k.set_bit(q2, !k.bit(q2));
-                    accum.insert(new_k, v);
-                }
-                accum
-            });
+        self.state.iter_mut().for_each(|(k, _)| {
+            if k.bit(q1) != k.bit(q2) {
+                let mut new_k = k.clone();
+                new_k.set_bit(q1, !k.bit(q1));
+                new_k.set_bit(q2, !k.bit(q2));
+                *k = new_k;
+            }
+        });
     }
 
     pub(crate) fn check_for_duplicates(ids: &[usize]) {
@@ -543,7 +552,6 @@ impl QuantumSim {
     }
 
     pub(crate) fn flush_queue(&mut self, qubits: &[usize], level: FlushLevel) {
-        self.flush_ops();
         for target in qubits {
             if self.h_flag.bit(*target as u64) {
                 self.apply_mch(&[], *target);
@@ -558,65 +566,17 @@ impl QuantumSim {
                 }
             }
         }
+        // Always call flush ops afterward to make sure no pending operations remain. If any of the above
+        // already applied operations, this will be a no-op since the queue will be empty.
+        self.flush_ops();
     }
 
     fn flush_ops(&mut self) {
         if !self.op_queue.is_empty() {
-            let ops = self
-                .op_queue
-                .iter()
-                .map(|(ctls, target, op)| {
-                    let (target, ctls) = self.resolve_and_check_qubits(*target, ctls);
-                    (ctls, target, *op)
-                })
-                .collect::<Vec<_>>();
-            self.op_queue.clear();
-            self.state =
-                self.state
-                    .drain()
-                    .fold(SparseState::default(), |mut accum, (index, value)| {
-                        let (k, v) = ops.iter().fold(
-                            (index, value),
-                            |(index, value), (ctls, target, op)| {
-                                if ctls.iter().all(|c| index.bit(*c)) {
-                                    match op {
-                                        OpCode::X => {
-                                            QuantumSim::x_transform((index, value), *target)
-                                        }
-                                        OpCode::Y => {
-                                            QuantumSim::y_transform((index, value), *target)
-                                        }
-                                        OpCode::Z => {
-                                            QuantumSim::z_transform((index, value), *target)
-                                        }
-                                        OpCode::S => {
-                                            QuantumSim::s_transform((index, value), *target)
-                                        }
-                                        OpCode::Sadj => {
-                                            QuantumSim::sadj_transform((index, value), *target)
-                                        }
-                                        OpCode::T => {
-                                            QuantumSim::t_transform((index, value), *target)
-                                        }
-                                        OpCode::Tadj => {
-                                            QuantumSim::tadj_transform((index, value), *target)
-                                        }
-                                        OpCode::Rz(theta) => QuantumSim::rz_transform(
-                                            (index, value),
-                                            *theta,
-                                            *target,
-                                        ),
-                                    }
-                                } else {
-                                    (index, value)
-                                }
-                            },
-                        );
-                        if !v.is_nearly_zero() {
-                            accum.insert(k, v);
-                        }
-                        accum
-                    });
+            let ops = self.take_ops();
+            self.state.iter_mut().for_each(|(index, value)| {
+                apply_ops(&ops, index, value);
+            });
         }
     }
 
@@ -634,37 +594,9 @@ impl QuantumSim {
         }
     }
 
-    /// Utility for performing an in-place update of the state vector with the given target and controls.
-    /// Here, "in-place" indicates that the given transformation operation can calulate a new entry in the
-    /// state vector using only one entry of the state vector as input and does not need to refer to any
-    /// other entries. This covers the multicontrolled gates except for H, Rx, and Ry and notably keeps the
-    /// size of the state vector the same.
-    fn controlled_gate<F>(&mut self, ctls: &[usize], target: usize, mut op: F)
-    where
-        F: FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64),
-    {
-        let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
-
-        self.state =
-            self.state
-                .drain()
-                .fold(SparseState::default(), |mut accum, (index, value)| {
-                    let (k, v) = if ctls.iter().all(|c| index.bit(*c)) {
-                        op((index, value), target)
-                    } else {
-                        (index, value)
-                    };
-                    if !v.is_nearly_zero() {
-                        accum.insert(k, v);
-                    }
-                    accum
-                });
-    }
-
     /// Performs the Pauli-X transformation on a single state.
-    fn x_transform((mut index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
+    fn x_transform((index, _val): (&mut BigUint, &mut Complex64), target: u64) {
         index.set_bit(target, !index.bit(target));
-        (index, val)
     }
 
     /// Single qubit X gate.
@@ -716,17 +648,13 @@ impl QuantumSim {
     }
 
     /// Performs the Pauli-Y transformation on a single state.
-    fn y_transform(
-        (mut index, mut val): (BigUint, Complex64),
-        target: u64,
-    ) -> (BigUint, Complex64) {
+    fn y_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
         index.set_bit(target, !index.bit(target));
-        val *= if index.bit(target) {
+        *val *= if index.bit(target) {
             Complex64::i()
         } else {
             -Complex64::i()
         };
-        (index, val)
     }
 
     /// Single qubit Y gate.
@@ -767,30 +695,33 @@ impl QuantumSim {
     /// Performs a phase transformation (a rotation in the computational basis) on a single state.
     fn phase_transform(
         phase: Complex64,
-        (index, val): (BigUint, Complex64),
+        (index, val): (&mut BigUint, &mut Complex64),
         target: u64,
-    ) -> (BigUint, Complex64) {
-        let val = val
-            * if index.bit(target) {
-                phase
-            } else {
-                Complex64::one()
-            };
-        (index, val)
+    ) {
+        *val *= if index.bit(target) {
+            phase
+        } else {
+            Complex64::one()
+        };
     }
 
     /// Multi-controlled phase rotation ("G" gate).
     pub fn mcphase(&mut self, ctls: &[usize], phase: Complex64, target: usize) {
         self.flush_queue(ctls, FlushLevel::HRxRy);
         self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, |(index, val), target| {
-            Self::phase_transform(phase, (index, val), target)
+
+        let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
+
+        self.state.iter_mut().for_each(|(index, value)| {
+            if ctls.iter().all(|c| index.bit(*c)) {
+                Self::phase_transform(phase, (index, value), target);
+            }
         });
     }
 
     /// Performs the Pauli-Z transformation on a single state.
-    fn z_transform((index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
-        Self::phase_transform(-Complex64::one(), (index, val), target)
+    fn z_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
+        Self::phase_transform(-Complex64::one(), (index, val), target);
     }
 
     /// Single qubit Z gate.
@@ -863,8 +794,8 @@ impl QuantumSim {
     }
 
     /// Performs the S transformation on a single state.
-    fn s_transform((index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
-        Self::phase_transform(Complex64::i(), (index, val), target)
+    fn s_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
+        Self::phase_transform(Complex64::i(), (index, val), target);
     }
 
     /// Single qubit S gate.
@@ -880,9 +811,9 @@ impl QuantumSim {
         self.enqueue_op(target, ctls.into(), OpCode::S);
     }
 
-    /// Performs the adjoint S transformation on a signle state.
-    fn sadj_transform((index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
-        Self::phase_transform(-Complex64::i(), (index, val), target)
+    /// Performs the adjoint S transformation on a single state.
+    fn sadj_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
+        Self::phase_transform(-Complex64::i(), (index, val), target);
     }
 
     /// Single qubit Adjoint S Gate.
@@ -899,12 +830,12 @@ impl QuantumSim {
     }
 
     /// Performs the T transformation on a single state.
-    fn t_transform((index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
+    fn t_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
         Self::phase_transform(
             Complex64::new(FRAC_1_SQRT_2, FRAC_1_SQRT_2),
             (index, val),
             target,
-        )
+        );
     }
 
     /// Single qubit T gate.
@@ -921,12 +852,12 @@ impl QuantumSim {
     }
 
     /// Performs the adjoint T transformation to a single state.
-    fn tadj_transform((index, val): (BigUint, Complex64), target: u64) -> (BigUint, Complex64) {
+    fn tadj_transform((index, val): (&mut BigUint, &mut Complex64), target: u64) {
         Self::phase_transform(
             Complex64::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2),
             (index, val),
             target,
-        )
+        );
     }
 
     /// Single qubit Adjoint T gate.
@@ -943,17 +874,11 @@ impl QuantumSim {
     }
 
     /// Performs the Rz transformation with the given angle to a single state.
-    fn rz_transform(
-        (index, val): (BigUint, Complex64),
-        theta: f64,
-        target: u64,
-    ) -> (BigUint, Complex64) {
-        let val = val
-            * Complex64::exp(Complex64::new(
-                0.0,
-                theta / 2.0 * if index.bit(target) { 1.0 } else { -1.0 },
-            ));
-        (index, val)
+    fn rz_transform((index, val): (&mut BigUint, &mut Complex64), theta: f64, target: u64) {
+        *val *= Complex64::exp(Complex64::new(
+            0.0,
+            theta / 2.0 * if index.bit(target) { 1.0 } else { -1.0 },
+        ));
     }
 
     /// Single qubit Rz gate.
@@ -1001,55 +926,68 @@ impl QuantumSim {
     fn apply_mch(&mut self, ctls: &[usize], target: usize) {
         let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
 
-        // This operation cannot be done in-place so create a new empty state vector to populate.
-        let mut new_state = SparseState::default();
+        // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+        // to support lookups. Apply any pending operations in the process.
+        let ops = self.take_ops();
+        let mapped_state: SparseStateMap = self
+            .state
+            .drain(..)
+            .map(|(mut index, mut val)| {
+                apply_ops(&ops, &mut index, &mut val);
+                (index, val)
+            })
+            .collect();
 
         let mut flipped = BigUint::zero();
         flipped.set_bit(target, true);
 
-        for (index, value) in &self.state {
-            if ctls.iter().all(|c| index.bit(*c)) {
-                let flipped_index = index ^ &flipped;
-                if !self.state.contains_key(&flipped_index) {
-                    // The state vector does not have an entry for the state where the target is flipped
-                    // and all other qubits are the same, meaning there is no superposition for this state.
-                    // Create the additional state caluclating the resulting superposition.
-                    let mut zero_bit_index = index.clone();
-                    zero_bit_index.set_bit(target, false);
-                    new_state.insert(zero_bit_index, value * std::f64::consts::FRAC_1_SQRT_2);
+        self.state.extend(mapped_state.iter().fold(
+            SparseState::default(),
+            |mut accum, (index, value)| {
+                if ctls.iter().all(|c| index.bit(*c)) {
+                    let flipped_index = index ^ &flipped;
+                    if !mapped_state.contains_key(&flipped_index) {
+                        // The state vector does not have an entry for the state where the target is flipped
+                        // and all other qubits are the same, meaning there is no superposition for this state.
+                        // Create the additional state caluclating the resulting superposition.
+                        let mut zero_bit_index = index.clone();
+                        zero_bit_index.set_bit(target, false);
+                        accum.push((zero_bit_index, value * std::f64::consts::FRAC_1_SQRT_2));
 
-                    let mut one_bit_index = index.clone();
-                    one_bit_index.set_bit(target, true);
-                    new_state.insert(
-                        one_bit_index,
-                        value
-                            * std::f64::consts::FRAC_1_SQRT_2
-                            * (if index.bit(target) { -1.0 } else { 1.0 }),
-                    );
-                } else if !index.bit(target) {
-                    // The state vector already has a superposition for this state, so calculate the resulting
-                    // updates using the value from the flipped state. Note we only want to perform this for one
-                    // of the states to avoid duplication, so we pick the Zero state by checking the target bit
-                    // in the index is not set.
-                    let flipped_value = &self.state[&flipped_index];
+                        let mut one_bit_index = index.clone();
+                        one_bit_index.set_bit(target, true);
+                        accum.push((
+                            one_bit_index,
+                            value
+                                * std::f64::consts::FRAC_1_SQRT_2
+                                * (if index.bit(target) { -1.0 } else { 1.0 }),
+                        ));
+                    } else if !index.bit(target) {
+                        // The state vector already has a superposition for this state, so calculate the resulting
+                        // updates using the value from the flipped state. Note we only want to perform this for one
+                        // of the states to avoid duplication, so we pick the Zero state by checking the target bit
+                        // in the index is not set.
+                        let flipped_value = &mapped_state[&flipped_index];
 
-                    let new_val = (value + flipped_value) as Complex64;
-                    if !new_val.is_nearly_zero() {
-                        new_state.insert(index.clone(), new_val * std::f64::consts::FRAC_1_SQRT_2);
+                        let new_val = (value + flipped_value) as Complex64;
+                        if !new_val.is_nearly_zero() {
+                            accum.push((index.clone(), new_val * std::f64::consts::FRAC_1_SQRT_2));
+                        }
+
+                        let new_val = (value - flipped_value) as Complex64;
+                        if !new_val.is_nearly_zero() {
+                            accum.push((
+                                index | &flipped,
+                                new_val * std::f64::consts::FRAC_1_SQRT_2,
+                            ));
+                        }
                     }
-
-                    let new_val = (value - flipped_value) as Complex64;
-                    if !new_val.is_nearly_zero() {
-                        new_state
-                            .insert(index | &flipped, new_val * std::f64::consts::FRAC_1_SQRT_2);
-                    }
+                } else {
+                    accum.push((index.clone(), *value));
                 }
-            } else {
-                new_state.insert(index.clone(), *value);
-            }
-        }
-
-        self.state = new_state;
+                accum
+            },
+        ));
     }
 
     /// Performs a rotation in the non-computational basis, which cannot be done in-place. This
@@ -1072,7 +1010,6 @@ impl QuantumSim {
             } else {
                 self.mcx(ctls, target);
             }
-            self.flush_ops();
             // Rx/Ry are different from X/Y by a global phase of -i, so apply that here when indicated by m01,
             // for mathematical correctness.
             let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
@@ -1083,77 +1020,82 @@ impl QuantumSim {
                     Complex64::one()
                 };
             if factor != Complex64::one() {
-                self.state =
-                    self.state
-                        .drain()
-                        .fold(SparseState::default(), |mut accum, (index, value)| {
-                            if ctls.iter().all(|c| index.bit(*c)) {
-                                accum.insert(index, value * factor);
-                            } else {
-                                accum.insert(index, value);
-                            }
-                            accum
-                        });
+                let ops = self.take_ops();
+                self.state.iter_mut().for_each(|(index, value)| {
+                    apply_ops(&ops, index, value);
+                    if ctls.iter().all(|c| index.bit(*c)) {
+                        *value *= factor;
+                    }
+                });
             }
         } else if m01.is_nearly_zero() {
             // This is just identity, so we can effectively no-op, and just add a phase of -1 as indicated by m00.
             // Here, m00 + 1 == 0 is used to check if m00 == -1.
             if (m00 + Complex64::one()).is_nearly_zero() {
+                let ops = self.take_ops();
                 let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
-                self.state =
-                    self.state
-                        .drain()
-                        .fold(SparseState::default(), |mut accum, (index, value)| {
-                            if ctls.iter().all(|c| index.bit(*c)) {
-                                accum.insert(index, value * -Complex64::one());
-                            } else {
-                                accum.insert(index, value);
-                            }
-                            accum
-                        });
+                self.state.iter_mut().for_each(|(index, value)| {
+                    apply_ops(&ops, index, value);
+                    if ctls.iter().all(|c| index.bit(*c)) {
+                        *value *= -Complex64::one();
+                    }
+                });
             }
         } else {
             let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
-            let mut new_state = SparseState::default();
             let m10 = m01 * if sign_flip { -1.0 } else { 1.0 };
             let mut flipped = BigUint::zero();
             flipped.set_bit(target, true);
 
-            for (index, value) in &self.state {
-                if ctls.iter().all(|c| index.bit(*c)) {
-                    let flipped_index = index ^ &flipped;
-                    if !self.state.contains_key(&flipped_index) {
-                        // The state vector doesn't have an entry for the flipped target bit, so there
-                        // isn't a superposition. Calculate the superposition using the matrix entries.
-                        if index.bit(target) {
-                            new_state.insert(flipped_index, value * m01);
-                            new_state.insert(index.clone(), value * m00);
-                        } else {
-                            new_state.insert(index.clone(), value * m00);
-                            new_state.insert(flipped_index, value * m10);
-                        }
-                    } else if !index.bit(target) {
-                        // There is already a superposition of the target for this state, so calculate the new
-                        // entries using the values from the flipped state. Note we only want to do this for one of
-                        // the states, so we pick the Zero state by checking the target bit in the index is not set.
-                        let flipped_val = self.state[&flipped_index];
+            // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+            // to support lookups. Apply any pending operations in the process.
+            let ops = self.take_ops();
+            let mapped_state: SparseStateMap = self
+                .state
+                .drain(..)
+                .map(|(mut index, mut val)| {
+                    apply_ops(&ops, &mut index, &mut val);
+                    (index, val)
+                })
+                .collect();
 
-                        let new_val = (value * m00 + flipped_val * m01) as Complex64;
-                        if !new_val.is_nearly_zero() {
-                            new_state.insert(index.clone(), new_val);
-                        }
+            self.state.extend(mapped_state.iter().fold(
+                SparseState::default(),
+                |mut accum, (index, value)| {
+                    if ctls.iter().all(|c| index.bit(*c)) {
+                        let flipped_index = index ^ &flipped;
+                        if !mapped_state.contains_key(&flipped_index) {
+                            // The state vector doesn't have an entry for the flipped target bit, so there
+                            // isn't a superposition. Calculate the superposition using the matrix entries.
+                            if index.bit(target) {
+                                accum.push((flipped_index, value * m01));
+                                accum.push((index.clone(), value * m00));
+                            } else {
+                                accum.push((index.clone(), value * m00));
+                                accum.push((flipped_index, value * m10));
+                            }
+                        } else if !index.bit(target) {
+                            // There is already a superposition of the target for this state, so calculate the new
+                            // entries using the values from the flipped state. Note we only want to do this for one of
+                            // the states, so we pick the Zero state by checking the target bit in the index is not set.
+                            let flipped_val = mapped_state[&flipped_index];
 
-                        let new_val = (value * m10 + flipped_val * m00) as Complex64;
-                        if !new_val.is_nearly_zero() {
-                            new_state.insert(flipped_index, new_val);
+                            let new_val = (value * m00 + flipped_val * m01) as Complex64;
+                            if !new_val.is_nearly_zero() {
+                                accum.push((index.clone(), new_val));
+                            }
+
+                            let new_val = (value * m10 + flipped_val * m00) as Complex64;
+                            if !new_val.is_nearly_zero() {
+                                accum.push((flipped_index, new_val));
+                            }
                         }
+                    } else {
+                        accum.push((index.clone(), *value));
                     }
-                } else {
-                    new_state.insert(index.clone(), *value);
-                }
-            }
-
-            self.state = new_state;
+                    accum
+                },
+            ));
         }
     }
 
@@ -1276,8 +1218,8 @@ impl QuantumSim {
         let op_size = unitary.nrows();
         self.state = self
             .state
-            .drain()
-            .fold(SparseState::default(), |mut accum, (index, val)| {
+            .drain(..)
+            .fold(SparseStateMap::default(), |mut accum, (index, val)| {
                 let i = &index / op_size;
                 let l = (&index % op_size)
                     .to_usize()
@@ -1297,11 +1239,37 @@ impl QuantumSim {
                     }
                 }
                 accum
-            });
+            })
+            .drain()
+            .collect();
         assert!(
             !self.state.is_empty(),
             "State vector should never be empty."
         );
+    }
+}
+
+/// Given a list of operations, applies them sequentially to the given state vector index and value in-place.
+fn apply_ops(
+    ops: &[(Vec<u64>, u64, OpCode)],
+    index: &mut BigUint,
+    value: &mut num_complex::Complex<f64>,
+) {
+    for (ctls, target, op) in ops {
+        if ctls.iter().all(|c| index.bit(*c)) {
+            match op {
+                OpCode::X => QuantumSim::x_transform((index, value), *target),
+                OpCode::Y => QuantumSim::y_transform((index, value), *target),
+                OpCode::Z => QuantumSim::z_transform((index, value), *target),
+                OpCode::S => QuantumSim::s_transform((index, value), *target),
+                OpCode::Sadj => QuantumSim::sadj_transform((index, value), *target),
+                OpCode::T => QuantumSim::t_transform((index, value), *target),
+                OpCode::Tadj => QuantumSim::tadj_transform((index, value), *target),
+                OpCode::Rz(theta) => {
+                    QuantumSim::rz_transform((index, value), *theta, *target);
+                }
+            }
+        }
     }
 }
 
