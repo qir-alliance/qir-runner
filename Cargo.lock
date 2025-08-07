@@ -645,6 +645,7 @@ dependencies = [
  "num-complex",
  "num-traits",
  "rand",
+ "rayon",
  "rustc-hash",
 ]
 
