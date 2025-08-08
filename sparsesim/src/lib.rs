@@ -187,6 +187,7 @@ impl QuantumSim {
         if self.id_map.is_empty() {
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
+            self.op_queue.clear();
             self.state = vec![(BigUint::zero(), Complex64::one())];
         } else {
             // Measure and collapse the state for this qubit.
@@ -354,16 +355,20 @@ impl QuantumSim {
     /// Utility to get the sum of all probabilies where an odd number of the bits at the given locations
     /// are set. This corresponds to the probability of jointly measuring those qubits in the computational
     /// basis.
-    fn check_joint_probability(&self, locs: &[usize]) -> f64 {
+    fn check_joint_probability(&mut self, locs: &[usize]) -> f64 {
         let mask = locs.iter().fold(BigUint::zero(), |accum, loc| {
             accum | (BigUint::one() << loc)
         });
+
+        let ops = self.take_ops();
+
         self.state
-            .par_iter()
+            .par_iter_mut()
             .fold(
                 || 0.0_f64,
                 |accum, (index, val)| {
-                    if (index & &mask).count_ones() & 1 > 0 {
+                    apply_ops(&ops, index, val);
+                    if (&*index & &mask).count_ones() & 1 > 0 {
                         accum + val.norm_sqr()
                     } else {
                         accum
@@ -371,6 +376,21 @@ impl QuantumSim {
                 },
             )
             .sum()
+    }
+
+    /// Takes ownership of the queued operations and returns them, clearing the `op_queue`.
+    /// This also resolves and checks the qubits for each operation, mapping them to their locations.
+    fn take_ops(&mut self) -> Vec<(Vec<u64>, u64, OpCode)> {
+        let ops = self
+            .op_queue
+            .iter()
+            .map(|(ctls, target, op)| {
+                let (target, ctls) = self.resolve_and_check_qubits(*target, ctls);
+                (ctls, target, *op)
+            })
+            .collect::<Vec<_>>();
+        self.op_queue.clear();
+        ops
     }
 
     /// Utility to collapse the probability at the given location based on the boolean value. This means
@@ -539,7 +559,6 @@ impl QuantumSim {
     }
 
     pub(crate) fn flush_queue(&mut self, qubits: &[usize], level: FlushLevel) {
-        self.flush_ops();
         for target in qubits {
             if self.h_flag.bit(*target as u64) {
                 self.apply_mch(&[], *target);
@@ -554,36 +573,16 @@ impl QuantumSim {
                 }
             }
         }
+        // Always call flush ops afterward to make sure no pending operations remain. If any of the above
+        // already applied operations, this will be a no-op since the queue will be empty.
+        self.flush_ops();
     }
 
     fn flush_ops(&mut self) {
         if !self.op_queue.is_empty() {
-            let ops = self
-                .op_queue
-                .iter()
-                .map(|(ctls, target, op)| {
-                    let (target, ctls) = self.resolve_and_check_qubits(*target, ctls);
-                    (ctls, target, *op)
-                })
-                .collect::<Vec<_>>();
-            self.op_queue.clear();
+            let ops = self.take_ops();
             self.state.par_iter_mut().for_each(|(index, value)| {
-                for (ctls, target, op) in &ops {
-                    if ctls.iter().all(|c| index.bit(*c)) {
-                        match op {
-                            OpCode::X => QuantumSim::x_transform((index, value), *target),
-                            OpCode::Y => QuantumSim::y_transform((index, value), *target),
-                            OpCode::Z => QuantumSim::z_transform((index, value), *target),
-                            OpCode::S => QuantumSim::s_transform((index, value), *target),
-                            OpCode::Sadj => QuantumSim::sadj_transform((index, value), *target),
-                            OpCode::T => QuantumSim::t_transform((index, value), *target),
-                            OpCode::Tadj => QuantumSim::tadj_transform((index, value), *target),
-                            OpCode::Rz(theta) => {
-                                QuantumSim::rz_transform((index, value), *theta, *target);
-                            }
-                        }
-                    }
-                }
+                apply_ops(&ops, index, value);
             });
         }
     }
@@ -934,8 +933,17 @@ impl QuantumSim {
     fn apply_mch(&mut self, ctls: &[usize], target: usize) {
         let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
 
-        // This operation cannot be done in-place so create a new empty state vector to populate.
-        let mapped_state: SparseStateMap = self.state.drain(..).collect();
+        // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+        // to support lookups. Apply any pending operations in the process.
+        let ops = self.take_ops();
+        let mapped_state: SparseStateMap = self
+            .state
+            .par_drain(..)
+            .map(|(mut index, mut val)| {
+                apply_ops(&ops, &mut index, &mut val);
+                (index, val)
+            })
+            .collect();
 
         let mut flipped = BigUint::zero();
         flipped.set_bit(target, true);
@@ -1014,7 +1022,6 @@ impl QuantumSim {
             } else {
                 self.mcx(ctls, target);
             }
-            self.flush_ops();
             // Rx/Ry are different from X/Y by a global phase of -i, so apply that here when indicated by m01,
             // for mathematical correctness.
             let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
@@ -1025,7 +1032,9 @@ impl QuantumSim {
                     Complex64::one()
                 };
             if factor != Complex64::one() {
+                let ops = self.take_ops();
                 self.state.par_iter_mut().for_each(|(index, value)| {
+                    apply_ops(&ops, index, value);
                     if ctls.iter().all(|c| index.bit(*c)) {
                         *value *= factor;
                     }
@@ -1035,8 +1044,10 @@ impl QuantumSim {
             // This is just identity, so we can effectively no-op, and just add a phase of -1 as indicated by m00.
             // Here, m00 + 1 == 0 is used to check if m00 == -1.
             if (m00 + Complex64::one()).is_nearly_zero() {
+                let ops = self.take_ops();
                 let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
                 self.state.par_iter_mut().for_each(|(index, value)| {
+                    apply_ops(&ops, index, value);
                     if ctls.iter().all(|c| index.bit(*c)) {
                         *value *= -Complex64::one();
                     }
@@ -1048,9 +1059,18 @@ impl QuantumSim {
             let mut flipped = BigUint::zero();
             flipped.set_bit(target, true);
 
-            let mapped_state: SparseStateMap = self.state.drain(..).collect();
+            // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+            // to support lookups. Apply any pending operations in the process.
+            let ops = self.take_ops();
+            let mapped_state: SparseStateMap = self
+                .state
+                .par_drain(..)
+                .map(|(mut index, mut val)| {
+                    apply_ops(&ops, &mut index, &mut val);
+                    (index, val)
+                })
+                .collect();
 
-            // TODO: make parallel?
             self.state.par_extend(
                 mapped_state
                     .par_iter()
@@ -1240,6 +1260,30 @@ impl QuantumSim {
             !self.state.is_empty(),
             "State vector should never be empty."
         );
+    }
+}
+
+/// Given a list of operations, applies them sequentially to the given state vector index and value in-place.
+fn apply_ops(
+    ops: &[(Vec<u64>, u64, OpCode)],
+    index: &mut BigUint,
+    value: &mut num_complex::Complex<f64>,
+) {
+    for (ctls, target, op) in ops {
+        if ctls.iter().all(|c| index.bit(*c)) {
+            match op {
+                OpCode::X => QuantumSim::x_transform((index, value), *target),
+                OpCode::Y => QuantumSim::y_transform((index, value), *target),
+                OpCode::Z => QuantumSim::z_transform((index, value), *target),
+                OpCode::S => QuantumSim::s_transform((index, value), *target),
+                OpCode::Sadj => QuantumSim::sadj_transform((index, value), *target),
+                OpCode::T => QuantumSim::t_transform((index, value), *target),
+                OpCode::Tadj => QuantumSim::tadj_transform((index, value), *target),
+                OpCode::Rz(theta) => {
+                    QuantumSim::rz_transform((index, value), *theta, *target);
+                }
+            }
+        }
     }
 }
 
