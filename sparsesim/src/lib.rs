@@ -23,6 +23,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, ToPrimitive, Zero};
 use rand::{Rng, SeedableRng, rngs::StdRng};
+use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
@@ -140,7 +141,7 @@ impl QuantumSim {
         });
 
         let mut state = self.state.clone();
-        state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        state.par_sort_unstable_by(|a, b| a.0.cmp(&b.0));
         (state, sorted_keys.len())
     }
 
@@ -194,7 +195,7 @@ impl QuantumSim {
             // If the result of measurement was true then we must set the bit for this qubit in every key
             // to zero to "reset" the qubit.
             if res {
-                self.state.iter_mut().for_each(|(k, _)| {
+                self.state.par_iter_mut().for_each(|(k, _)| {
                     if k.bit(loc as u64) {
                         k.set_bit(loc as u64, false);
                     }
@@ -256,7 +257,7 @@ impl QuantumSim {
             .write_str("STATE: [ ")
             .expect("Failed to write output");
 
-        self.state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        self.state.par_sort_unstable_by(|a, b| a.0.cmp(&b.0));
         for (key, value) in &self.state {
             output
                 .write_str(&format!("|{key}\u{27e9}: {value}, "))
@@ -316,8 +317,9 @@ impl QuantumSim {
     /// location.
     fn measure_impl(&mut self, loc: usize) -> bool {
         let random_sample = self.rng.borrow_mut().r#gen::<f64>();
-        let res = random_sample < self.check_joint_probability(&[loc]);
-        self.collapse(loc, res);
+        let prob = self.check_joint_probability(&[loc]);
+        let res = random_sample < prob;
+        self.collapse(loc, res, prob);
         res
     }
 
@@ -343,8 +345,9 @@ impl QuantumSim {
             .collect();
 
         let random_sample = self.rng.borrow_mut().r#gen::<f64>();
-        let res = random_sample < self.check_joint_probability(&locs);
-        self.joint_collapse(&locs, res);
+        let prob = self.check_joint_probability(&locs);
+        let res = random_sample < prob;
+        self.joint_collapse(&locs, res, prob);
         res
     }
 
@@ -355,52 +358,55 @@ impl QuantumSim {
         let mask = locs.iter().fold(BigUint::zero(), |accum, loc| {
             accum | (BigUint::one() << loc)
         });
-        self.state.iter().fold(0.0_f64, |accum, (index, val)| {
-            if (index & &mask).count_ones() & 1 > 0 {
-                accum + val.norm_sqr()
-            } else {
-                accum
-            }
-        })
+        self.state
+            .par_iter()
+            .fold(
+                || 0.0_f64,
+                |accum, (index, val)| {
+                    if (index & &mask).count_ones() & 1 > 0 {
+                        accum + val.norm_sqr()
+                    } else {
+                        accum
+                    }
+                },
+            )
+            .sum()
     }
 
     /// Utility to collapse the probability at the given location based on the boolean value. This means
     /// that if the given value is 'true' then all keys in the sparse state where the given location
     /// has a zero bit will be reduced to zero and removed. Then the sparse state is normalized.
-    fn collapse(&mut self, loc: usize, val: bool) {
-        self.joint_collapse(&[loc], val);
+    fn collapse(&mut self, loc: usize, val: bool, scaling_denominator: f64) {
+        self.joint_collapse(&[loc], val, scaling_denominator);
     }
 
     /// Utility to collapse the joint probability of a particular set of locations in the sparse state.
     /// The entries that do not correspond to the given boolean value are removed, and then the whole
     /// state is normalized.
-    fn joint_collapse(&mut self, locs: &[usize], val: bool) {
+    fn joint_collapse(&mut self, locs: &[usize], val: bool, scaling_denominator: f64) {
         let mask = locs.iter().fold(BigUint::zero(), |accum, loc| {
             accum | (BigUint::one() << loc)
         });
 
-        let mut scaling_denominator = 0.0;
-        let new_state: SparseState = self
+        // Normalize the new state using the accumulated scaling.
+        let scaling = 1.0
+            / (if val {
+                scaling_denominator
+            } else {
+                1.0 - scaling_denominator
+            })
+            .sqrt();
+        self.state = self
             .state
-            .drain(..)
-            .filter(|(k, v)| {
-                if ((k & &mask).count_ones() & 1 > 0) == val {
-                    scaling_denominator += v.norm_sqr();
-                    true
+            .par_drain(..)
+            .filter_map(|(k, v)| {
+                if (&k & &mask).count_ones() & 1 == u64::from(val) {
+                    Some((k, v * scaling))
                 } else {
-                    false
+                    None
                 }
             })
             .collect();
-
-        // Normalize the new state using the accumulated scaling.
-        let scaling = 1.0 / scaling_denominator.sqrt();
-        for (k, v) in new_state {
-            let scaled_value = v * scaling;
-            if !scaled_value.is_nearly_zero() {
-                self.state.push((k, scaled_value));
-            }
-        }
     }
 
     /// Swaps the mapped ids for the given qubits.
@@ -466,7 +472,7 @@ impl QuantumSim {
         let (q1, q2) = (qubit1 as u64, qubit2 as u64);
 
         // Swap entries in the sparse state to correspond to swapping of two qubits' locations.
-        self.state.iter_mut().for_each(|(k, _)| {
+        self.state.par_iter_mut().for_each(|(k, _)| {
             if k.bit(q1) != k.bit(q2) {
                 let mut new_k = k.clone();
                 new_k.set_bit(q1, !k.bit(q1));
@@ -561,7 +567,7 @@ impl QuantumSim {
                 })
                 .collect::<Vec<_>>();
             self.op_queue.clear();
-            self.state.iter_mut().for_each(|(index, value)| {
+            self.state.par_iter_mut().for_each(|(index, value)| {
                 for (ctls, target, op) in &ops {
                     if ctls.iter().all(|c| index.bit(*c)) {
                         match op {
@@ -714,7 +720,7 @@ impl QuantumSim {
 
         let (target, ctls) = self.resolve_and_check_qubits(target, ctls);
 
-        self.state.iter_mut().for_each(|(index, value)| {
+        self.state.par_iter_mut().for_each(|(index, value)| {
             if ctls.iter().all(|c| index.bit(*c)) {
                 Self::phase_transform(phase, (index, value), target);
             }
@@ -934,49 +940,58 @@ impl QuantumSim {
         let mut flipped = BigUint::zero();
         flipped.set_bit(target, true);
 
-        for (index, value) in &mapped_state {
-            if ctls.iter().all(|c| index.bit(*c)) {
-                let flipped_index = index ^ &flipped;
-                if !mapped_state.contains_key(&flipped_index) {
-                    // The state vector does not have an entry for the state where the target is flipped
-                    // and all other qubits are the same, meaning there is no superposition for this state.
-                    // Create the additional state caluclating the resulting superposition.
-                    let mut zero_bit_index = index.clone();
-                    zero_bit_index.set_bit(target, false);
-                    self.state
-                        .push((zero_bit_index, value * std::f64::consts::FRAC_1_SQRT_2));
+        self.state.par_extend(
+            mapped_state
+                .par_iter()
+                .fold(SparseState::default, |mut accum, (index, value)| {
+                    if ctls.iter().all(|c| index.bit(*c)) {
+                        let flipped_index = index ^ &flipped;
+                        if !mapped_state.contains_key(&flipped_index) {
+                            // The state vector does not have an entry for the state where the target is flipped
+                            // and all other qubits are the same, meaning there is no superposition for this state.
+                            // Create the additional state caluclating the resulting superposition.
+                            let mut zero_bit_index = index.clone();
+                            zero_bit_index.set_bit(target, false);
+                            accum.push((zero_bit_index, value * std::f64::consts::FRAC_1_SQRT_2));
 
-                    let mut one_bit_index = index.clone();
-                    one_bit_index.set_bit(target, true);
-                    self.state.push((
-                        one_bit_index,
-                        value
-                            * std::f64::consts::FRAC_1_SQRT_2
-                            * (if index.bit(target) { -1.0 } else { 1.0 }),
-                    ));
-                } else if !index.bit(target) {
-                    // The state vector already has a superposition for this state, so calculate the resulting
-                    // updates using the value from the flipped state. Note we only want to perform this for one
-                    // of the states to avoid duplication, so we pick the Zero state by checking the target bit
-                    // in the index is not set.
-                    let flipped_value = &mapped_state[&flipped_index];
+                            let mut one_bit_index = index.clone();
+                            one_bit_index.set_bit(target, true);
+                            accum.push((
+                                one_bit_index,
+                                value
+                                    * std::f64::consts::FRAC_1_SQRT_2
+                                    * (if index.bit(target) { -1.0 } else { 1.0 }),
+                            ));
+                        } else if !index.bit(target) {
+                            // The state vector already has a superposition for this state, so calculate the resulting
+                            // updates using the value from the flipped state. Note we only want to perform this for one
+                            // of the states to avoid duplication, so we pick the Zero state by checking the target bit
+                            // in the index is not set.
+                            let flipped_value = &mapped_state[&flipped_index];
 
-                    let new_val = (value + flipped_value) as Complex64;
-                    if !new_val.is_nearly_zero() {
-                        self.state
-                            .push((index.clone(), new_val * std::f64::consts::FRAC_1_SQRT_2));
+                            let new_val = (value + flipped_value) as Complex64;
+                            if !new_val.is_nearly_zero() {
+                                accum.push((
+                                    index.clone(),
+                                    new_val * std::f64::consts::FRAC_1_SQRT_2,
+                                ));
+                            }
+
+                            let new_val = (value - flipped_value) as Complex64;
+                            if !new_val.is_nearly_zero() {
+                                accum.push((
+                                    index | &flipped,
+                                    new_val * std::f64::consts::FRAC_1_SQRT_2,
+                                ));
+                            }
+                        }
+                    } else {
+                        accum.push((index.clone(), *value));
                     }
-
-                    let new_val = (value - flipped_value) as Complex64;
-                    if !new_val.is_nearly_zero() {
-                        self.state
-                            .push((index | &flipped, new_val * std::f64::consts::FRAC_1_SQRT_2));
-                    }
-                }
-            } else {
-                self.state.push((index.clone(), *value));
-            }
-        }
+                    accum
+                })
+                .flatten_iter(),
+        );
     }
 
     /// Performs a rotation in the non-computational basis, which cannot be done in-place. This
@@ -1010,7 +1025,7 @@ impl QuantumSim {
                     Complex64::one()
                 };
             if factor != Complex64::one() {
-                self.state.iter_mut().for_each(|(index, value)| {
+                self.state.par_iter_mut().for_each(|(index, value)| {
                     if ctls.iter().all(|c| index.bit(*c)) {
                         *value *= factor;
                     }
@@ -1021,7 +1036,7 @@ impl QuantumSim {
             // Here, m00 + 1 == 0 is used to check if m00 == -1.
             if (m00 + Complex64::one()).is_nearly_zero() {
                 let (_, ctls) = self.resolve_and_check_qubits(target, ctls);
-                self.state.iter_mut().for_each(|(index, value)| {
+                self.state.par_iter_mut().for_each(|(index, value)| {
                     if ctls.iter().all(|c| index.bit(*c)) {
                         *value *= -Complex64::one();
                     }
@@ -1035,39 +1050,46 @@ impl QuantumSim {
 
             let mapped_state: SparseStateMap = self.state.drain(..).collect();
 
-            for (index, value) in &mapped_state {
-                if ctls.iter().all(|c| index.bit(*c)) {
-                    let flipped_index = index ^ &flipped;
-                    if !mapped_state.contains_key(&flipped_index) {
-                        // The state vector doesn't have an entry for the flipped target bit, so there
-                        // isn't a superposition. Calculate the superposition using the matrix entries.
-                        if index.bit(target) {
-                            self.state.push((flipped_index, value * m01));
-                            self.state.push((index.clone(), value * m00));
+            // TODO: make parallel?
+            self.state.par_extend(
+                mapped_state
+                    .par_iter()
+                    .fold(SparseState::default, |mut accum, (index, value)| {
+                        if ctls.iter().all(|c| index.bit(*c)) {
+                            let flipped_index = index ^ &flipped;
+                            if !mapped_state.contains_key(&flipped_index) {
+                                // The state vector doesn't have an entry for the flipped target bit, so there
+                                // isn't a superposition. Calculate the superposition using the matrix entries.
+                                if index.bit(target) {
+                                    accum.push((flipped_index, value * m01));
+                                    accum.push((index.clone(), value * m00));
+                                } else {
+                                    accum.push((index.clone(), value * m00));
+                                    accum.push((flipped_index, value * m10));
+                                }
+                            } else if !index.bit(target) {
+                                // There is already a superposition of the target for this state, so calculate the new
+                                // entries using the values from the flipped state. Note we only want to do this for one of
+                                // the states, so we pick the Zero state by checking the target bit in the index is not set.
+                                let flipped_val = mapped_state[&flipped_index];
+
+                                let new_val = (value * m00 + flipped_val * m01) as Complex64;
+                                if !new_val.is_nearly_zero() {
+                                    accum.push((index.clone(), new_val));
+                                }
+
+                                let new_val = (value * m10 + flipped_val * m00) as Complex64;
+                                if !new_val.is_nearly_zero() {
+                                    accum.push((flipped_index, new_val));
+                                }
+                            }
                         } else {
-                            self.state.push((index.clone(), value * m00));
-                            self.state.push((flipped_index, value * m10));
+                            accum.push((index.clone(), *value));
                         }
-                    } else if !index.bit(target) {
-                        // There is already a superposition of the target for this state, so calculate the new
-                        // entries using the values from the flipped state. Note we only want to do this for one of
-                        // the states, so we pick the Zero state by checking the target bit in the index is not set.
-                        let flipped_val = mapped_state[&flipped_index];
-
-                        let new_val = (value * m00 + flipped_val * m01) as Complex64;
-                        if !new_val.is_nearly_zero() {
-                            self.state.push((index.clone(), new_val));
-                        }
-
-                        let new_val = (value * m10 + flipped_val * m00) as Complex64;
-                        if !new_val.is_nearly_zero() {
-                            self.state.push((flipped_index, new_val));
-                        }
-                    }
-                } else {
-                    self.state.push((index.clone(), *value));
-                }
-            }
+                        accum
+                    })
+                    .flatten_iter(),
+            );
         }
     }
 
