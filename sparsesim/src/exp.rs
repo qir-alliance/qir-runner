@@ -157,7 +157,6 @@ impl QuantumSim {
                 -pauli_coeff
             };
 
-            // let mut new_state = SparseState::default();
             let mapped_state: SparseStateMap = self.state.drain(..).collect();
             for (index, value) in &mapped_state {
                 if ctls.iter().all(|c| index.bit(*c)) {
