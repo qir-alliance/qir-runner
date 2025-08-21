@@ -65,20 +65,7 @@ pub(crate) enum OpCode {
     Sadj,
     T,
     Tadj,
-}
-
-impl OpCode {
-    fn as_transform(self) -> impl FnMut((BigUint, Complex64), u64) -> (BigUint, Complex64) {
-        match self {
-            OpCode::X => QuantumSim::x_transform,
-            OpCode::Y => QuantumSim::y_transform,
-            OpCode::Z => QuantumSim::z_transform,
-            OpCode::S => QuantumSim::s_transform,
-            OpCode::Sadj => QuantumSim::sadj_transform,
-            OpCode::T => QuantumSim::t_transform,
-            OpCode::Tadj => QuantumSim::tadj_transform,
-        }
-    }
+    Rz(f64),
 }
 
 /// Levels for flushing of queued gates.
@@ -592,7 +579,34 @@ impl QuantumSim {
                             (index, value),
                             |(index, value), (ctls, target, op)| {
                                 if ctls.iter().all(|c| index.bit(*c)) {
-                                    op.as_transform()((index, value), *target)
+                                    match op {
+                                        OpCode::X => {
+                                            QuantumSim::x_transform((index, value), *target)
+                                        }
+                                        OpCode::Y => {
+                                            QuantumSim::y_transform((index, value), *target)
+                                        }
+                                        OpCode::Z => {
+                                            QuantumSim::z_transform((index, value), *target)
+                                        }
+                                        OpCode::S => {
+                                            QuantumSim::s_transform((index, value), *target)
+                                        }
+                                        OpCode::Sadj => {
+                                            QuantumSim::sadj_transform((index, value), *target)
+                                        }
+                                        OpCode::T => {
+                                            QuantumSim::t_transform((index, value), *target)
+                                        }
+                                        OpCode::Tadj => {
+                                            QuantumSim::tadj_transform((index, value), *target)
+                                        }
+                                        OpCode::Rz(theta) => QuantumSim::rz_transform(
+                                            (index, value),
+                                            *theta,
+                                            *target,
+                                        ),
+                                    }
                                 } else {
                                     (index, value)
                                 }
@@ -944,19 +958,15 @@ impl QuantumSim {
 
     /// Single qubit Rz gate.
     pub fn rz(&mut self, theta: f64, target: usize) {
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(&[], target, |(index, val), target| {
-            Self::rz_transform((index, val), theta, target)
-        });
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, Vec::new(), OpCode::Rz(theta));
     }
 
     /// Multi-controlled Rz gate.
     pub fn mcrz(&mut self, ctls: &[usize], theta: f64, target: usize) {
-        self.flush_queue(ctls, FlushLevel::HRxRy);
-        self.flush_queue(&[target], FlushLevel::HRxRy);
-        self.controlled_gate(ctls, target, |(index, val), target| {
-            Self::rz_transform((index, val), theta, target)
-        });
+        self.maybe_flush_queue(ctls, FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[target], FlushLevel::HRxRy);
+        self.enqueue_op(target, ctls.into(), OpCode::Rz(theta));
     }
 
     /// Single qubit H gate.
