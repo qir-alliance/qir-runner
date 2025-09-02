@@ -178,12 +178,11 @@ impl QuantumSim {
     ///
     /// The function will panic if the given id does not correpsond to an allocated qubit.
     pub fn release(&mut self, id: usize) {
-        self.flush_queue(&[id], FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
 
         let loc = self.id_map[id];
-        self.id_map.remove(id);
 
-        if self.id_map.is_empty() {
+        if self.id_map.iter().count() == 1 {
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
             self.op_queue.clear();
@@ -202,6 +201,8 @@ impl QuantumSim {
                 });
             }
         }
+
+        self.id_map.remove(id);
     }
 
     /// Prints the current state vector to standard output with integer labels for the states, skipping any
@@ -303,7 +304,7 @@ impl QuantumSim {
     /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
     #[must_use]
     pub fn measure(&mut self, id: usize) -> bool {
-        self.flush_queue(&[id], FlushLevel::HRxRy);
+        self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
 
         self.measure_impl(
             *self
@@ -331,7 +332,7 @@ impl QuantumSim {
     /// This function will panic if any of the given identifiers are duplicates.
     #[must_use]
     pub fn joint_measure(&mut self, ids: &[usize]) -> bool {
-        self.flush_queue(ids, FlushLevel::HRxRy);
+        self.maybe_flush_queue(ids, FlushLevel::HRxRy);
 
         Self::check_for_duplicates(ids);
         let locs: Vec<usize> = ids
