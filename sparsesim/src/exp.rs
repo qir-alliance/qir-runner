@@ -157,6 +157,8 @@ impl QuantumSim {
                 -pauli_coeff
             };
 
+            // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+            // to support lookups.
             let mapped_state: SparseStateMap = self.state.drain(..).collect();
             for (index, value) in &mapped_state {
                 if ctls.iter().all(|c| index.bit(*c)) {

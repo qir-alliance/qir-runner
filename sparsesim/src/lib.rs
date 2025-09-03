@@ -30,6 +30,7 @@ type SparseState = Vec<(BigUint, Complex64)>;
 type SparseStateMap = FxHashMap<BigUint, Complex64>;
 
 const QUEUE_LIMIT: usize = 10_000;
+const DEFAULT_INITIAL_SIZE: usize = 50;
 
 /// The `QuantumSim` struct contains the necessary state for tracking the simulation. Each instance of a
 /// `QuantumSim` represents an independant simulation.
@@ -88,17 +89,16 @@ impl QuantumSim {
     /// Creates a new sparse state quantum simulator object with empty initial state (no qubits allocated, no operations buffered).
     #[must_use]
     pub fn new(rng: Option<StdRng>) -> Self {
-        let default_initial_size = 50;
         let initial_state = vec![(BigUint::zero(), Complex64::one())];
 
         QuantumSim {
             state: initial_state,
-            id_map: IndexMap::with_capacity(default_initial_size),
+            id_map: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
             rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
             h_flag: BigUint::zero(),
-            rx_queue: IndexMap::with_capacity(default_initial_size),
-            ry_queue: IndexMap::with_capacity(default_initial_size),
-            op_queue: Vec::new(),
+            rx_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
+            ry_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
+            op_queue: Vec::with_capacity(DEFAULT_INITIAL_SIZE),
         }
     }
 
@@ -178,18 +178,21 @@ impl QuantumSim {
     ///
     /// The function will panic if the given id does not correpsond to an allocated qubit.
     pub fn release(&mut self, id: usize) {
-        self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
-
-        let loc = self.id_map[id];
-
         if self.id_map.iter().count() == 1 {
+            // This is a release of the last qubit.
             // When no qubits are allocated, we can reset the sparse state to a clean ground, so
             // any accumulated phase dissappears.
-            self.op_queue.clear();
+            // There is no need to apply any pending operations, as we are about throw away the state
+            // anyway.
+            self.op_queue = Vec::with_capacity(DEFAULT_INITIAL_SIZE);
+            self.h_flag = BigUint::zero();
+            self.rx_queue = IndexMap::with_capacity(DEFAULT_INITIAL_SIZE);
+            self.ry_queue = IndexMap::with_capacity(DEFAULT_INITIAL_SIZE);
             self.state = vec![(BigUint::zero(), Complex64::one())];
         } else {
-            // Measure and collapse the state for this qubit.
-            let res = self.measure_impl(loc);
+            // Measure and collapse the state for this qubit. This will also apply any queued operations.
+            let res = self.measure(id);
+            let loc = self.id_map[id];
 
             // If the result of measurement was true then we must set the bit for this qubit in every key
             // to zero to "reset" the qubit.
@@ -202,6 +205,7 @@ impl QuantumSim {
             }
         }
 
+        // Remove the qubit from the ID map now that any operations on it are complete.
         self.id_map.remove(id);
     }
 
@@ -277,7 +281,9 @@ impl QuantumSim {
     /// This function will panic if there are duplicate ids in the given list.
     #[must_use]
     pub fn joint_probability(&mut self, ids: &[usize]) -> f64 {
-        self.flush_queue(ids, FlushLevel::HRxRy);
+        // Flush the queue only if there are pending H, Rx, or Ry operations on this qubit.
+        // Other queued operations will be applied by `check_joint_probability` below.
+        self.maybe_flush_queue(ids, FlushLevel::HRxRy);
 
         Self::check_for_duplicates(ids);
         let locs: Vec<usize> = ids
@@ -304,19 +310,15 @@ impl QuantumSim {
     /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
     #[must_use]
     pub fn measure(&mut self, id: usize) -> bool {
+        // We only need to flush the queue here if there are pending H, Rx, or Ry operations.
+        // Any operations in `self.op_queue` will get applied when `check_joint_probability`
+        // iterates through the state vector.
         self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
 
-        self.measure_impl(
-            *self
-                .id_map
-                .get(id)
-                .unwrap_or_else(|| panic!("Unable to find qubit with id {id}")),
-        )
-    }
-
-    /// Utility that performs the actual measurement and collapse of the state for the given
-    /// location.
-    fn measure_impl(&mut self, loc: usize) -> bool {
+        let loc = *self
+            .id_map
+            .get(id)
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"));
         let random_sample = self.rng.borrow_mut().r#gen::<f64>();
         let prob = self.check_joint_probability(&[loc]);
         let res = random_sample < prob;
@@ -332,6 +334,8 @@ impl QuantumSim {
     /// This function will panic if any of the given identifiers are duplicates.
     #[must_use]
     pub fn joint_measure(&mut self, ids: &[usize]) -> bool {
+        // Flush the queue only if there are pending H, Rx, or Ry operations on this qubit.
+        // Other queued operations will be applied by `check_joint_probability` below.
         self.maybe_flush_queue(ids, FlushLevel::HRxRy);
 
         Self::check_for_duplicates(ids);
@@ -1217,6 +1221,9 @@ impl QuantumSim {
             });
 
         let op_size = unitary.nrows();
+        // Applying the unitary to the state vector requires looking up other entries in the state,
+        // so convert into a hash map while iterating through the state vector. We drain that map
+        // at the end to convert it back into a vector.
         self.state = self
             .state
             .drain(..)
@@ -1254,20 +1261,20 @@ impl QuantumSim {
 fn apply_ops(
     ops: &[(Vec<u64>, u64, OpCode)],
     index: &mut BigUint,
-    value: &mut num_complex::Complex<f64>,
+    amplitude: &mut num_complex::Complex<f64>,
 ) {
     for (ctls, target, op) in ops {
         if ctls.iter().all(|c| index.bit(*c)) {
             match op {
-                OpCode::X => QuantumSim::x_transform((index, value), *target),
-                OpCode::Y => QuantumSim::y_transform((index, value), *target),
-                OpCode::Z => QuantumSim::z_transform((index, value), *target),
-                OpCode::S => QuantumSim::s_transform((index, value), *target),
-                OpCode::Sadj => QuantumSim::sadj_transform((index, value), *target),
-                OpCode::T => QuantumSim::t_transform((index, value), *target),
-                OpCode::Tadj => QuantumSim::tadj_transform((index, value), *target),
+                OpCode::X => QuantumSim::x_transform((index, amplitude), *target),
+                OpCode::Y => QuantumSim::y_transform((index, amplitude), *target),
+                OpCode::Z => QuantumSim::z_transform((index, amplitude), *target),
+                OpCode::S => QuantumSim::s_transform((index, amplitude), *target),
+                OpCode::Sadj => QuantumSim::sadj_transform((index, amplitude), *target),
+                OpCode::T => QuantumSim::t_transform((index, amplitude), *target),
+                OpCode::Tadj => QuantumSim::tadj_transform((index, amplitude), *target),
                 OpCode::Rz(theta) => {
-                    QuantumSim::rz_transform((index, value), *theta, *target);
+                    QuantumSim::rz_transform((index, amplitude), *theta, *target);
                 }
             }
         }
