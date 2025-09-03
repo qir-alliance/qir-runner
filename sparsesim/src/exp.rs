@@ -12,7 +12,7 @@ use num_complex::Complex64;
 use num_traits::{One, Zero};
 use std::ops::ControlFlow;
 
-use crate::{FlushLevel, QuantumSim, SparseState, nearly_zero::NearlyZero};
+use crate::{FlushLevel, QuantumSim, SparseStateMap, nearly_zero::NearlyZero};
 
 pub enum Pauli {
     I,
@@ -96,53 +96,51 @@ impl QuantumSim {
             }
         }
 
-        self.state = if xy_mask.is_zero() {
+        if xy_mask.is_zero() {
             // The operation is purely Pauli-Z, so we can rotate in the computational basis.
             let pauli_coeff = pauli_coeff + id_coeff;
             let id_coeff = 2.0 * id_coeff - pauli_coeff;
             if pauli_coeff.is_nearly_zero() {
                 // pauli_coeff is zero, so use only the states multiplied by id_coeff.
-                self.state
-                    .drain()
-                    .fold(SparseState::default(), |mut accum, (index, value)| {
+                self.state = self
+                    .state
+                    .drain(..)
+                    .filter_map(|(index, value)| {
                         if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
-                            accum.insert(index, value * id_coeff);
+                            Some((index, value * id_coeff))
+                        } else {
+                            None
                         }
-                        accum
                     })
+                    .collect();
             } else if id_coeff.is_nearly_zero() {
                 // id_coeff is zero, so use only the states multiplied by pauli_coeff.
-                self.state
-                    .drain()
-                    .fold(SparseState::default(), |mut accum, (index, value)| {
+                self.state = self
+                    .state
+                    .drain(..)
+                    .filter_map(|(index, value)| {
                         if ctls.iter().all(|c| index.bit(*c))
                             && (&index & &yz_mask).count_ones() & 1 != 0
                         {
-                            accum.insert(index, value * pauli_coeff);
+                            Some((index, value * pauli_coeff))
+                        } else {
+                            None
                         }
-                        accum
                     })
+                    .collect();
             } else {
                 // Both coefficients are non-zero, so modify each of the state records.
-                self.state
-                    .drain()
-                    .fold(SparseState::default(), |mut accum, (index, val)| {
-                        if ctls.iter().all(|c| index.bit(*c)) {
-                            accum.insert(
-                                index.clone(),
-                                val * if (index & &yz_mask).count_ones() & 1 == 0 {
-                                    pauli_coeff
-                                } else {
-                                    id_coeff
-                                },
-                            );
+                self.state.iter_mut().for_each(|(index, val)| {
+                    if ctls.iter().all(|c| index.bit(*c)) {
+                        *val *= if (index.clone() & &yz_mask).count_ones() & 1 == 0 {
+                            pauli_coeff
                         } else {
-                            accum.insert(index, val);
-                        }
-                        accum
-                    })
+                            id_coeff
+                        };
+                    }
+                });
             }
         } else {
             // The operation includes some non-Pauli-Z rotations.
@@ -159,13 +157,15 @@ impl QuantumSim {
                 -pauli_coeff
             };
 
-            let mut new_state = SparseState::default();
-            for (index, value) in &self.state {
+            // This operation requires reading other entries in the state vector while modifying one, so convert it into a state map
+            // to support lookups.
+            let mapped_state: SparseStateMap = self.state.drain(..).collect();
+            for (index, value) in &mapped_state {
                 if ctls.iter().all(|c| index.bit(*c)) {
                     let alt_index = index ^ &xy_mask;
-                    if !self.state.contains_key(&alt_index) {
-                        new_state.insert(index.clone(), value * id_coeff);
-                        new_state.insert(
+                    if !mapped_state.contains_key(&alt_index) {
+                        self.state.push((index.clone(), value * id_coeff));
+                        self.state.push((
                             alt_index,
                             value
                                 * if (index & &yz_mask).count_ones() & 1 == 0 {
@@ -173,10 +173,10 @@ impl QuantumSim {
                                 } else {
                                     -pauli_coeff
                                 },
-                        );
+                        ));
                     } else if index < &alt_index {
                         let parity = (index & &yz_mask).count_ones() & 1 != 0;
-                        let alt_value = self.state[&alt_index] as Complex64;
+                        let alt_value = mapped_state[&alt_index] as Complex64;
 
                         let new_value = value * id_coeff
                             + alt_value
@@ -186,21 +186,19 @@ impl QuantumSim {
                                     pauli_coeff_alt
                                 };
                         if !new_value.is_nearly_zero() {
-                            new_state.insert(index.clone(), new_value);
+                            self.state.push((index.clone(), new_value));
                         }
 
                         let new_value = alt_value * id_coeff
                             + value * if parity { -pauli_coeff } else { pauli_coeff };
                         if !new_value.is_nearly_zero() {
-                            new_state.insert(alt_index, new_value);
+                            self.state.push((alt_index, new_value));
                         }
                     }
                 } else {
-                    new_state.insert(index.clone(), *value);
+                    self.state.push((index.clone(), *value));
                 }
             }
-
-            new_state
         }
     }
 }
