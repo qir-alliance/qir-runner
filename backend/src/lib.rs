@@ -441,6 +441,18 @@ pub extern "C" fn __quantum__qis__sx__body(qubit: *mut c_void) {
     __quantum__qis__h__body(qubit);
 }
 
+/// QIR API for performing the `PhasedX` gate on the given qubit.
+#[unsafe(no_mangle)]
+pub extern "C" fn __quantum__qis__phasedx__body(
+    theta1: c_double,
+    theta2: c_double,
+    qubit: *mut c_void,
+) {
+    __quantum__qis__rz__body(theta2, qubit);
+    __quantum__qis__rx__body(theta1, qubit);
+    __quantum__qis__rz__body(-theta2, qubit);
+}
+
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
 #[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__rxx__body(
