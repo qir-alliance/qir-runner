@@ -7,13 +7,12 @@ edition = "2021"
 
 [dependencies.qirlib]
 git = "https://github.com/qir-alliance/pyqir"
-branch = "main"
+rev = "901209db734a6d561d6dec7f4478f68a9e19a728"
 default-features = false
 features = []
 
 [features]
 default = []
-llvm11-0 = ["qirlib/llvm11-0-no-llvm-linking", "qirlib/build-llvm"]
-llvm12-0 = ["qirlib/llvm12-0-no-llvm-linking", "qirlib/build-llvm"]
-llvm13-0 = ["qirlib/llvm13-0-no-llvm-linking", "qirlib/build-llvm"]
-llvm14-0 = ["qirlib/llvm14-0-no-llvm-linking", "qirlib/build-llvm"]
+llvm18-1 = ["qirlib/llvm18-1-no-llvm-linking", "qirlib/build-llvm"]
+llvm19-1 = ["qirlib/llvm19-1-no-llvm-linking", "qirlib/build-llvm"]
+llvm20-1 = ["qirlib/llvm20-1-no-llvm-linking", "qirlib/build-llvm"]

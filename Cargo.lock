@@ -68,6 +68,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.99"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0674a1ddeecb70197781e945de4b3b8ffb61fa939a5597bcf48503737663100"
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -292,8 +298,8 @@ checksum = "f4c7245a08504955605670dbf141fceab975f15ca21570696aebe9d2e71576bd"
 
 [[package]]
 name = "inkwell"
-version = "0.4.0"
-source = "git+https://github.com/TheDan64/inkwell?rev=0.4.0#ad2a27dd660fc7ddb6144bb0865267e02f192dd5"
+version = "0.6.0"
+source = "git+https://github.com/TheDan64/inkwell?rev=0f8d2d6c9061cfe80d3e83b75ea00f6df94ee562#0f8d2d6c9061cfe80d3e83b75ea00f6df94ee562"
 dependencies = [
  "either",
  "inkwell_internals",
@@ -305,8 +311,8 @@ dependencies = [
 
 [[package]]
 name = "inkwell_internals"
-version = "0.9.0"
-source = "git+https://github.com/TheDan64/inkwell?rev=0.4.0#ad2a27dd660fc7ddb6144bb0865267e02f192dd5"
+version = "0.11.0"
+source = "git+https://github.com/TheDan64/inkwell?rev=0f8d2d6c9061cfe80d3e83b75ea00f6df94ee562#0f8d2d6c9061cfe80d3e83b75ea00f6df94ee562"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -369,14 +375,15 @@ checksum = "c19937216e9d3aa9956d9bb8dfc0b0c8beb6058fc4f7a4dc4d850edf86a237d6"
 
 [[package]]
 name = "llvm-sys"
-version = "140.1.3"
+version = "201.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3dc78e9857c0231ec11e3bdccf63870493fdc7d0570b0ea7d50bf5df0cb1a0c"
+checksum = "9bb947e8b79254ca10d496d0798a9ba1287dcf68e50a92b016fec1cc45bef447"
 dependencies = [
+ "anyhow",
  "cc",
  "lazy_static",
  "libc",
- "regex",
+ "regex-lite",
  "semver",
 ]
 
@@ -609,7 +616,7 @@ dependencies = [
 
 [[package]]
 name = "qir-backend"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "bitvec",
  "criterion",
@@ -622,7 +629,7 @@ dependencies = [
 
 [[package]]
 name = "qir-stdlib"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "num-bigint",
  "rand",
@@ -630,7 +637,7 @@ dependencies = [
 
 [[package]]
 name = "qirrunner"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "pyo3",
  "runner",
@@ -638,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "quantum-sparse-sim"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "ndarray",
  "num-bigint",
@@ -743,6 +750,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex-lite"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "943f41321c63ef1c92fd763bfe054d2668f7f225a5c29f0105903dc2fc04ba30"
+
+[[package]]
 name = "regex-syntax"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -750,7 +763,7 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "runner"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "clap",
  "inkwell",
@@ -861,18 +874,18 @@ checksum = "e502f78cdbb8ba4718f566c418c52bc729126ffd16baee5baa718cf25dd5a69a"
 
 [[package]]
 name = "thiserror"
-version = "1.0.69"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.69"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
