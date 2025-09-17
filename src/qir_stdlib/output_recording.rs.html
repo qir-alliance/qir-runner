@@ -67,7 +67,7 @@
 <a href=#67 id=67 data-nosnippet>67</a>    }
 <a href=#68 id=68 data-nosnippet>68</a>
 <a href=#69 id=69 data-nosnippet>69</a>    <span class="doccomment">/// Drains the buffer and returns the contents.
-<a href=#70 id=70 data-nosnippet>70</a>    </span><span class="kw">pub fn </span>drain(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; std::vec::Drain&lt;u8&gt; {
+<a href=#70 id=70 data-nosnippet>70</a>    </span><span class="kw">pub fn </span>drain(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; std::vec::Drain&lt;<span class="lifetime">'_</span>, u8&gt; {
 <a href=#71 id=71 data-nosnippet>71</a>        <span class="self">self</span>.buffer.drain(..)
 <a href=#72 id=72 data-nosnippet>72</a>    }
 <a href=#73 id=73 data-nosnippet>73</a>}
