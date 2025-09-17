@@ -67,7 +67,7 @@ impl OutputRecorder {
     }
 
     /// Drains the buffer and returns the contents.
-    pub fn drain(&mut self) -> std::vec::Drain<u8> {
+    pub fn drain(&mut self) -> std::vec::Drain<'_, u8> {
         self.buffer.drain(..)
     }
 }
