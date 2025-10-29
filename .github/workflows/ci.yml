@@ -92,7 +92,9 @@ jobs:
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
       - name: Build
-        run: cargo build -vv --release
+        run: |
+          . ${{ github.workspace }}/llvm-build/vcvars.ps1
+          cargo build -vv --release
       - name: Test
         run: cargo test -vv --release -- --nocapture
       - name: Set up Python 3.9
