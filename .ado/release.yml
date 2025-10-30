@@ -49,7 +49,7 @@ parameters:
         os: linux
         arch: aarch64
       - name: mac_arm64
-        poolName: 'AcesShared'
+        poolName: "AcesShared"
         os: macOS
         arch: arm64
       - name: windows_x86_64
@@ -82,7 +82,7 @@ extends:
                     hostArchitecture: Arm64
                   ${{ if eq(target.os, 'macOS') }}:
                     demands:
-                    - ImageOverride -equals ACES_VM_SharedPool_Sequoia
+                      - ImageOverride -equals ACES_VM_SharedPool_Sequoia
                 variables:
                   arch: ${{ target.arch }}
                   ${{ if target.ARCHFLAGS }}:
@@ -206,8 +206,11 @@ extends:
                       Write-Host "cargo build --release --features $($env:PYQIR_LLVM_FEATURE_VERSION) -vv"
                       cargo build --release --features $env:PYQIR_LLVM_FEATURE_VERSION -vv
                     displayName: Build LLVM (non-Mac)
-                    # condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), ne(variables['Agent.OS'], 'Darwin'))
+                    condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'))
 
+                  # On macOS, we use ARCHFLAGS to ensure that
+                  # LLVM is built for the correct architecture.
+                  # This and the check for 'Darwin' in the condition above are only needed for cross-compiling, which for now we are skipping.
                   # - pwsh: |
                   #     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
                   #     Write-Host "env ARCHFLAGS='$(ARCHFLAGS)' cargo build --release --features $($env:PYQIR_LLVM_FEATURE_VERSION) -vv"

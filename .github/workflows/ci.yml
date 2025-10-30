@@ -93,7 +93,6 @@ jobs:
           arch: ${{ matrix.config.arch }}
       - name: Build
         run: |
-          . ${{ github.workspace }}/llvm-build/vcvars.ps1
           cargo build -vv --release
       - name: Test
         run: cargo test -vv --release -- --nocapture
