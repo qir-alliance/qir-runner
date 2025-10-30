@@ -38,11 +38,6 @@ runs:
       run: brew install ninja
       shell: pwsh
       if: ${{ (inputs.os == 'macos-15') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
-    - name: Windows - Install LLVM 20.1.8
-      run: choco install llvm --version=20.1.8 --allow-downgrade
-      shell: pwsh
-      if: ${{ (inputs.os == 'windows-2022') && (steps.cache-llvm.outputs.cache-hit != 'true') }}
-
     - name: Configure long paths
       run: git config --global core.longpaths true
       shell: pwsh
