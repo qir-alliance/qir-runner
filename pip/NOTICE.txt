@@ -14382,7 +14382,7 @@ limitations under the License.
 
 
 
-llvm-sys 140.0.5 - SPDX: MIT - MIT License
+llvm-sys 211.0.0 - SPDX: MIT - MIT License
 https://gitlab.com/taricorp/llvm-sys.rs
 
 Copyright (c) 2015 Peter Marheine

@@ -44,8 +44,8 @@ pip install qirrunner
 Platforms for which `qirrunner` doesn't have pre-built wheels (such as `aarch64` macos), installation is available via sdist. Before installing `qirrunner` via `pip`:
 
 - Install a usable LLVM distribution which has `llvm-config` available.
-- Set the `LLVM_SYS_140_PREFIX` environment variable to the LLVM installation directory
-  - example: `export LLVM_SYS_140_PREFIX=/Users/sample/llvm`
+- Set the `LLVM_SYS_201_PREFIX` environment variable to the LLVM installation directory
+  - example: `export LLVM_SYS_201_PREFIX=/Users/sample/llvm`
 - Install: `python -m pip install qirrunner`
   - This will build `qirrunner` from source. You will need a working Rust installation in order for this to compile.
 
