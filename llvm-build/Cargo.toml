@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies.qirlib]
 git = "https://github.com/qir-alliance/pyqir"
-rev = "901209db734a6d561d6dec7f4478f68a9e19a728"
+tag = "v0.12.0"
 default-features = false
 features = []
 
