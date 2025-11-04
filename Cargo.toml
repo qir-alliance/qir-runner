@@ -24,7 +24,6 @@ bitvec = "1.0.0"
 clap = { version = "4.5.7", features = [ "cargo" ] }
 criterion = "0.5.1"
 inkwell = { git = "https://github.com/TheDan64/inkwell", rev = "0f8d2d6c9061cfe80d3e83b75ea00f6df94ee562", default-features = false, features = ["llvm20-1"] }
-msvc_spectre_libs = { version = "0.1", features = [ "error" ] }
 ndarray = "0.15.4"
 num-bigint = { version = "0.4.5", default-features = false }
 num-complex = "0.4"
