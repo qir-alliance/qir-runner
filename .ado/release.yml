@@ -107,7 +107,7 @@ extends:
               targetPath: $(System.DefaultWorkingDirectory)/target/wheels
               artifactName: wheel.${{ target.os }}.${{ target.arch }}
             - output: pipelineArtifact
-              displayName: 'Upload stdlib Artifacts for ${{ target.os }} ${{ target.arch }}''
+              displayName: 'Upload stdlib Artifacts for ${{ target.os }} ${{ target.arch }}'
               condition: succeeded()
               targetPath: $(Build.SourcesDirectory)/target/stdlib
               artifactName: qir-stdlib.${{ target.os }}.${{ target.arch }}
