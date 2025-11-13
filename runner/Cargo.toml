@@ -12,7 +12,6 @@ qir-stdlib = { path = "../stdlib" }
 qir-backend = { path = "../backend" }
 clap = { workspace = true }
 inkwell = { workspace = true }
-msvc_spectre_libs = { workspace = true }
 
 [[bin]]
 name = "qir-runner"
