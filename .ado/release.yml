@@ -8,7 +8,7 @@ name: qirrunner-publish-$(BuildId)
 trigger:
   branches:
     include:
-      - main
+    - main
 
 # Run the pipeline every day at 4:00 AM to ensure
 # codeql and other governance checks are up-to-date.
@@ -24,7 +24,7 @@ schedules:
 variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.88"
-  PYTHON_VERSION: "3.12"
+  PYTHON_VERSION: "3.11"
   LLVM_VERSION: 20
   # use this to invalidate the cache. Any time we update the OS
   # image, we should increment this to ensure that the cache is rebuilt.
@@ -93,11 +93,11 @@ extends:
             ${{ if target.ARCHFLAGS }}:
               ARCHFLAGS: ${{ target.ARCHFLAGS }}
             ${{ if eq(target.os, 'windows') }}:
-              LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
+                LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
             ${{ else }}:
-              LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
+                LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
             ${{ if target.AUDITWHEEL_TAG }}:
-              AUDITWHEEL_TAG: ${{ target.AUDITWHEEL_TAG }}
+                AUDITWHEEL_TAG: ${{ target.AUDITWHEEL_TAG }}
           timeoutInMinutes: 300
           templateContext:
             outputs:
@@ -131,7 +131,7 @@ extends:
             inputs:
               versionSpec: $(PYTHON_VERSION)
             displayName: Install Python $(PYTHON_VERSION)
-            condition: and(succeeded(), ne(variables['arch'], 'aarch64'))
+            condition: ne(variables['arch'], 'aarch64')
 
           # UsePythonVersion@0 does not support aarch64, so we install Python manually
           # using tdnf on Azure Linux 3.0 aarch64
