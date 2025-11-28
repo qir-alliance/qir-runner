@@ -448,9 +448,9 @@ pub extern "C" fn __quantum__qis__phasedx__body(
     theta2: c_double,
     qubit: *mut c_void,
 ) {
-    __quantum__qis__rz__body(theta2, qubit);
-    __quantum__qis__rx__body(theta1, qubit);
     __quantum__qis__rz__body(-theta2, qubit);
+    __quantum__qis__rx__body(theta1, qubit);
+    __quantum__qis__rz__body(theta2, qubit);
 }
 
 /// QIR API for applying a joint rotation Pauli-Y rotation with the given angle for the two target qubit.
