@@ -1,6 +1,6 @@
 name: qirrunner-publish-$(BuildId)
 
-# This pipeline is used to build and publish the PyQIR package
+# This pipeline is used to build and publish the qirrunner package
 # It uses a Microsoft ADO template for additional security checks.
 
 # Run on merges to main to ensure that the latest code
@@ -10,7 +10,7 @@ trigger:
     include:
       - main
 
-# Run the pipeline every day at 6:00 AM to ensure
+# Run the pipeline every day at 4:00 AM to ensure
 # codeql and other governance checks are up-to-date.
 schedules:
   - cron: "0 4 * * *"
@@ -25,7 +25,9 @@ variables:
   RUST_TOOLCHAIN_VERSION: "1.88"
   PYTHON_VERSION: "3.11"
   LLVM_VERSION: 20
-  AUDITWHEEL_TAG: "manylinux_2_35"
+  # use this to invalidate the cache. Any time we update the OS
+  # image, we should increment this to ensure that the cache is rebuilt.
+  CACHE_COUNTER: 4
 
 resources:
   repositories:
@@ -43,21 +45,33 @@ parameters:
         imageName: "ubuntu-22.04"
         os: linux
         arch: x86_64
+        AUDITWHEEL_TAG: "manylinux_2_35"
       - name: linux_aarch64
         poolName: "Azure-Pipelines-DevTools-ARM64-EO"
-        imageName: "mariner-2.0-arm64"
+        imageName: "azurelinux-3.0-arm64"
         os: linux
         arch: aarch64
-      - name: mac_arm64
+        AUDITWHEEL_TAG: "manylinux_2_38"
+      - name: mac_x86_64
+        poolName: 'Azure Pipelines'
+        imageName: 'macOS-15'
+        os: macOS
+        arch: x86_64
+      - name: mac_aarch64
         poolName: "AcesShared"
         os: macOS
-        arch: arm64
+        arch: aarch64
       - name: windows_x86_64
         poolName: "Azure-Pipelines-DevTools-EO"
         imageName: "windows-latest"
         os: windows
         arch: x86_64
-
+      - name: windows_aarch64
+        poolName: 'Azure-Pipelines-DevTools-ARM64-EO'
+        imageName: 'Windows-2022-ARM64'
+        os: windows
+        arch: aarch64
+  
 extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
   parameters:
@@ -80,7 +94,7 @@ extends:
                   os: ${{ target.os }}
                   ${{ if eq(target.arch, 'aarch64') }}:
                     hostArchitecture: Arm64
-                  ${{ if eq(target.os, 'macOS') }}:
+                  ${{ if eq(target.poolName, 'AcesShared') }}:
                     demands:
                       - ImageOverride -equals ACES_VM_SharedPool_Sequoia
                 variables:
@@ -91,6 +105,8 @@ extends:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
                   ${{ else }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
+                  ${{ if target.AUDITWHEEL_TAG }}:
+                    AUDITWHEEL_TAG: ${{ target.AUDITWHEEL_TAG }}
                 timeoutInMinutes: 300
                 templateContext:
                   outputs:
@@ -123,7 +139,19 @@ extends:
                   - task: UsePythonVersion@0
                     inputs:
                       versionSpec: $(PYTHON_VERSION)
-                    condition: and(succeeded(), ne(variables['arch'], 'aarch64'))
+                      ${{ if eq(target.arch, 'aarch64') }}:
+                        architecture: "arm64"
+                    displayName: Install Python $(PYTHON_VERSION)
+                    condition: and(succeeded(), not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))))
+
+                  # UsePythonVersion@0 does not support aarch64, so we install Python manually
+                  # using tdnf on Azure Linux 3.0 aarch64
+                  # We also need alias python3 as python
+                  - script: |
+                      sudo tdnf install python3-3.12.9 python3-pip-24.2 -y
+                      sudo alternatives --install /usr/bin/python python /usr/bin/python3 1
+                    displayName: Install Python on Azure Linux 3.0 aarch64
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
                   # Build or restore LLVM
                   - pwsh: New-Item -ItemType Directory -Path $(LLVM_DIRECTORY) -Force
@@ -132,17 +160,12 @@ extends:
 
                   - task: Cache@2
                     inputs:
-                      key: '"llvm-$(LLVM_VERSION)-${{ target.os }}-${{ target.arch }}"'
-                      restoreKeys: '"llvm-$(LLVM_VERSION)-${{ target.os }}-${{ target.arch }}"'
+                      key: '"llvm-$(LLVM_VERSION)-${{ target.os }}-${{ target.arch }}-$(CACHE_COUNTER)"'
+                      restoreKeys: '"llvm-$(LLVM_VERSION)-${{ target.os }}-${{ target.arch }}-$(CACHE_COUNTER)"'
                       path: $(LLVM_DIRECTORY)
                       cacheHitVar: CACHE_RESTORED
                     displayName: Cache LLVM
                     condition: succeeded()
-
-                  # - pwsh: |
-                  #     Write-Host "##vso[task.setvariable variable=MACOSX_DEPLOYMENT_TARGET;]10.12"
-                  #   displayName: Configure Environment (MACOSX_DEPLOYMENT_TARGET x86_64)
-                  #   condition: eq(variables['Agent.OS'], 'Darwin')
 
                   - pwsh: |
                       git config --global core.longpaths true
@@ -175,7 +198,7 @@ extends:
 
                   - script: |
                       sudo tdnf install ninja-build cmake -y
-                    displayName: Install c++ build tools on mariner
+                    displayName: Install c++ build tools on Azure Linux 3.0 aarch64
                     condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'), ne(variables.CACHE_RESTORED, 'true'))
 
                   - script: |
@@ -183,40 +206,35 @@ extends:
                     displayName: Install build dependencies
                     condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'), ne(variables.CACHE_RESTORED, 'true'))
 
-                  - script: |
-                      choco install --accept-license -y ninja
-                    displayName: Install build dependencies
-                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'), ne(variables.CACHE_RESTORED, 'true'))
-
-                  # on mariner we need to install:
+                  # on Azure Linux 3.0 aarch64 we need to install:
                   # ld with binutils
                   # crt1.o and others with glibc-devel
                   # std lib headers with kernel-headers
                   # ninja and cmake for building LLVM
+                  # Azure Linux 3.0 does not have cc so we need to install gcc
                   - script: |
-                      sudo tdnf install binutils glibc-devel kernel-headers -y
-                    displayName: Install c++ build tools on mariner
+                      sudo tdnf install binutils glibc-devel kernel-headers gcc -y
+                    displayName: Install c++ build tools on Azure Linux 3.0 aarch64
                     condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
 
                   # build and install LLVM
                   - pwsh: |
                       $vcvars = Join-Path "$(Build.SourcesDirectory)" "llvm-build" "vcvars.ps1"
                       if(Test-Path $vcvars) { . $vcvars } else { throw "$vcvars not found" }
+                      function Test-CommandExists($name) {
+                          $null -ne (Get-Command $name -ErrorAction SilentlyContinue)
+                      }
+                      if(!(Test-CommandExists "cmake")) {
+                          throw "cmake not found"
+                      }
+                      if(!(Test-CommandExists "ninja")) {
+                          throw "ninja not found"
+                      }
                       cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
                       Write-Host "cargo build --release --features $($env:PYQIR_LLVM_FEATURE_VERSION) -vv"
                       cargo build --release --features $env:PYQIR_LLVM_FEATURE_VERSION -vv
                     displayName: Build LLVM (non-Mac)
                     condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'))
-
-                  # On macOS, we use ARCHFLAGS to ensure that
-                  # LLVM is built for the correct architecture.
-                  # This and the check for 'Darwin' in the condition above are only needed for cross-compiling, which for now we are skipping.
-                  # - pwsh: |
-                  #     cd (Join-Path "$(Build.SourcesDirectory)" "llvm-build")
-                  #     Write-Host "env ARCHFLAGS='$(ARCHFLAGS)' cargo build --release --features $($env:PYQIR_LLVM_FEATURE_VERSION) -vv"
-                  #     env ARCHFLAGS="$(ARCHFLAGS)" cargo build --release --features $env:PYQIR_LLVM_FEATURE_VERSION -vv
-                  #   displayName: Build LLVM (Mac)
-                  #   condition: and(not(canceled()), not(failed()), ne(variables.CACHE_RESTORED, 'true'), eq(variables['Agent.OS'], 'Darwin'))
 
                   # build the project
                   - script: |
@@ -269,12 +287,12 @@ extends:
                   - script: |
                       dir target\wheels\*
                     displayName: List Py Packages on Win
-                    condition: eq(variables['Agent.OS'], 'Windows_NT')
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
                   - script: |
                       ls target/wheels/*
                     displayName: List Py Packages on non-Win
-                    condition: ne(variables['Agent.OS'], 'Windows_NT')
+                    condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
 
                   # Publish stdlib
 
@@ -284,17 +302,18 @@ extends:
                       Copy-Item -Path $(Build.SourcesDirectory)/stdlib/NOTICE.txt -Destination $(Build.SourcesDirectory)/target/stdlib -Force
                       Copy-Item -Path $(Build.SourcesDirectory)/LICENSE -Destination $(Build.SourcesDirectory)/target/stdlib -Force
                     displayName: Organize qir-stdlib artifacts (all platforms)
+                    condition: succeeded()
 
                   - pwsh: |
                       Copy-Item -Path $(Build.SourcesDirectory)/target/release/libqir_stdlib.a -Destination $(Build.SourcesDirectory)/target/stdlib -Force
                     displayName: Organize qir-stdlib artifacts (Linux/Mac)
-                    condition: ne(variables['Agent.OS'], 'Windows_NT')
+                    condition: and(succeeded(), ne(variables['Agent.OS'], 'Windows_NT'))
 
                   - pwsh: |
                       Copy-Item -Path $(Build.SourcesDirectory)/target/release/qir_stdlib.lib -Destination $(Build.SourcesDirectory)/target/stdlib -Force
                       Copy-Item -Path $(Build.SourcesDirectory)/stdlib/include/qir_stdlib.def -Destination $(Build.SourcesDirectory)/target/stdlib -Force
                     displayName: Organize qir-stdlib artifacts (Windows)
-                    condition: eq(variables['Agent.OS'], 'Windows_NT')
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))
 
       - stage: approval
         displayName: Approval
@@ -341,6 +360,7 @@ extends:
                 displayName: Display Py Artifacts in Publishing Dir
 
               - task: EsrpRelease@9
+                condition: succeeded()
                 displayName: Publish Py Packages
                 inputs:
                   connectedservicename: "PME ESRP Azure Connection"
