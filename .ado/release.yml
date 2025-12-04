@@ -140,7 +140,9 @@ extends:
                     inputs:
                       versionSpec: $(PYTHON_VERSION)
                     displayName: Install Python $(PYTHON_VERSION)
-                    condition: ne(variables['arch'], 'aarch64')
+                    ${{ if eq(target.arch, 'aarch64') }}:
+                      architecture: "arm64"
+                    condition: and(succeeded(), not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))))
 
                   # UsePythonVersion@0 does not support aarch64, so we install Python manually
                   # using tdnf on Azure Linux 3.0 aarch64
