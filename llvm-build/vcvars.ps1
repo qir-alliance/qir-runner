@@ -1,6 +1,17 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+function Write-BuildLog {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$message,
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("group", "warning", "error", "section", "debug", "command", "endgroup")]
+        [string]$severity = "debug"
+    )
+    Write-Host "##[$severity]$message"
+}
+
 Write-BuildLog "Trying to load vcvars"
 if ($IsWindows) {
     # find VS root
