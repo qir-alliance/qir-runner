@@ -1,6 +1,6 @@
 [project]
 name = "qirrunner"
-version = "0.9.0"
+version = "0.9.1"
 requires-python = ">= 3.9"
 classifiers = [
     "License :: OSI Approved :: MIT License",
