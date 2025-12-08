@@ -250,7 +250,7 @@ extends:
                       $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
                       Write-Host "##vso[task.setvariable variable=AUDITWHEEL_TAG;]${tag}"
                     displayName: Configure Auditwheel tag
-                    condition: succeeded()
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
 
                   - script: |
                       python -m pip install -U pip
@@ -270,7 +270,7 @@ extends:
                       python -m venv .venv
                       source .venv/bin/activate
                       python -m pip install -r pip/requirements-manylinux.txt
-                      auditwheel repair --plat "$(AUDITWHEEL_TAG)_${{ target.arch }}" --wheel-dir target/wheels target/raw-wheels/*.whl
+                      auditwheel repair --plat "$(AUDITWHEEL_TAG)" --wheel-dir target/wheels target/raw-wheels/*.whl
                       deactivate
                     displayName: Create Linux Python wheel and run Auditwheel
                     condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))

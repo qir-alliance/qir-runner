@@ -105,6 +105,7 @@ jobs:
           $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
           Write-Output "AUDITWHEEL_TAG=${tag}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         shell: pwsh
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
 
       - name: Install Unconditional Python packages
         run: |

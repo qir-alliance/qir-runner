@@ -161,7 +161,7 @@ fn run_module(
     Ok(())
 }
 
-fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
+fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module<'_>, String> {
     let path = path.as_ref();
     let extension = path.extension().and_then(OsStr::to_str);
 
