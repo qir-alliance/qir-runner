@@ -28,7 +28,7 @@ jobs:
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.88.0
+          toolchain: "1.90"
           components: rustfmt clippy
       - name: cargo fmt
         run: cargo fmt -v --all -- --check
@@ -39,10 +39,10 @@ jobs:
       - name: cargo doc
         run: cargo doc -vv --all --no-deps
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.11
       - name: Install Python packages
         run: |
           python -m pip install -U pip
@@ -65,25 +65,21 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {
-              os: "ubuntu-22.04",
-              arch: "amd64",
-              env: { AUDITWHEEL_TAG: "manylinux_2_35_x86_64" },
-            }
-          - {
-              os: "ubuntu-24.04",
-              arch: "amd64",
-              env: { AUDITWHEEL_TAG: "manylinux_2_39_x86_64" },
-            }
-          - { os: "windows-2022", arch: "amd64", env: {} }
-          - { os: "macos-15", arch: "arm64", env: {} }
+          - { os: "ubuntu-22.04", arch: "x86_64", env: {} }
+          - { os: "ubuntu-22.04", arch: "x86_64", env: {} }
+          - { os: "ubuntu-22.04-arm", arch: "aarch64", env: {} }
+          - { os: "windows-2022", arch: "x86_64", env: {} }
+          - { os: "windows-11-arm", arch: "aarch64", env: {} }
+          - { os: "macos-15-intel", arch: "x86_64", env: {} }
+          - { os: "macos-15", arch: "aarch64", env: {} }
     steps:
       - uses: actions/checkout@v4
       - name: Setup rust toolchain
         uses: ./.github/actions/rust-toolchain
         with:
-          toolchain: 1.88.0
+          toolchain: "1.90"
           components: rustfmt clippy
+
       - name: Install LLVM
         uses: ./.github/actions/install-llvm
         with:
@@ -91,47 +87,65 @@ jobs:
           os: ${{ matrix.config.os }}
           directory: ${{ github.workspace }}/target/llvm
           arch: ${{ matrix.config.arch }}
+
       - name: Build
         run: |
           cargo build -vv --release
+
       - name: Test
         run: cargo test -vv --release -- --nocapture
-      - name: Set up Python 3.9
+
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.11
+
+      - name: Configure Auditwheel tag
+        run: |
+          $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
+          Write-Output "AUDITWHEEL_TAG=${tag}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
+
       - name: Install Unconditional Python packages
         run: |
           python -m pip install -U pip
           python -m pip install -r pip/requirements.txt
+
       - name: Install Auditwheel Python packages for Linux
         run: |
           python -m pip install -r pip/requirements-manylinux.txt
-        if: ${{ matrix.config.os == 'ubuntu-22.04' || matrix.config.os == 'ubuntu-24.04' }}
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+
       - name: Package Non-Linux
         run: |
           python -m build --verbose --sdist --outdir target/wheels ./pip
           python -m build --verbose --wheel ./pip
-        if: ${{ matrix.config.os != 'ubuntu-22.04' && matrix.config.os != 'ubuntu-24.04' }}
+        if: ${{ !startsWith(matrix.config.os, 'ubuntu') }}
+
       - name: Package Linux
         run: |
           python -m build --verbose --sdist --outdir target/wheels ./pip
           python -m build --verbose --wheel --outdir target/raw-wheels ./pip
           auditwheel repair --plat $AUDITWHEEL_TAG --wheel-dir target/wheels target/raw-wheels/*.whl
-        if: ${{ matrix.config.os == 'ubuntu-22.04' || matrix.config.os == 'ubuntu-24.04' }}
+        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+
       - name: Install Test Python packages
         run: python -m pip install -r pip/requirements-test.txt
+
       - name: Test Wheel
         run: |
           python -m pip install --force-reinstall --no-index --find-links=target/wheels qirrunner
           python -m pytest --verbose pip
+
       - name: uninstall qirrunner
         run: python -m pip uninstall -y qirrunner
+
       - name: Test sdist
         run: |
           python -m pip install (Resolve-Path ./target/wheels/qirrunner*.tar.gz)
           python -m pytest --verbose pip
         shell: pwsh
+
       # qir-stdlib Artifact
       - name: Organize qir-stdlib artifacts (all platforms)
         run: |
@@ -145,14 +159,14 @@ jobs:
         run: |
           Copy-Item -Path ./target/release/libqir_stdlib.a -Destination ./target/stdlib -Force
         shell: pwsh
-        if: ${{ matrix.config.os != 'windows-2022' }}
+        if: ${{ !startsWith(matrix.config.os, 'windows') }}
 
       - name: Organize qir-stdlib artifacts (Windows)
         run: |
           Copy-Item -Path ./target/release/qir_stdlib.lib -Destination ./target/stdlib -Force
           Copy-Item -Path ./stdlib/include/qir_stdlib.def -Destination ./target/stdlib -Force
         shell: pwsh
-        if: ${{ matrix.config.os == 'windows-2022' }}
+        if: ${{ startsWith(matrix.config.os, 'windows') }}
 
       - name: qir-stdlib Artifact
         uses: actions/upload-artifact@v4

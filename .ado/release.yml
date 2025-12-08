@@ -22,7 +22,7 @@ schedules:
 
 variables:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.88"
+  RUST_TOOLCHAIN_VERSION: "1.90"
   PYTHON_VERSION: "3.11"
   LLVM_VERSION: 20
   # use this to invalidate the cache. Any time we update the OS
@@ -45,13 +45,11 @@ parameters:
         imageName: "ubuntu-22.04"
         os: linux
         arch: x86_64
-        AUDITWHEEL_TAG: "manylinux_2_35"
       - name: linux_aarch64
         poolName: "Azure-Pipelines-DevTools-ARM64-EO"
         imageName: "azurelinux-3.0-arm64"
         os: linux
         arch: aarch64
-        AUDITWHEEL_TAG: "manylinux_2_38"
       - name: mac_x86_64
         poolName: 'Azure Pipelines'
         imageName: 'macOS-15'
@@ -105,8 +103,6 @@ extends:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
                   ${{ else }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
-                  ${{ if target.AUDITWHEEL_TAG }}:
-                    AUDITWHEEL_TAG: ${{ target.AUDITWHEEL_TAG }}
                 timeoutInMinutes: 300
                 templateContext:
                   outputs:
@@ -123,7 +119,7 @@ extends:
                 steps:
                   - task: RustInstaller@1
                     inputs:
-                      rustVersion: ms-$(RUST_TOOLCHAIN_VERSION)
+                      rustVersion: ms-prod-$(RUST_TOOLCHAIN_VERSION)
                       ${{ if target.additionalRustTargets }}:
                         additionalTargets: ${{ target.additionalRustTargets }}
                       cratesIoFeedOverride: $(cratesIoFeedOverride)
@@ -249,6 +245,12 @@ extends:
                     condition: succeeded()
 
                   # package the project
+
+                  - pwsh: |
+                      $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
+                      Write-Host "##vso[task.setvariable variable=AUDITWHEEL_TAG;]${tag}"
+                    displayName: Configure Auditwheel tag
+                    condition: succeeded()
 
                   - script: |
                       python -m pip install -U pip
