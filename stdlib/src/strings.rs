@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::update_counts;
 use crate::Pauli;
+use crate::update_counts;
 use num_bigint::BigInt;
 use std::{
     ffi::{CStr, CString},
@@ -10,53 +10,62 @@ use std::{
     rc::Rc,
 };
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_create(str: *mut c_char) -> *const CString {
-    let cstring = CString::new(CStr::from_ptr(str).to_owned()).expect("Failed to create %String");
-    Rc::into_raw(Rc::new(cstring))
+    unsafe {
+        let cstring =
+            CString::new(CStr::from_ptr(str).to_owned()).expect("Failed to create %String");
+        Rc::into_raw(Rc::new(cstring))
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_get_data(str: *const CString) -> *const c_char {
-    (*str).as_bytes_with_nul().as_ptr().cast::<c_char>()
+    unsafe { (*str).as_bytes_with_nul().as_ptr().cast::<c_char>() }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_get_length(str: *const CString) -> u32 {
-    (*str)
-        .as_bytes()
-        .len()
-        .try_into()
-        .expect("String length is too large for 32-bit integer.")
+    unsafe {
+        (*str)
+            .as_bytes()
+            .len()
+            .try_into()
+            .expect("String length is too large for 32-bit integer.")
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_update_reference_count(
     str: *const CString,
     update: i32,
 ) {
-    update_counts(str, update, false);
+    unsafe {
+        update_counts(str, update, false);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_concatenate(
     s1: *const CString,
     s2: *const CString,
 ) -> *const CString {
-    let mut new_str = (*s1).clone().into_bytes();
-    new_str.extend_from_slice((*s2).to_bytes());
+    unsafe {
+        let mut new_str = (*s1).clone().into_bytes();
+        new_str.extend_from_slice((*s2).to_bytes());
 
-    Rc::into_raw(Rc::new(
-        CString::new(new_str).expect("Unable to convert string"),
-    ))
+        Rc::into_raw(Rc::new(
+            CString::new(new_str).expect("Unable to convert string"),
+        ))
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__string_equal(
     s1: *const CString,
     s2: *const CString,
 ) -> bool {
-    *s1 == *s2
+    unsafe { *s1 == *s2 }
 }
 
 pub(crate) fn convert<T>(input: &T) -> *const CString
@@ -73,7 +82,7 @@ where
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__int_to_string(input: i64) -> *const CString {
     convert(&input)
 }
@@ -88,17 +97,17 @@ pub(crate) fn double_to_string(input: c_double) -> String {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__double_to_string(input: c_double) -> *const CString {
     convert(&double_to_string(input))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__bool_to_string(input: bool) -> *const CString {
     convert(&input)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__pauli_to_string(input: Pauli) -> *const CString {
     match input {
         Pauli::I => convert(&"PauliI"),
@@ -108,9 +117,9 @@ pub extern "C" fn __quantum__rt__pauli_to_string(input: Pauli) -> *const CString
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_to_string(input: *const BigInt) -> *const CString {
-    convert(&*input)
+    unsafe { convert(&*input) }
 }
 
 #[cfg(test)]

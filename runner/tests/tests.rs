@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use runner::{run_bitcode, run_file, OUTPUT};
+use std::io::BufWriter;
+
+use runner::{OUTPUT, run_bitcode, run_file};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -337,5 +339,23 @@ fn mixed_output_recording_calls_fail() {
     assert_eq!(
         "function '__quantum__rt__array_record_output' has mismatched parameters: expected 2, found 1",
         result.unwrap_err().to_lowercase()
+    );
+}
+
+#[test]
+fn barrier_is_noop() {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output.use_std_out(false);
+    });
+    let bitcode = include_bytes!("resources/barrier.bc");
+    let mut stream = BufWriter::new(Vec::new());
+    let result = run_bitcode(bitcode, None, 1, &mut stream);
+    assert!(result.is_ok());
+    assert_eq!(
+        String::from_utf8(stream.into_inner().unwrap())
+            .unwrap()
+            .replace("\r\n", "\n"),
+        "START\nMETADATA\tentry_point\nMETADATA\toutput_labeling_schema\nMETADATA\tqir_profiles\tbase_profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\nOUTPUT\tRESULT\t0\nEND\t0\n"
     );
 }

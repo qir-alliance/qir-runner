@@ -3,7 +3,7 @@
 
 use crate::{
     arrays::{
-        QirArray, __quantum__rt__array_concatenate, __quantum__rt__array_update_reference_count,
+        __quantum__rt__array_concatenate, __quantum__rt__array_update_reference_count, QirArray,
     },
     tuples::{__quantum__rt__tuple_copy, __quantum__rt__tuple_update_reference_count},
     update_counts,
@@ -19,7 +19,7 @@ pub struct Callable {
     ctls_count: RefCell<u32>,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__callable_create(
     func_table: *mut *mut u8,
     mem_table: *mut *mut u8,
@@ -34,137 +34,156 @@ pub extern "C" fn __quantum__rt__callable_create(
     }))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(clippy::cast_ptr_alignment)]
 pub unsafe extern "C" fn __quantum__rt__callable_invoke(
     callable: *const Callable,
     args_tup: *mut u8,
     res_tup: *mut u8,
 ) {
-    let call = &*callable;
-    let index =
-        usize::from(*call.is_adj.borrow()) + (if *call.ctls_count.borrow() > 0 { 2 } else { 0 });
+    unsafe {
+        let call = &*callable;
+        let index = usize::from(*call.is_adj.borrow())
+            + (if *call.ctls_count.borrow() > 0 { 2 } else { 0 });
 
-    // Collect any nested controls into a single control list.
-    let mut args_copy: *mut *const Vec<u8> = std::ptr::null_mut();
-    if !args_tup.is_null() {
-        // Copy the tuple so we can potentially edit it.
-        args_copy = __quantum__rt__tuple_copy(args_tup.cast::<*const Vec<u8>>(), true);
+        // Collect any nested controls into a single control list.
+        let mut args_copy: *mut *const Vec<u8> = std::ptr::null_mut();
+        if !args_tup.is_null() {
+            // Copy the tuple so we can potentially edit it.
+            args_copy = __quantum__rt__tuple_copy(args_tup.cast::<*const Vec<u8>>(), true);
 
-        if *call.ctls_count.borrow() > 0 {
-            // If there are any controls, increment the reference count on the control list. This is just
-            // to balance the decrement that will happen in the loop and at the end of invoking the callable
-            // to ensure the original, non-owned list does not get incorrectly cleaned up.
-            __quantum__rt__array_update_reference_count(*args_copy.cast::<*const QirArray>(), 1);
-
-            let mut ctl_count = *call.ctls_count.borrow();
-            while ctl_count > 1 {
-                let ctls = *args_copy.cast::<*const QirArray>();
-                let inner_tuple = *args_copy
-                    .cast::<*const QirArray>()
-                    .wrapping_add(1)
-                    .cast::<*mut *const Vec<u8>>();
-                let inner_ctls = *inner_tuple.cast::<*const QirArray>();
-                let new_ctls = __quantum__rt__array_concatenate(ctls, inner_ctls);
-                let new_args = __quantum__rt__tuple_copy(inner_tuple, true);
-                *new_args.cast::<*const QirArray>() = new_ctls;
-
-                // Decrementing the reference count is either the extra count added above or the new
-                // list created when performing concatenate above. In the latter case, the concatenated
-                // list will get cleaned up, preventing memory from leaking.
+            if *call.ctls_count.borrow() > 0 {
+                // If there are any controls, increment the reference count on the control list. This is just
+                // to balance the decrement that will happen in the loop and at the end of invoking the callable
+                // to ensure the original, non-owned list does not get incorrectly cleaned up.
                 __quantum__rt__array_update_reference_count(
                     *args_copy.cast::<*const QirArray>(),
-                    -1,
+                    1,
                 );
-                // Decrement the count on the copy to clean it up as well, since we created a new copy
-                // with the updated controls list.
-                __quantum__rt__tuple_update_reference_count(args_copy, -1);
-                args_copy = new_args;
-                ctl_count -= 1;
+
+                let mut ctl_count = *call.ctls_count.borrow();
+                while ctl_count > 1 {
+                    let ctls = *args_copy.cast::<*const QirArray>();
+                    let inner_tuple = *args_copy
+                        .cast::<*const QirArray>()
+                        .wrapping_add(1)
+                        .cast::<*mut *const Vec<u8>>();
+                    let inner_ctls = *inner_tuple.cast::<*const QirArray>();
+                    let new_ctls = __quantum__rt__array_concatenate(ctls, inner_ctls);
+                    let new_args = __quantum__rt__tuple_copy(inner_tuple, true);
+                    *new_args.cast::<*const QirArray>() = new_ctls;
+
+                    // Decrementing the reference count is either the extra count added above or the new
+                    // list created when performing concatenate above. In the latter case, the concatenated
+                    // list will get cleaned up, preventing memory from leaking.
+                    __quantum__rt__array_update_reference_count(
+                        *args_copy.cast::<*const QirArray>(),
+                        -1,
+                    );
+                    // Decrement the count on the copy to clean it up as well, since we created a new copy
+                    // with the updated controls list.
+                    __quantum__rt__tuple_update_reference_count(args_copy, -1);
+                    args_copy = new_args;
+                    ctl_count -= 1;
+                }
             }
         }
-    }
 
-    (*call
-        .func_table
-        .wrapping_add(index)
-        .cast::<extern "C" fn(*mut u8, *mut u8, *mut u8)>())(
-        call.cap_tuple,
-        args_copy.cast::<u8>(),
-        res_tup,
-    );
-    if *call.ctls_count.borrow() > 0 {
-        __quantum__rt__array_update_reference_count(*args_copy.cast::<*const QirArray>(), -1);
-    }
-    if !args_copy.is_null() {
-        __quantum__rt__tuple_update_reference_count(args_copy, -1);
+        (*call
+            .func_table
+            .wrapping_add(index)
+            .cast::<extern "C" fn(*mut u8, *mut u8, *mut u8)>())(
+            call.cap_tuple,
+            args_copy.cast::<u8>(),
+            res_tup,
+        );
+        if *call.ctls_count.borrow() > 0 {
+            __quantum__rt__array_update_reference_count(*args_copy.cast::<*const QirArray>(), -1);
+        }
+        if !args_copy.is_null() {
+            __quantum__rt__tuple_update_reference_count(args_copy, -1);
+        }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__callable_copy(
     callable: *const Callable,
     force: bool,
 ) -> *const Callable {
-    let rc = ManuallyDrop::new(Rc::from_raw(callable));
-    if force || Rc::weak_count(&rc) > 0 {
-        let copy = rc.as_ref().clone();
-        Rc::into_raw(Rc::new(copy))
-    } else {
-        let _ = Rc::into_raw(Rc::clone(&rc));
-        callable
+    unsafe {
+        let rc = ManuallyDrop::new(Rc::from_raw(callable));
+        if force || Rc::weak_count(&rc) > 0 {
+            let copy = rc.as_ref().clone();
+            Rc::into_raw(Rc::new(copy))
+        } else {
+            let _ = Rc::into_raw(Rc::clone(&rc));
+            callable
+        }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__callable_make_adjoint(callable: *const Callable) {
-    let call = &*callable;
-    call.is_adj.replace_with(|&mut old| !old);
+    unsafe {
+        let call = &*callable;
+        call.is_adj.replace_with(|&mut old| !old);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__callable_make_controlled(callable: *const Callable) {
-    let call = &*callable;
-    call.ctls_count.replace_with(|&mut old| old + 1);
+    unsafe {
+        let call = &*callable;
+        call.ctls_count.replace_with(|&mut old| old + 1);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__callable_update_reference_count(
     callable: *const Callable,
     update: i32,
 ) {
-    update_counts(callable, update, false);
+    unsafe {
+        update_counts(callable, update, false);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__callable_update_alias_count(
     callable: *const Callable,
     update: i32,
 ) {
-    update_counts(callable, update, true);
+    unsafe {
+        update_counts(callable, update, true);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__capture_update_reference_count(
     callable: *const Callable,
     update: i32,
 ) {
-    let call = &*callable;
-    if !call.mem_table.is_null() && !(*(call.mem_table)).is_null() {
-        (*call.mem_table.cast::<extern "C" fn(*mut u8, i32)>())(call.cap_tuple, update);
+    unsafe {
+        let call = &*callable;
+        if !call.mem_table.is_null() && !(*(call.mem_table)).is_null() {
+            (*call.mem_table.cast::<extern "C" fn(*mut u8, i32)>())(call.cap_tuple, update);
+        }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__capture_update_alias_count(
     callable: *const Callable,
     update: i32,
 ) {
-    let call = &*callable;
-    if !call.mem_table.is_null() && !(*(call.mem_table.wrapping_add(1))).is_null() {
-        (*call
-            .mem_table
-            .wrapping_add(1)
-            .cast::<extern "C" fn(*mut u8, i32)>())(call.cap_tuple, update);
+    unsafe {
+        let call = &*callable;
+        if !call.mem_table.is_null() && !(*(call.mem_table.wrapping_add(1))).is_null() {
+            (*call
+                .mem_table
+                .wrapping_add(1)
+                .cast::<extern "C" fn(*mut u8, i32)>())(call.cap_tuple, update);
+        }
     }
 }

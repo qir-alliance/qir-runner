@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use qir_backend::*;
 
 macro_rules! bench_single_qubit_gate {
@@ -38,6 +38,10 @@ pub fn h_gate(c: &mut Criterion) {
     bench_single_qubit_gate!(c, __quantum__qis__h__body, "H Gate");
 }
 
+pub fn sx_gate(c: &mut Criterion) {
+    bench_single_qubit_gate!(c, __quantum__qis__sx__body, "SX Gate");
+}
+
 pub fn s_gate(c: &mut Criterion) {
     bench_single_qubit_gate!(c, __quantum__qis__s__body, "S Gate");
 }
@@ -70,7 +74,7 @@ pub fn rz_gate(c: &mut Criterion) {
 }
 
 criterion_group!(
-    benches, x_gate, y_gate, z_gate, h_gate, s_gate, sadj_gate, t_gate, tadj_gate, rx_gate,
-    ry_gate, rz_gate
+    benches, x_gate, y_gate, z_gate, h_gate, sx_gate, s_gate, sadj_gate, t_gate, tadj_gate,
+    rx_gate, ry_gate, rz_gate
 );
 criterion_main!(benches);

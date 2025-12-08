@@ -5,161 +5,167 @@ use crate::update_counts;
 use num_bigint::BigInt;
 use std::{mem::ManuallyDrop, rc::Rc};
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__bigint_create_i64(input: i64) -> *const BigInt {
     Rc::into_raw(Rc::new(input.into()))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_create_array(
     size: u32,
     input: *const u8,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(BigInt::from_signed_bytes_le(
-        std::slice::from_raw_parts(input, size as usize),
-    )))
+    unsafe {
+        Rc::into_raw(Rc::new(BigInt::from_signed_bytes_le(
+            std::slice::from_raw_parts(input, size as usize),
+        )))
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_get_data(input: *const BigInt) -> *const u8 {
-    ManuallyDrop::new((*input).to_signed_bytes_le()).as_ptr()
+    unsafe { ManuallyDrop::new((*input).to_signed_bytes_le()).as_ptr() }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_get_length(input: *const BigInt) -> u32 {
-    let size = (*input).to_signed_bytes_le().len();
-    size.try_into()
-        .expect("Length of bigint representation too large for 32-bit integer.")
+    unsafe {
+        let size = (*input).to_signed_bytes_le().len();
+        size.try_into()
+            .expect("Length of bigint representation too large for 32-bit integer.")
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_update_reference_count(
     input: *const BigInt,
     update: i32,
 ) {
-    update_counts(input, update, false);
+    unsafe {
+        update_counts(input, update, false);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_negate(input: *const BigInt) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*input) * -1))
+    unsafe { Rc::into_raw(Rc::new(&(*input) * -1)) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_add(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) + &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) + &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_subtract(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) - &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) - &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_multiply(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) * &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) * &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_divide(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) / &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) / &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_modulus(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) % &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) % &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_power(
     base: *const BigInt,
     exponent: u32,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new((*base).pow(exponent)))
+    unsafe { Rc::into_raw(Rc::new((*base).pow(exponent))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_bitand(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) & &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) & &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_bitor(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) | &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) | &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_bitxor(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*lhs) ^ &(*rhs)))
+    unsafe { Rc::into_raw(Rc::new(&(*lhs) ^ &(*rhs))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_bitnot(input: *const BigInt) -> *const BigInt {
-    Rc::into_raw(Rc::new(!&(*input)))
+    unsafe { Rc::into_raw(Rc::new(!&(*input))) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_shiftleft(
     input: *const BigInt,
     amount: u64,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*input) << amount))
+    unsafe { Rc::into_raw(Rc::new(&(*input) << amount)) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_shiftright(
     input: *const BigInt,
     amount: u64,
 ) -> *const BigInt {
-    Rc::into_raw(Rc::new(&(*input) >> amount))
+    unsafe { Rc::into_raw(Rc::new(&(*input) >> amount)) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_equal(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> bool {
-    (*lhs) == (*rhs)
+    unsafe { (*lhs) == (*rhs) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_greater(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> bool {
-    (*lhs) > (*rhs)
+    unsafe { (*lhs) > (*rhs) }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__bigint_greater_eq(
     lhs: *const BigInt,
     rhs: *const BigInt,
 ) -> bool {
-    (*lhs) >= (*rhs)
+    unsafe { (*lhs) >= (*rhs) }
 }
 
 #[cfg(test)]

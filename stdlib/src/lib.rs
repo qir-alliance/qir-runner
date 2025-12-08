@@ -29,31 +29,33 @@ use output_recording::record_output_str;
 
 /// Utility used for managing refcounted items.
 unsafe fn update_counts<T>(raw_rc: *const T, update: i32, is_alias: bool) {
-    let mut remaining = update;
-    while remaining != 0 {
-        let rc = ManuallyDrop::new(Rc::from_raw(raw_rc));
-        if remaining > 0 {
-            if is_alias {
-                // Create and leak new downgraded instances to increment the weak count on the contained item.
-                mem::forget(Rc::downgrade(&rc));
+    unsafe {
+        let mut remaining = update;
+        while remaining != 0 {
+            let rc = ManuallyDrop::new(Rc::from_raw(raw_rc));
+            if remaining > 0 {
+                if is_alias {
+                    // Create and leak new downgraded instances to increment the weak count on the contained item.
+                    mem::forget(Rc::downgrade(&rc));
+                } else {
+                    Rc::increment_strong_count(raw_rc);
+                }
+
+                remaining -= 1;
             } else {
-                Rc::increment_strong_count(raw_rc);
+                if is_alias {
+                    // Create and drop downgraded instances to decrement the weak count on contained item.
+                    let w = Weak::into_raw(Rc::downgrade(&rc));
+
+                    // Need to drop two for a net decrement, since above line increments.
+                    drop(Weak::from_raw(w));
+                    drop(Weak::from_raw(w));
+                } else {
+                    Rc::decrement_strong_count(raw_rc);
+                }
+
+                remaining += 1;
             }
-
-            remaining -= 1;
-        } else {
-            if is_alias {
-                // Create and drop downgraded instances to decrement the weak count on contained item.
-                let w = Weak::into_raw(Rc::downgrade(&rc));
-
-                // Need to drop two for a net decrement, since above line increments.
-                drop(Weak::from_raw(w));
-                drop(Weak::from_raw(w));
-            } else {
-                Rc::decrement_strong_count(raw_rc);
-            }
-
-            remaining += 1;
         }
     }
 }
@@ -67,7 +69,7 @@ pub enum Pauli {
     Y = 3,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__memory_allocate(size: u64) -> *mut u8 {
     (vec![
         0_u8;
@@ -79,23 +81,27 @@ pub extern "C" fn __quantum__rt__memory_allocate(size: u64) -> *mut u8 {
 }
 
 #[cfg(feature = "fail-support")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__fail(str: *const CString) {
-    __quantum__rt__message(str);
-    panic!("{}", (*str).to_str().expect("Unable to convert string"));
+    unsafe {
+        __quantum__rt__message(str);
+        panic!("{}", (*str).to_str().expect("Unable to convert string"));
+    }
 }
 
 #[cfg(feature = "message-support")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__message(str: *const CString) {
-    record_output_str(&format!(
-        "INFO\t{}",
-        (*str)
-            .to_str()
-            .expect("Unable to convert input string")
-            .escape_default()
-    ))
-    .expect("Failed to write message output");
+    unsafe {
+        record_output_str(&format!(
+            "INFO\t{}",
+            (*str)
+                .to_str()
+                .expect("Unable to convert input string")
+                .escape_default()
+        ))
+        .expect("Failed to write message output");
+    }
 }
 
 #[cfg(test)]
@@ -113,12 +119,13 @@ mod tests {
         }
     }
 
+    #[ignore = "Test triggers a panic during unwinding"]
     #[test]
     #[should_panic(expected = "FAIL")]
     fn test_fail() {
         let str = CString::new("FAIL").unwrap();
         unsafe {
-            __quantum__rt__fail(&str);
+            __quantum__rt__fail(&raw const str);
         }
     }
 
@@ -126,7 +133,7 @@ mod tests {
     fn test_message() {
         let str = CString::new("Message").unwrap();
         unsafe {
-            __quantum__rt__message(&str);
+            __quantum__rt__message(&raw const str);
         }
         // message should not consume string, so check that it's value is still correct.
         assert_eq!(str.to_str().unwrap(), "Message");

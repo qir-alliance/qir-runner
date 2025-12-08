@@ -13,6 +13,7 @@ pub use qir_backend::{
 };
 
 use inkwell::{
+    OptimizationLevel,
     attributes::AttributeLoc,
     context::Context,
     execution_engine::ExecutionEngine,
@@ -21,7 +22,6 @@ use inkwell::{
     passes::{PassBuilderOptions, PassManager},
     targets::{CodeModel, InitializationConfig, RelocMode, Target, TargetMachine, TargetTriple},
     values::FunctionValue,
-    OptimizationLevel,
 };
 use std::{
     collections::HashMap,
@@ -178,11 +178,13 @@ unsafe fn run_entry_point(
     execution_engine: &ExecutionEngine,
     entry_point: FunctionValue,
 ) -> Result<(), String> {
-    if entry_point.count_params() == 0 {
-        execution_engine.run_function(entry_point, &[]);
-        Ok(())
-    } else {
-        Err("Entry point has parameters or a non-void return type.".to_owned())
+    unsafe {
+        if entry_point.count_params() == 0 {
+            execution_engine.run_function(entry_point, &[]);
+            Ok(())
+        } else {
+            Err("Entry point has parameters or a non-void return type.".to_owned())
+        }
     }
 }
 
@@ -346,6 +348,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__arctan2__body, 2);
     bind!(__quantum__qis__assertmeasurementprobability__body, 6);
     bind!(__quantum__qis__assertmeasurementprobability__ctl, 6);
+    bind!(__quantum__qis__barrier__body, 0);
     bind!(__quantum__qis__ccx__body, 3);
     bind!(__quantum__qis__cnot__body, 2);
     bind!(__quantum__qis__cos__body, 1);
@@ -390,6 +393,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__s__body, 1);
     bind!(__quantum__qis__s__ctl, 2);
     bind!(__quantum__qis__s__ctladj, 2);
+    bind!(__quantum__qis__sx__body, 1);
     bind!(__quantum__qis__sin__body, 1);
     bind!(__quantum__qis__sinh__body, 1);
     bind!(__quantum__qis__sqrt__body, 1);
@@ -506,6 +510,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__qubit_release, 1);
     bind!(__quantum__rt__qubit_release_array, 1);
     bind!(__quantum__rt__qubit_to_string, 1);
+    bind!(__quantum__rt__read_result, 1);
     bind!(__quantum__rt__result_equal, 2);
     bind!(quantum__rt__range_to_string, 1);
     bind!(__quantum__rt__result_get_one, 0);

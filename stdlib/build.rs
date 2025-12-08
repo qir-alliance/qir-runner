@@ -12,11 +12,11 @@ fn main() -> Result<(), String> {
     // Copy the include files for non-Rust consumers and make them available for downstream compilation.
     let include_dir = out_dir.join("include");
     fs::create_dir_all(&include_dir)
-        .map_err(|err| format!("Error creating 'include' directory: {}", err))?;
+        .map_err(|err| format!("Error creating 'include' directory: {err}"))?;
     fs::copy("include/qir_stdlib.def", include_dir.join("qir_stdlib.def"))
-        .map_err(|err| format!("Error copying 'qir_stdlib.def' file: {}", err))?;
+        .map_err(|err| format!("Error copying 'qir_stdlib.def' file: {err}"))?;
     fs::copy("include/qir_stdlib.h", include_dir.join("qir_stdlib.h"))
-        .map_err(|err| format!("Error copying 'qir_stdlib.h' file: {}", err))?;
+        .map_err(|err| format!("Error copying 'qir_stdlib.h' file: {err}"))?;
     println!("cargo:include={}", include_dir.display());
 
     Ok(())

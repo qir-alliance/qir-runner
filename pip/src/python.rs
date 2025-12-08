@@ -6,7 +6,6 @@ use std::ffi::OsString;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::wrap_pyfunction;
 use runner::OUTPUT;
 
 struct OptionalCallbackReceiver<'a> {
@@ -45,9 +44,9 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
                     PyTuple::new(
                         self.py,
                         &[Py::new(self.py, Output(out)).expect("should be able to create output")],
-                    ),
+                    )?,
                 )
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+                .map_err(std::io::Error::other)?;
             Ok(msg.len())
         } else {
             std::io::stdout().write(buf)
@@ -71,7 +70,7 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
 ///     runtime functions. Default is `None`. When no callback is provided,
 ///     the output is printed to the console.
 #[pyfunction]
-#[pyo3(text_signature = "(path, entry_point, shots, rng_seed, output_fn)")]
+#[pyo3(signature = (path, entry_point=None, shots=None, rng_seed=None, output_fn=None))]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn run(
     py: Python,
@@ -101,7 +100,7 @@ pub(crate) fn run(
 }
 
 #[pyfunction]
-#[pyo3(text_signature = "(args)")]
+#[pyo3(signature = (args = None))]
 pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
     match args {
         Some(args) => {
@@ -121,7 +120,7 @@ pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
 }
 
 #[pymodule]
-fn _native(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _native<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run, m)?)?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add_class::<Output>()?;

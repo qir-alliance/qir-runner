@@ -19,7 +19,7 @@ pub struct QirArray {
     pub(crate) data: Vec<u8>,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn __quantum__rt__array_create_1d(elem_size: u32, count: u64) -> *const QirArray {
     let elem_size = elem_size
         .try_into()
@@ -31,85 +31,97 @@ pub extern "C" fn __quantum__rt__array_create_1d(elem_size: u32, count: u64) -> 
     Rc::into_raw(Rc::new(QirArray { elem_size, data }))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_copy(
     arr: *const QirArray,
     force: bool,
 ) -> *const QirArray {
-    // Wrap the array in a `ManuallyDrop` to effectively borrow it and ensure the array
-    // won't be dropped, refcount decremented, and cleaned up.
-    let rc = ManuallyDrop::new(Rc::from_raw(arr));
-    if force || Rc::weak_count(&rc) > 0 {
-        let copy = rc.as_ref().clone();
-        Rc::into_raw(Rc::new(copy))
-    } else {
-        let _ = Rc::into_raw(Rc::clone(&rc));
-        arr
+    unsafe {
+        // Wrap the array in a `ManuallyDrop` to effectively borrow it and ensure the array
+        // won't be dropped, refcount decremented, and cleaned up.
+        let rc = ManuallyDrop::new(Rc::from_raw(arr));
+        if force || Rc::weak_count(&rc) > 0 {
+            let copy = rc.as_ref().clone();
+            Rc::into_raw(Rc::new(copy))
+        } else {
+            let _ = Rc::into_raw(Rc::clone(&rc));
+            arr
+        }
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_concatenate(
     arr1: *const QirArray,
     arr2: *const QirArray,
 ) -> *const QirArray {
-    let array1 = &*arr1;
-    let array2 = &*arr2;
-    if array1.elem_size != array2.elem_size {
-        __quantum__rt__fail(convert(&format!(
-            "Cannot concatenate arrays with differing element sizes: {} vs {}",
-            array1.elem_size, array2.elem_size
-        )));
+    unsafe {
+        let array1 = &*arr1;
+        let array2 = &*arr2;
+        if array1.elem_size != array2.elem_size {
+            __quantum__rt__fail(convert(&format!(
+                "Cannot concatenate arrays with differing element sizes: {} vs {}",
+                array1.elem_size, array2.elem_size
+            )));
+        }
+
+        let mut new_array = QirArray {
+            elem_size: array1.elem_size,
+            data: Vec::new(),
+        };
+        new_array.data.resize(array1.data.len(), 0_u8);
+        new_array.data.copy_from_slice(array1.data.as_slice());
+
+        let mut copy = vec![0; array2.data.len()];
+        copy.copy_from_slice(array2.data.as_slice());
+
+        new_array.data.append(&mut copy);
+        Rc::into_raw(Rc::new(new_array))
     }
-
-    let mut new_array = QirArray {
-        elem_size: array1.elem_size,
-        data: Vec::new(),
-    };
-    new_array.data.resize(array1.data.len(), 0_u8);
-    new_array.data.copy_from_slice(array1.data.as_slice());
-
-    let mut copy = vec![0; array2.data.len()];
-    copy.copy_from_slice(array2.data.as_slice());
-
-    new_array.data.append(&mut copy);
-    Rc::into_raw(Rc::new(new_array))
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_get_size_1d(arr: *const QirArray) -> u64 {
-    let array = &*arr;
-    let len = array.data.len() / array.elem_size;
-    len.try_into()
-        .expect("Length of array should always fit in a 64-bit integer.")
+    unsafe {
+        let array = &*arr;
+        let len = array.data.len() / array.elem_size;
+        len.try_into()
+            .expect("Length of array should always fit in a 64-bit integer.")
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_get_element_ptr_1d(
     arr: *const QirArray,
     index: u64,
 ) -> *mut i8 {
-    let array = &*arr;
-    let index: usize = index
-        .try_into()
-        .expect("Indices into an array should fit into the `usize` ");
-    array.data.as_ptr().add(array.elem_size * index) as *mut i8
+    unsafe {
+        let array = &*arr;
+        let index: usize = index
+            .try_into()
+            .expect("Indices into an array should fit into the `usize` ");
+        array.data.as_ptr().add(array.elem_size * index) as *mut i8
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_update_reference_count(
     arr: *const QirArray,
     update: i32,
 ) {
-    update_counts(arr, update, false);
+    unsafe {
+        update_counts(arr, update, false);
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn __quantum__rt__array_update_alias_count(
     arr: *const QirArray,
     update: i32,
 ) {
-    update_counts(arr, update, true);
+    unsafe {
+        update_counts(arr, update, true);
+    }
 }
 
 #[cfg(test)]
