@@ -246,17 +246,17 @@ extends:
 
                   # package the project
 
-                  - pwsh: |
-                      $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
-                      Write-Host "##vso[task.setvariable variable=AUDITWHEEL_TAG;]${tag}"
-                    displayName: Configure Auditwheel tag
-                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
-
                   - script: |
                       python -m pip install -U pip
                       python -m pip install -r pip/requirements.txt
                     displayName: Install Python packages
                     condition: succeeded()
+
+                  - pwsh: |
+                      $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
+                      Write-Host "##vso[task.setvariable variable=AUDITWHEEL_TAG;]${tag}"
+                    displayName: Configure Auditwheel tag
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
 
                   - script: |
                       python -m build --verbose --wheel ./pip

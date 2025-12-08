@@ -100,17 +100,17 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Install Unconditional Python packages
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r pip/requirements.txt
+
       - name: Configure Auditwheel tag
         run: |
           $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
           Write-Output "AUDITWHEEL_TAG=${tag}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         shell: pwsh
         if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-
-      - name: Install Unconditional Python packages
-        run: |
-          python -m pip install -U pip
-          python -m pip install -r pip/requirements.txt
 
       - name: Install Auditwheel Python packages for Linux
         run: |
