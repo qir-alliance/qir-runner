@@ -151,7 +151,7 @@ impl QuantumSim {
                     3 => -Complex64::i(),
                     _ => Complex64::one(),
                 };
-            let pauli_coeff_alt = if y_count % 2 == 0 {
+            let pauli_coeff_alt = if y_count.is_multiple_of(2) {
                 pauli_coeff
             } else {
                 -pauli_coeff
