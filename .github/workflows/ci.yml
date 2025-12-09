@@ -66,7 +66,6 @@ jobs:
       matrix:
         config:
           - { os: "ubuntu-22.04", arch: "x86_64", env: {} }
-          - { os: "ubuntu-22.04", arch: "x86_64", env: {} }
           - { os: "ubuntu-22.04-arm", arch: "aarch64", env: {} }
           - { os: "windows-2022", arch: "x86_64", env: {} }
           - { os: "windows-11-arm", arch: "aarch64", env: {} }
