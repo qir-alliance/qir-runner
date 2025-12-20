@@ -9,7 +9,7 @@ use pyo3::types::PyTuple;
 use runner::OUTPUT;
 
 struct OptionalCallbackReceiver<'a> {
-    callback: Option<PyObject>,
+    callback: Option<Py<PyAny>>,
     py: Python<'a>,
 }
 
@@ -78,7 +78,7 @@ pub(crate) fn run(
     entry_point: Option<String>,
     shots: Option<u32>,
     rng_seed: Option<u64>,
-    output_fn: Option<PyObject>,
+    output_fn: Option<Py<PyAny>>,
 ) -> PyResult<()> {
     OUTPUT.with(|output| {
         let mut output = output.borrow_mut();
