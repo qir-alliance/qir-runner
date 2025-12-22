@@ -92,8 +92,8 @@ dependencies = [
 
 [[package]]
 name = "qirlib"
-version = "0.12.0"
-source = "git+https://github.com/qir-alliance/pyqir?tag=v0.12.0#21907ccd84fe91f3583995b9b58d0c371c2f4d9d"
+version = "0.12.3"
+source = "git+https://github.com/qir-alliance/pyqir?tag=v0.12.3#72987780b717a11721377ee4afedd51c26658872"
 dependencies = [
  "cc",
  "cmake",
