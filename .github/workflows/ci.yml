@@ -104,30 +104,10 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r pip/requirements.txt
 
-      - name: Configure Auditwheel tag
-        run: |
-          $tag = & python -c "from packaging.tags import sys_tags; print(next(t.platform for t in sys_tags() if t.platform.startswith('manylinux')))"
-          Write-Output "AUDITWHEEL_TAG=${tag}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-        shell: pwsh
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-
-      - name: Install Auditwheel Python packages for Linux
-        run: |
-          python -m pip install -r pip/requirements-manylinux.txt
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
-
-      - name: Package Non-Linux
+      - name: Package
         run: |
           python -m build --verbose --sdist --outdir target/wheels ./pip
-          python -m build --verbose --wheel ./pip
-        if: ${{ !startsWith(matrix.config.os, 'ubuntu') }}
-
-      - name: Package Linux
-        run: |
-          python -m build --verbose --sdist --outdir target/wheels ./pip
-          python -m build --verbose --wheel --outdir target/raw-wheels ./pip
-          auditwheel repair --plat $AUDITWHEEL_TAG --wheel-dir target/wheels target/raw-wheels/*.whl
-        if: ${{ startsWith(matrix.config.os, 'ubuntu') }}
+          python -m build --verbose --wheel --config-setting=build-args="--compatibility" ./pip
 
       - name: Install Test Python packages
         run: python -m pip install -r pip/requirements-test.txt
