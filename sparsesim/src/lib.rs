@@ -326,6 +326,29 @@ impl QuantumSim {
         res
     }
 
+    /// Forces the collapse of the qubit with the given id to the specified value.
+    /// # Panics
+    ///
+    /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
+    pub fn force_collapse(&mut self, val: bool, id: usize) -> f64 {
+        // Like with measure, flush the queue here if there are pending H, Rx, or Ry operations.
+        // Any operations in `self.op_queue` will get applied when `check_joint_probability`
+        // iterates through the state vector.
+        self.maybe_flush_queue(&[id], FlushLevel::HRxRy);
+
+        let loc = *self
+            .id_map
+            .get(id)
+            .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"));
+        let prob = self.check_joint_probability(&[loc]);
+        // Only perform the collapse if the resulting probability is greater than zero, otherwise it would
+        // collapse to non-existant states and fail normalization computation with a divide by zero.
+        if (val && !prob.is_nearly_zero()) || (!val && !(1.0 - prob).is_nearly_zero()) {
+            self.collapse(loc, val, prob);
+        }
+        if val { prob } else { 1.0 - prob }
+    }
+
     /// Performs a joint measurement to get the parity of the given qubits, collapsing the state
     /// based on the measured result.
     /// # Panics
@@ -1455,6 +1478,34 @@ mod tests {
             sim.joint_probability(&[q0, q1])
         ));
         sim.release(q1);
+        sim.release(q0);
+    }
+
+    #[test]
+    fn test_force_collapse() {
+        let mut sim = QuantumSim::default();
+        let q0 = sim.allocate();
+        let q1 = sim.allocate();
+        sim.h(q0);
+        sim.mcx(&[q0], q1);
+        assert!(almost_equal(0.5, sim.joint_probability(&[q0])));
+        assert!(almost_equal(0.5, sim.joint_probability(&[q1])));
+        sim.force_collapse(false, q0);
+        assert!(almost_equal(0.0, sim.joint_probability(&[q0])));
+        assert!(almost_equal(0.0, sim.joint_probability(&[q1])));
+        sim.release(q1);
+        sim.release(q0);
+    }
+
+    #[test]
+    fn test_force_collapse_to_non_existent_state() {
+        let mut sim = QuantumSim::default();
+        let q0 = sim.allocate();
+        sim.x(q0);
+        assert!(almost_equal(1.0, sim.joint_probability(&[q0])));
+        assert!(almost_equal(0.0, sim.force_collapse(false, q0)));
+        // The qubit should still be in the |1> state since the requested collapse state was not present, so the probability of measuring |1> should still be 1.
+        assert!(almost_equal(1.0, sim.joint_probability(&[q0])));
         sim.release(q0);
     }
 
