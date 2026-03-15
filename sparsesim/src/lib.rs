@@ -326,7 +326,12 @@ impl QuantumSim {
         res
     }
 
-    /// Forces the collapse of the qubit with the given id to the specified value.
+    /// Forces the collapse of the qubit with the given id to the specified value,
+    /// returning the total probability of that value before the collapse.
+    /// Note that this is not a physical operation, but can be useful for testing and debugging.
+    /// If the probability of the given value is zero then this function will not perform any
+    /// collapse since that would result in an invalid state, and it will still return the
+    /// zero probability as a signal to the caller.
     /// # Panics
     ///
     /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
