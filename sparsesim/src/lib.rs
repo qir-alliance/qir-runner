@@ -334,7 +334,7 @@ impl QuantumSim {
     /// zero probability as a signal to the caller.
     /// # Panics
     ///
-    /// This funciton will panic if the given identifier does not correspond to an allocated qubit.
+    /// This function will panic if the given identifier does not correspond to an allocated qubit.
     pub fn force_collapse(&mut self, val: bool, id: usize) -> f64 {
         // Like with measure, flush the queue here if there are pending H, Rx, or Ry operations.
         // Any operations in `self.op_queue` will get applied when `check_joint_probability`
@@ -348,6 +348,9 @@ impl QuantumSim {
         let prob = self.check_joint_probability(&[loc]);
         // Only perform the collapse if the resulting probability is greater than zero, otherwise it would
         // collapse to non-existant states and fail normalization computation with a divide by zero.
+        // Since `check_joint_probability` sums the probability of measuring `true`, we must check that
+        // either val is true and the probability is not zero or that val is false and
+        // the 1.0 minus the probability is not zero.
         if (val && !prob.is_nearly_zero()) || (!val && !(1.0 - prob).is_nearly_zero()) {
             self.collapse(loc, val, prob);
         }
