@@ -1317,12 +1317,9 @@ fn apply_ops(
 #[must_use]
 pub fn controlled(u: &Array2<Complex64>, num_ctrls: u32) -> Array2<Complex64> {
     let mut controlled_u = Array2::eye(u.nrows() * 2_usize.pow(num_ctrls));
-    controlled_u
-        .slice_mut(s![
-            (controlled_u.nrows() - u.nrows())..,
-            (controlled_u.ncols() - u.ncols())..
-        ])
-        .assign(u);
+    let dim_rows = controlled_u.nrows() - u.nrows();
+    let dim_cols = controlled_u.ncols() - u.ncols();
+    controlled_u.slice_mut(s![dim_rows.., dim_cols..]).assign(u);
     controlled_u
 }
 
