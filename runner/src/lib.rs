@@ -429,13 +429,16 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             if func.get_params().len() == 1 {
                 execution_engine.add_global_mapping(
                     func,
-                    qir_backend::legacy_output::__quantum__rt__result_record_output as *const () as usize,
+                    qir_backend::legacy_output::__quantum__rt__result_record_output as *const ()
+                        as usize,
                 );
                 declarations.remove("__quantum__rt__result_record_output");
                 Some(true)
             } else {
-                execution_engine
-                    .add_global_mapping(func, __quantum__rt__result_record_output as *const () as usize);
+                execution_engine.add_global_mapping(
+                    func,
+                    __quantum__rt__result_record_output as *const () as usize,
+                );
                 declarations.remove("__quantum__rt__result_record_output");
                 Some(false)
             }
@@ -448,11 +451,15 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     // implementation based on number of arguments.
     if let Some(func) = declarations.get("__quantum__qis__m__body") {
         if func.get_params().len() == 2 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__mz__body as *const () as usize);
+            execution_engine.add_global_mapping(
+                func,
+                qir_backend::__quantum__qis__mz__body as *const () as usize,
+            );
         } else if func.get_params().len() == 1 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__m__body as *const () as usize);
+            execution_engine.add_global_mapping(
+                func,
+                qir_backend::__quantum__qis__m__body as *const () as usize,
+            );
         } else {
             return Err(format!(
                 "Function '__quantum__qis__m__body' has mismatched parameters: expected 1 or 2, found {}",
