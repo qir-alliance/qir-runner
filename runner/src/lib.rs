@@ -293,7 +293,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                         func.get_params().len()
                     ));
                 }
-                execution_engine.add_global_mapping(func, $func as *const() as usize);
+                execution_engine.add_global_mapping(func, $func as *const () as usize);
                 declarations.remove(stringify!($func));
             }
         };
@@ -320,12 +320,12 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                 if func.get_params().len() == 1 {
                     execution_engine.add_global_mapping(
                         func,
-                        qir_backend::output_recording::legacy::$func as *const() as usize,
+                        qir_backend::output_recording::legacy::$func as *const () as usize,
                     );
                     declarations.remove(stringify!($func));
                     Some(true)
                 } else {
-                    execution_engine.add_global_mapping(func, $func as *const() as usize);
+                    execution_engine.add_global_mapping(func, $func as *const () as usize);
                     declarations.remove(stringify!($func));
                     Some(false)
                 }
