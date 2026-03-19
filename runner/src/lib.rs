@@ -293,7 +293,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                         func.get_params().len()
                     ));
                 }
-                execution_engine.add_global_mapping(func, $func as usize);
+                execution_engine.add_global_mapping(func, $func as *const() as usize);
                 declarations.remove(stringify!($func));
             }
         };
@@ -304,7 +304,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             if let Some(func) = declarations.get(stringify!($func)) {
                 execution_engine.add_global_mapping(
                     func,
-                    qir_backend::output_recording::legacy::$func as usize,
+                    qir_backend::output_recording::legacy::$func as *const () as usize,
                 );
                 declarations.remove(stringify!($func));
                 Some(true)
@@ -320,12 +320,12 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                 if func.get_params().len() == 1 {
                     execution_engine.add_global_mapping(
                         func,
-                        qir_backend::output_recording::legacy::$func as usize,
+                        qir_backend::output_recording::legacy::$func as *const() as usize,
                     );
                     declarations.remove(stringify!($func));
                     Some(true)
                 } else {
-                    execution_engine.add_global_mapping(func, $func as usize);
+                    execution_engine.add_global_mapping(func, $func as *const() as usize);
                     declarations.remove(stringify!($func));
                     Some(false)
                 }
@@ -541,7 +541,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             .expect("Declarations list should be non-empty.");
         Err(format!(
             "Failed to link some declared functions: {}",
-            rest.iter().fold((*first).to_string(), |mut accum, f| {
+            rest.iter().fold((*first).clone(), |mut accum, f| {
                 accum.push_str(", ");
                 accum.push_str(f);
                 accum
