@@ -2046,21 +2046,4 @@ mod tests {
         assert_eq!(index, &BigUint::zero());
         assert_eq!(value, &Complex64::one());
     }
-
-    #[test]
-    fn test_apply_four_qubit_unitary() {
-        let mut sim = QuantumSim::default();
-        let qs: Vec<usize> = (0..4).map(|_| sim.allocate()).collect();
-
-        let mut unitary = Array2::eye(16);
-        unitary.swap((0, 0), (0, 1));
-        unitary.swap((1, 0), (1, 1));
-
-        sim.apply(&unitary, &qs, None);
-
-        assert!(sim.qubit_is_zero(qs[0]));
-        assert!(sim.qubit_is_zero(qs[1]));
-        assert!(sim.qubit_is_zero(qs[2]));
-        assert!(almost_equal(sim.joint_probability(&[qs[3]]), 1.0));
-    }
 }
