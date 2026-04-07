@@ -1211,10 +1211,10 @@ impl QuantumSim {
         );
 
         assert!(
-            targets.len() == unitary.ncols() / 2,
-            "Application given incorrect number of targets; expected {}, given {}.",
-            unitary.ncols() / 2,
-            targets.len()
+            unitary.ncols() == 1_usize << targets.len(),
+            "Matrix size must be {}, got {}.",
+            1_usize << targets.len(),
+            unitary.ncols()
         );
 
         if let Some(ctrls) = controls {
