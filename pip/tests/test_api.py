@@ -43,11 +43,11 @@ END\t0
 
 def test_run_bytes_writes_to_callback_from_ll() -> None:
     path = "./runner/tests/resources/teleportation.ll"
-    with open(path, "rb") as f:
-        bytes = f.read()
+    with open(path, "r") as f:
+        contents = f.read()
 
     handler = OutputHandler()
-    run_bytes(bytes, shots=2, output_fn=handler.handle)
+    run_bytes(contents.encode(), shots=2, output_fn=handler.handle)
     expected = """START
 METADATA\tentry_point
 METADATA\toutput_labeling_schema
