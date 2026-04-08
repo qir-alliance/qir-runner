@@ -265,8 +265,8 @@ fn test_shor() -> Result<(), String> {
 
 #[test]
 fn test_teleportation_bytes() -> Result<(), String> {
-    let bitcode = include_bytes!("resources/teleportation.ll");
-    run_bytes(bitcode, None, 1, None, &mut std::io::sink())
+    let bitcode = include_str!("resources/teleportation.ll");
+    run_bytes(bitcode.as_bytes(), None, 1, None, &mut std::io::sink())
 }
 
 #[test]
