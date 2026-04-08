@@ -106,29 +106,11 @@ pub fn run_bytes(
         bytes.iter().copied().chain(once(0_u8)).collect()
     };
 
-    let name = CString::default();
-    let buffer = unsafe {
-        LLVMCreateMemoryBufferWithMemoryRange(bytes.as_ptr().cast(), bytes_len, name.as_ptr(), 0)
-    };
-    let mut module = ptr::null_mut();
-    let mut error = ptr::null_mut();
-    if 0 != unsafe { LLVMParseIRInContext(context.raw(), buffer, &raw mut module, &raw mut error) }
-    {
-        return Err(format!(
-            "failed to parse module: {}",
-            unsafe {
-                CStr::from_ptr(
-                    NonNull::new(error)
-                        .ok_or("parse error should not be null.")?
-                        .as_ptr(),
-                )
-            }
-            .to_string_lossy()
-        ));
-    }
-
-    let module = unsafe { Module::new(module) };
-    run_module(&module, entry_point, shots, output_writer)
+    let buffer = MemoryBuffer::create_from_memory_range(&bytes, Default::default());
+    context
+        .create_module_from_ir(buffer)
+        .map_err(|e| format!("Failed to parse module from IR: {}", e.to_string()))
+        .and_then(|module| run_module(&module, entry_point, shots, output_writer))
 }
 
 fn run_module(
