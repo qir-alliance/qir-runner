@@ -103,10 +103,11 @@ pub fn run_bytes(
         bytes.to_vec()
     } else {
         // The bytes represent LLVM IR string, so we must ensure it is null-terminated.
+        // Note that we use the original bytes length to avoid including the null terminator in the IR parsing, which would cause it to fail.
         bytes.iter().copied().chain(once(0_u8)).collect()
     };
 
-    let buffer = MemoryBuffer::create_from_memory_range(&bytes, Default::default());
+    let buffer = MemoryBuffer::create_from_memory_range(&bytes[0..bytes_len], Default::default());
     context
         .create_module_from_ir(buffer)
         .map_err(|e| format!("Failed to parse module from IR: {}", e.to_string()))
