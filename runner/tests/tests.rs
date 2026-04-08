@@ -3,7 +3,7 @@
 
 use std::io::BufWriter;
 
-use runner::{OUTPUT, run_bitcode, run_file};
+use runner::{OUTPUT, run_bitcode, run_bytes, run_file};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -261,6 +261,12 @@ fn test_bernstein_vazirani() -> Result<(), String> {
 fn test_shor() -> Result<(), String> {
     let bitcode = include_bytes!("resources/shor.bc");
     run_bitcode(bitcode, None, 1, &mut std::io::sink())
+}
+
+#[test]
+fn test_teleportation_bytes() -> Result<(), String> {
+    let bitcode = include_str!("resources/teleportation.ll");
+    run_bytes(bitcode.as_bytes(), None, 1, None, &mut std::io::sink())
 }
 
 #[test]

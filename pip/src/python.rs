@@ -100,6 +100,36 @@ pub(crate) fn run(
 }
 
 #[pyfunction]
+#[pyo3(signature = (bytes, entry_point=None, shots=None, rng_seed=None, output_fn=None))]
+#[allow(clippy::needless_pass_by_value)]
+pub(crate) fn run_bytes(
+    py: Python,
+    bytes: Vec<u8>,
+    entry_point: Option<String>,
+    shots: Option<u32>,
+    rng_seed: Option<u64>,
+    output_fn: Option<Py<PyAny>>,
+) -> PyResult<()> {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output.use_std_out(output_fn.is_none());
+    });
+    let mut receiver = OptionalCallbackReceiver {
+        callback: output_fn,
+        py,
+    };
+    runner::run_bytes(
+        &bytes,
+        entry_point.as_deref(),
+        shots.unwrap_or(1),
+        rng_seed,
+        &mut receiver,
+    )
+    .map_err(PyErr::new::<PyRuntimeError, _>)?;
+    Ok(())
+}
+
+#[pyfunction]
 #[pyo3(signature = (args = None))]
 pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
     match args {
@@ -122,6 +152,7 @@ pub(crate) fn main(args: Option<Vec<String>>) -> PyResult<()> {
 #[pymodule]
 fn _native<'py>(_py: Python<'py>, m: &Bound<'py, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run, m)?)?;
+    m.add_function(wrap_pyfunction!(run_bytes, m)?)?;
     m.add_function(wrap_pyfunction!(main, m)?)?;
     m.add_class::<Output>()?;
 

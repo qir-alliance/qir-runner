@@ -17,6 +17,7 @@ use inkwell::{
     attributes::AttributeLoc,
     context::Context,
     execution_engine::ExecutionEngine,
+    llvm_sys::{core::LLVMCreateMemoryBufferWithMemoryRange, ir_reader::LLVMParseIRInContext},
     memory_buffer::MemoryBuffer,
     module::Module,
     passes::{PassBuilderOptions, PassManager},
@@ -25,10 +26,11 @@ use inkwell::{
 };
 use std::{
     collections::HashMap,
-    ffi::OsStr,
+    ffi::{CStr, CString, OsStr, c_char},
     io::{Read, Write},
+    iter::once,
     path::Path,
-    ptr::null_mut,
+    ptr::{self, NonNull, null_mut},
 };
 
 /// # Errors
@@ -66,10 +68,50 @@ pub fn run_bitcode(
     shots: u32,
     output_writer: &mut impl Write,
 ) -> Result<(), String> {
+    run_bytes(bytes, entry_point, shots, None, output_writer)
+}
+
+/// # Errors
+///
+/// Will return `Err` if
+/// - `bytes` does not contain a valid bitcode module or LLVM IR string
+/// - `entry_point` is not found in the QIR
+/// - Entry point has parameters or a non-void return type.
+pub fn run_bytes(
+    bytes: &[u8],
+    entry_point: Option<&str>,
+    shots: u32,
+    rng_seed: Option<u64>,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
+    if let Some(seed) = rng_seed {
+        qir_backend::set_rng_seed(seed);
+    }
+
     let context = Context::create();
-    let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
-    let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
-    run_module(&module, entry_point, shots, output_writer)
+
+    // To know if the bytes are bitcode, check for both the wrapped and non-wrapped magic bytes.
+    // See the definition for llvm::isBitCode at https://llvm.org/doxygen/namespacellvm.html#ae0ccf1c0633b02c90c21118d0c1c7ec4
+    // for reference.
+    let bytes_len = bytes.len();
+    if bytes_len < 4 {
+        return Err("byte array is too short".to_string());
+    }
+    let is_bitcode =
+        bytes[0..4] == [0xDE, 0xC0, 0x17, 0x0B] || bytes[0..4] == [0x42, 0x43, 0xC0, 0xDE];
+    let bytes = if is_bitcode {
+        bytes.to_vec()
+    } else {
+        // The bytes represent LLVM IR string, so we must ensure it is null-terminated.
+        // Note that we use the original bytes length to avoid including the null terminator in the IR parsing, which would cause it to fail.
+        bytes.iter().copied().chain(once(0_u8)).collect()
+    };
+
+    let buffer = MemoryBuffer::create_from_memory_range(&bytes[0..bytes_len], Default::default());
+    context
+        .create_module_from_ir(buffer)
+        .map_err(|e| format!("Failed to parse module from IR: {}", e.to_string()))
+        .and_then(|module| run_module(&module, entry_point, shots, output_writer))
 }
 
 fn run_module(
