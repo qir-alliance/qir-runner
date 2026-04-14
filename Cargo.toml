@@ -29,5 +29,5 @@ num-bigint = { version = "0.4.5", default-features = false }
 num-complex = "0.4"
 num-traits = "0.2.19"
 pyo3 = "0.27"
-rand = "0.8.5"
+rand = "0.9.3"
 rustc-hash = "1.1.0"
