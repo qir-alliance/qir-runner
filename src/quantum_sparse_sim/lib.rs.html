@@ -22,7 +22,7 @@
 <a href=#22 id=22 data-nosnippet>22</a><span class="kw">use </span>num_bigint::BigUint;
 <a href=#23 id=23 data-nosnippet>23</a><span class="kw">use </span>num_complex::Complex64;
 <a href=#24 id=24 data-nosnippet>24</a><span class="kw">use </span>num_traits::{One, ToPrimitive, Zero};
-<a href=#25 id=25 data-nosnippet>25</a><span class="kw">use </span>rand::{Rng, SeedableRng, rngs::StdRng};
+<a href=#25 id=25 data-nosnippet>25</a><span class="kw">use </span>rand::{RngExt, SeedableRng, rngs::StdRng};
 <a href=#26 id=26 data-nosnippet>26</a><span class="kw">use </span>rustc_hash::{FxHashMap, FxHashSet};
 <a href=#27 id=27 data-nosnippet>27</a><span class="kw">use </span>std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 <a href=#28 id=28 data-nosnippet>28</a>
@@ -94,7 +94,7 @@
 <a href=#94 id=94 data-nosnippet>94</a>        QuantumSim {
 <a href=#95 id=95 data-nosnippet>95</a>            state: initial_state,
 <a href=#96 id=96 data-nosnippet>96</a>            id_map: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
-<a href=#97 id=97 data-nosnippet>97</a>            rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
+<a href=#97 id=97 data-nosnippet>97</a>            rng: RefCell::new(rng.unwrap_or_else(|| StdRng::from_rng(<span class="kw-2">&amp;mut </span>rand::rng()))),
 <a href=#98 id=98 data-nosnippet>98</a>            h_flag: BigUint::zero(),
 <a href=#99 id=99 data-nosnippet>99</a>            rx_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
 <a href=#100 id=100 data-nosnippet>100</a>            ry_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
@@ -108,7 +108,7 @@
 <a href=#108 id=108 data-nosnippet>108</a>    }
 <a href=#109 id=109 data-nosnippet>109</a>
 <a href=#110 id=110 data-nosnippet>110</a>    <span class="kw">pub fn </span>take_rng(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; StdRng {
-<a href=#111 id=111 data-nosnippet>111</a>        <span class="self">self</span>.rng.replace(StdRng::from_entropy())
+<a href=#111 id=111 data-nosnippet>111</a>        <span class="self">self</span>.rng.replace(StdRng::from_rng(<span class="kw-2">&amp;mut </span>rand::rng()))
 <a href=#112 id=112 data-nosnippet>112</a>    }
 <a href=#113 id=113 data-nosnippet>113</a>
 <a href=#114 id=114 data-nosnippet>114</a>    <span class="doccomment">/// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
@@ -319,7 +319,7 @@
 <a href=#319 id=319 data-nosnippet>319</a>            </span>.id_map
 <a href=#320 id=320 data-nosnippet>320</a>            .get(id)
 <a href=#321 id=321 data-nosnippet>321</a>            .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">"Unable to find qubit with id {id}"</span>));
-<a href=#322 id=322 data-nosnippet>322</a>        <span class="kw">let </span>random_sample = <span class="self">self</span>.rng.borrow_mut().r#gen::&lt;f64&gt;();
+<a href=#322 id=322 data-nosnippet>322</a>        <span class="kw">let </span>random_sample = <span class="self">self</span>.rng.borrow_mut().random::&lt;f64&gt;();
 <a href=#323 id=323 data-nosnippet>323</a>        <span class="kw">let </span>prob = <span class="self">self</span>.check_joint_probability(<span class="kw-2">&amp;</span>[loc]);
 <a href=#324 id=324 data-nosnippet>324</a>        <span class="kw">let </span>res = random_sample &lt; prob;
 <a href=#325 id=325 data-nosnippet>325</a>        <span class="self">self</span>.collapse(loc, res, prob);
@@ -380,7 +380,7 @@
 <a href=#380 id=380 data-nosnippet>380</a>            })
 <a href=#381 id=381 data-nosnippet>381</a>            .collect();
 <a href=#382 id=382 data-nosnippet>382</a>
-<a href=#383 id=383 data-nosnippet>383</a>        <span class="kw">let </span>random_sample = <span class="self">self</span>.rng.borrow_mut().r#gen::&lt;f64&gt;();
+<a href=#383 id=383 data-nosnippet>383</a>        <span class="kw">let </span>random_sample = <span class="self">self</span>.rng.borrow_mut().random::&lt;f64&gt;();
 <a href=#384 id=384 data-nosnippet>384</a>        <span class="kw">let </span>prob = <span class="self">self</span>.check_joint_probability(<span class="kw-2">&amp;</span>locs);
 <a href=#385 id=385 data-nosnippet>385</a>        <span class="kw">let </span>res = random_sample &lt; prob;
 <a href=#386 id=386 data-nosnippet>386</a>        <span class="self">self</span>.joint_collapse(<span class="kw-2">&amp;</span>locs, res, prob);
