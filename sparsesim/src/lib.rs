@@ -22,7 +22,7 @@ use ndarray::{Array2, s};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use num_traits::{One, ToPrimitive, Zero};
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{RngExt, SeedableRng, rngs::StdRng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, f64::consts::FRAC_1_SQRT_2, fmt::Write};
 
@@ -94,7 +94,7 @@ impl QuantumSim {
         QuantumSim {
             state: initial_state,
             id_map: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
-            rng: RefCell::new(rng.unwrap_or_else(StdRng::from_entropy)),
+            rng: RefCell::new(rng.unwrap_or_else(|| StdRng::from_rng(&mut rand::rng()))),
             h_flag: BigUint::zero(),
             rx_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
             ry_queue: IndexMap::with_capacity(DEFAULT_INITIAL_SIZE),
@@ -108,7 +108,7 @@ impl QuantumSim {
     }
 
     pub fn take_rng(&mut self) -> StdRng {
-        self.rng.replace(StdRng::from_entropy())
+        self.rng.replace(StdRng::from_rng(&mut rand::rng()))
     }
 
     /// Returns a sorted copy of the current sparse state as a vector of pairs of indices and complex numbers, along with
@@ -319,7 +319,7 @@ impl QuantumSim {
             .id_map
             .get(id)
             .unwrap_or_else(|| panic!("Unable to find qubit with id {id}"));
-        let random_sample = self.rng.borrow_mut().r#gen::<f64>();
+        let random_sample = self.rng.borrow_mut().random::<f64>();
         let prob = self.check_joint_probability(&[loc]);
         let res = random_sample < prob;
         self.collapse(loc, res, prob);
@@ -380,7 +380,7 @@ impl QuantumSim {
             })
             .collect();
 
-        let random_sample = self.rng.borrow_mut().r#gen::<f64>();
+        let random_sample = self.rng.borrow_mut().random::<f64>();
         let prob = self.check_joint_probability(&locs);
         let res = random_sample < prob;
         self.joint_collapse(&locs, res, prob);
