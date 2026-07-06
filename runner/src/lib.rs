@@ -75,7 +75,7 @@ pub fn run_input<R: Read>(
     input
         .read_to_end(&mut bytes)
         .map_err(|e| format!("Failed to read input: {e}"))?;
-    if bytes.len() == 0 {
+    if bytes.is_empty() {
         return Err("Input is empty".to_string());
     }
     run_bytes(&bytes, entry_point, shots, rng_seed, output_writer)

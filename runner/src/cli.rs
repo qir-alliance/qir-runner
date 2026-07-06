@@ -42,16 +42,13 @@ where
             }
         }
         Ok(matches) => {
-            let file = matches
-                .get_one::<PathBuf>("file")
-                .map(|path| {
-                    if path.as_os_str() == "-" {
-                        None
-                    } else {
-                        Some(path)
-                    }
-                })
-                .flatten();
+            let file = matches.get_one::<PathBuf>("file").and_then(|path| {
+                if path.as_os_str() == "-" {
+                    None
+                } else {
+                    Some(path)
+                }
+            });
             let entry_point = matches
                 .get_one::<String>("entrypoint")
                 .map(std::string::String::as_str);
