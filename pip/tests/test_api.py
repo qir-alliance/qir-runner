@@ -104,6 +104,7 @@ def test_run_with_dash_reads_from_stdin(monkeypatch) -> None:
     run("-", shots=1, output_fn=handler.handle)
     assert expected == handler.get_output().replace("\r\n", "\n")
 
+
 def test_run_without_args_reads_from_stdin(monkeypatch) -> None:
     path = "./runner/tests/resources/teleportation.ll"
     with open(path, "r") as f:
