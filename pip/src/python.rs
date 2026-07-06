@@ -88,9 +88,7 @@ pub(crate) fn run(
         callback: output_fn,
         py,
     };
-    let file = path
-        .map(|p| if p == "-" { None } else { Some(p) })
-        .flatten();
+    let file = path.and_then(|p| if p == "-" { None } else { Some(p) });
     if let Some(path) = file {
         runner::run_file(
             path,
