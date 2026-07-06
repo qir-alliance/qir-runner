@@ -13,14 +13,14 @@ Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec) pro
 ## Command Line Usage
 
 ```
-Usage: qir-runner [OPTIONS] --file <PATH>
+Usage: qir-runner [OPTIONS]
 
 Options:
-  -f, --file <PATH>        (Required) Path to the QIR file to run
-  -e, --entrypoint <NAME>  Name of the entry point function to execute
-  -s, --shots <NUM>        The number of times to repeat the execution of the chosen entry point in the program [default: 1]
-  -r, --rngseed <NUM>      The value to use when seeding the random number generator used for quantum simulation
-  -h, --help               Print help
+  -f, --file <PATH>        Path to the QIR file to run. If not provided or '-', standard input will be read.
+  -e, --entrypoint <NAME>  Name of the entry point function to execute
+  -s, --shots <NUM>        The number of times to repeat the execution of the chosen entry point in the program [default: 1]
+  -r, --rngseed <NUM>      The value to use when seeding the random number generator used for quantum simulation
+  -h, --help               Print help
 ```
 
 ## Documentation

@@ -59,6 +59,31 @@ pub fn run_file(
 /// # Errors
 ///
 /// Will return `Err` if
+/// - The input cannot be read from `input`.
+/// - The input is empty.
+/// - The input does not contain a valid bitcode module or LLVM IR string.
+/// - `entry_point` is not found in the QIR.
+/// - Entry point has parameters or a non-void return type.
+pub fn run_input<R: Read>(
+    mut input: R,
+    entry_point: Option<&str>,
+    shots: u32,
+    rng_seed: Option<u64>,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
+    let mut bytes = Vec::new();
+    input
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("Failed to read input: {e}"))?;
+    if bytes.len() == 0 {
+        return Err("Input is empty".to_string());
+    }
+    run_bytes(&bytes, entry_point, shots, rng_seed, output_writer)
+}
+
+/// # Errors
+///
+/// Will return `Err` if
 /// - `bytes` does not contain a valid bitcode module
 /// - `entry_point` is not found in the QIR
 /// - Entry point has parameters or a non-void return type.
