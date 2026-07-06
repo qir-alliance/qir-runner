@@ -84,7 +84,7 @@ def test_main_works_with_args() -> None:
 
 def test_main_without_args_empty_input() -> None:
     try:
-        _native.main()
+        _native.main([])
         assert False, "Expected RuntimeError for empty input"
     except RuntimeError as ex:
         assert "Input is empty" in str(ex)
