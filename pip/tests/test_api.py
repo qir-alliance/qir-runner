@@ -1,8 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-import io
-
 from qirrunner import run, run_bytes, OutputHandler
 from qirrunner import _native
 
@@ -82,39 +80,11 @@ def test_main_works_with_args() -> None:
     _native.main(["qir-runner", "--help"])
 
 
-def test_main_without_args_empty_input() -> None:
+def test_main_works_without_args() -> None:
     try:
-        _native.main([])
-        assert False, "Expected RuntimeError for empty input"
+        _native.main()
+        assert False, "Expected RuntimeError"
     except RuntimeError as ex:
-        assert "Input is empty" in str(ex)
-
-
-def test_run_with_dash_reads_from_stdin(monkeypatch) -> None:
-    path = "./runner/tests/resources/teleportation.ll"
-    with open(path, "r") as f:
-        contents = f.read()
-
-    expected_handler = OutputHandler()
-    run(path, shots=1, output_fn=expected_handler.handle)
-    expected = expected_handler.get_output().replace("\r\n", "\n")
-
-    monkeypatch.setattr("sys.stdin", io.StringIO(contents))
-    handler = OutputHandler()
-    run("-", shots=1, output_fn=handler.handle)
-    assert expected == handler.get_output().replace("\r\n", "\n")
-
-
-def test_run_without_args_reads_from_stdin(monkeypatch) -> None:
-    path = "./runner/tests/resources/teleportation.ll"
-    with open(path, "r") as f:
-        contents = f.read()
-
-    expected_handler = OutputHandler()
-    run(path, shots=1, output_fn=expected_handler.handle)
-    expected = expected_handler.get_output().replace("\r\n", "\n")
-
-    monkeypatch.setattr("sys.stdin", io.StringIO(contents))
-    handler = OutputHandler()
-    run(shots=1, output_fn=handler.handle)
-    assert expected == handler.get_output().replace("\r\n", "\n")
+        assert "For more information, try '--help'" in str(
+            ex
+        ) or "Input is empty" in str(ex)

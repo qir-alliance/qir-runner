@@ -59,7 +59,7 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
 }
 
 /// Runs the supplied QIR (bitcode or textual IR) file.
-/// :param path: Path to the QIR file to run. If not provided or '-', standard input will be read.
+/// :param path: (Required) Path to the QIR file to run
 /// :param entry_point: Name of the entry point function to execute.
 ///     Default is `None`.
 /// :param shots: The number of times to repeat the execution of
@@ -70,11 +70,11 @@ impl std::io::Write for OptionalCallbackReceiver<'_> {
 ///     runtime functions. Default is `None`. When no callback is provided,
 ///     the output is printed to the console.
 #[pyfunction]
-#[pyo3(signature = (path=None, entry_point=None, shots=None, rng_seed=None, output_fn=None))]
+#[pyo3(signature = (path, entry_point=None, shots=None, rng_seed=None, output_fn=None))]
 #[allow(clippy::needless_pass_by_value)]
 pub(crate) fn run(
     py: Python,
-    path: Option<String>,
+    path: String,
     entry_point: Option<String>,
     shots: Option<u32>,
     rng_seed: Option<u64>,
@@ -88,46 +88,15 @@ pub(crate) fn run(
         callback: output_fn,
         py,
     };
-    let file = path.and_then(|p| if p == "-" { None } else { Some(p) });
-    if let Some(path) = file {
-        runner::run_file(
-            path,
-            entry_point.as_deref(),
-            shots.unwrap_or(1),
-            rng_seed,
-            &mut receiver,
-        )
-    } else {
-        let bytes = read_stdin_bytes(py)?;
-        runner::run_bytes(
-            &bytes,
-            entry_point.as_deref(),
-            shots.unwrap_or(1),
-            rng_seed,
-            &mut receiver,
-        )
-    }
+    runner::run_file(
+        path,
+        entry_point.as_deref(),
+        shots.unwrap_or(1),
+        rng_seed,
+        &mut receiver,
+    )
     .map_err(PyErr::new::<PyRuntimeError, _>)?;
     Ok(())
-}
-
-/// Reads the entirety of Python's `sys.stdin` as a byte array.
-fn read_stdin_bytes(py: Python) -> PyResult<Vec<u8>> {
-    // Read from Python's sys.stdin so that the standard input stream
-    // respected by Python (including any redirection or replacement of
-    // sys.stdin) is used.
-    let stdin = py.import("sys")?.getattr("stdin")?;
-    let buffer = stdin.call_method0("read")?;
-    // `read()` may return either `bytes` or `str`; normalize to bytes.
-    if let Ok(bytes) = buffer.extract::<Vec<u8>>() {
-        Ok(bytes)
-    } else if let Ok(text) = buffer.extract::<String>() {
-        Ok(text.into_bytes())
-    } else {
-        Err(PyErr::new::<PyRuntimeError, _>(
-            "Failed to read bytes from sys.stdin",
-        ))
-    }
 }
 
 #[pyfunction]

@@ -14,7 +14,7 @@ class Output:
     def _repr_html_(self) -> str: ...
 
 def run(
-    path: Optional[str] = None,
+    path: str,
     entry_point: Optional[str] = None,
     shots: Optional[int] = None,
     rng_seed: Optional[int] = None,
@@ -22,7 +22,7 @@ def run(
 ):
     """
     Runs the supplied QIR (bitcode or textual IR) file.
-    :param path: Path to the QIR file to run. If not provided or '-', standard input will be read.
+    :param path: (Required) Path to the QIR file to run
     :param entry_point: Name of the entry point function to execute.
         Default is `None`.
     :param shots: The number of times to repeat the execution of
