@@ -387,7 +387,7 @@ fn run_input_matches_run_file() {
 
     let mut input_output = Vec::new();
     let input_result = run_input(
-        std::io::Cursor::new(&contents),
+        &mut std::io::Cursor::new(&contents),
         None,
         1,
         None,
@@ -401,7 +401,7 @@ fn run_input_matches_run_file() {
 #[test]
 fn run_input_errors_on_empty_input() {
     let result = run_input(
-        std::io::Cursor::new(Vec::<u8>::new()),
+        &mut std::io::Cursor::new(Vec::<u8>::new()),
         None,
         1,
         None,

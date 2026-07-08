@@ -5,6 +5,7 @@
 
 use clap::error::ErrorKind;
 use clap::{Command, arg, crate_version, value_parser};
+use std::io::IsTerminal;
 use std::{ffi::OsString, path::PathBuf};
 
 /// # Errors
@@ -26,6 +27,7 @@ where
         arg!(-r --rngseed <NUM> "The value to use when seeding the random number generator used for quantum simulation")
             .value_parser(value_parser!(u64))
         ]).version(crate_version!());
+    let mut help_cmd = cmd.clone();
     let matches = match args {
         Some(args) => cmd.try_get_matches_from(args),
         None => cmd.try_get_matches(),
@@ -60,15 +62,19 @@ where
                 .map_or(None, Option::<&u64>::copied);
             let output = &mut std::io::stdout();
 
-            match file {
-                Some(path) => crate::run_file(path, entry_point, shots, rng_seed, output),
-                None => crate::run_input(
+            if let Some(path) = file {
+                crate::run_file(path, entry_point, shots, rng_seed, output)
+            } else {
+                if std::io::stdin().is_terminal() {
+                    return help_cmd.print_help().map_err(|e| e.to_string());
+                }
+                crate::run_input(
                     &mut std::io::stdin().lock(),
                     entry_point,
                     shots,
                     rng_seed,
                     output,
-                ),
+                )
             }
         }
     }

@@ -65,7 +65,7 @@ pub fn run_file(
 /// - `entry_point` is not found in the QIR.
 /// - Entry point has parameters or a non-void return type.
 pub fn run_input<R: Read>(
-    mut input: R,
+    input: &mut R,
     entry_point: Option<&str>,
     shots: u32,
     rng_seed: Option<u64>,
