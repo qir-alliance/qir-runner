@@ -3,7 +3,7 @@
 
 use std::io::BufWriter;
 
-use runner::{OUTPUT, run_bitcode, run_bytes, run_file};
+use runner::{OUTPUT, run_bitcode, run_bytes, run_file, run_input};
 
 // This group of tests verifies the behavior of QIR execution with a series of quantum gate checks based on the Choi–Jamiołkowski Isomorphism.
 // They will verify the behavior of body, adjoint, controlled, and controlled adjoint specializations of each gate against decompositions thereof,
@@ -364,4 +364,48 @@ fn barrier_is_noop() {
             .replace("\r\n", "\n"),
         "START\nMETADATA\tentry_point\nMETADATA\toutput_labeling_schema\nMETADATA\tqir_profiles\tbase_profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\nOUTPUT\tRESULT\t0\nEND\t0\n"
     );
+}
+
+// Verify that `run_input` produces the same
+// output as `run_file` for textual IR.
+#[test]
+fn run_input_matches_run_file() {
+    OUTPUT.with(|output| {
+        let mut output = output.borrow_mut();
+        output.use_std_out(false);
+    });
+
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("resources")
+        .join("teleportation.ll");
+    let contents = std::fs::read(&path).expect("should be able to read teleportation.ll");
+
+    let mut file_output = Vec::new();
+    let file_result = run_file(&path, None, 1, None, &mut file_output);
+    assert!(file_result.is_ok());
+
+    let mut input_output = Vec::new();
+    let input_result = run_input(
+        &mut std::io::Cursor::new(&contents),
+        None,
+        1,
+        None,
+        &mut input_output,
+    );
+    assert!(input_result.is_ok());
+
+    assert_eq!(file_output, input_output);
+}
+
+#[test]
+fn run_input_errors_on_empty_input() {
+    let result = run_input(
+        &mut std::io::Cursor::new(Vec::<u8>::new()),
+        None,
+        1,
+        None,
+        &mut std::io::sink(),
+    );
+    assert!(result.is_err());
 }

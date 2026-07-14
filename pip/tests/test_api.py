@@ -83,5 +83,8 @@ def test_main_works_with_args() -> None:
 def test_main_works_without_args() -> None:
     try:
         _native.main()
+        assert False, "Expected RuntimeError"
     except RuntimeError as ex:
-        assert "For more information, try '--help'" in str(ex)
+        assert "For more information, try '--help'" in str(
+            ex
+        ) or "Input is empty" in str(ex)
