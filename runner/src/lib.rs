@@ -421,6 +421,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__cos__body, 1);
     bind!(__quantum__qis__cosh__body, 1);
     bind!(__quantum__qis__cx__body, 2);
+    bind!(__quantum__qis__cy__body, 2);
     bind!(__quantum__qis__cz__body, 2);
     bind!(__quantum__qis__drawrandomdouble__body, 2);
     bind!(__quantum__qis__drawrandomint__body, 2);
