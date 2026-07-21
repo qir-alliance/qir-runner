@@ -602,6 +602,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__tuple_create, 1);
     bind!(__quantum__rt__tuple_update_alias_count, 2);
     bind!(__quantum__rt__tuple_update_reference_count, 2);
+    bind!(__quantum__rt__write_result, 2);
 
     if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
         || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
