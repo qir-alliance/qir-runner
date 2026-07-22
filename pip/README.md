@@ -196,4 +196,5 @@ ptr @__quantum__rt__tuple_create(i64)
 void @__quantum__rt__tuple_record_output(i64, ptr)
 void @__quantum__rt__tuple_update_alias_count(ptr, i32)
 void @__quantum__rt__tuple_update_reference_count(ptr, i32)
+void @__quantum__rt__write_result(i1, ptr)
 ```

@@ -711,6 +711,23 @@ pub extern "C" fn __quantum__rt__read_result(result: *mut c_void) -> bool {
     __quantum__qis__read_result__body(result)
 }
 
+/// QIR API that writes the given Boolean value to the given result identifier, overwriting any previous value stored there.
+#[allow(clippy::missing_panics_doc)]
+// reason="Panics can only occur if the result index is not found in the BitVec after resizing, which should not happen."
+#[unsafe(no_mangle)]
+pub extern "C" fn __quantum__rt__write_result(value: bool, result: *mut c_void) {
+    SIM_STATE.with(|sim_state| {
+        let res = &mut sim_state.borrow_mut().res;
+        let res_id = result as usize;
+        if res.len() < res_id + 1 {
+            res.resize(res_id + 1, false);
+        }
+
+        *res.get_mut(res_id)
+            .expect("Result with given id missing after expansion.") = value;
+    });
+}
+
 /// QIR API that measures a given qubit in the computational basis, returning a runtime managed result value.
 #[unsafe(no_mangle)]
 pub extern "C" fn __quantum__qis__m__body(qubit: *mut c_void) -> *mut c_void {
