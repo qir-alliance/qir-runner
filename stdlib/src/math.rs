@@ -3,7 +3,7 @@
 
 // TODO: transition math functions to `__quantum__rt` once compiler support is ready (https://github.com/microsoft/qsharp-compiler/issues/1557).
 
-use rand::Rng;
+use rand::RngExt;
 use std::ffi::c_double;
 
 use crate::strings::convert;
@@ -113,7 +113,7 @@ pub extern "C" fn __quantum__qis__drawrandomint__body(min: i64, max: i64) -> i64
             __quantum__rt__fail(convert(&"Invalid Argument: minimum > maximum".to_string()));
         }
     }
-    rand::thread_rng().gen_range(min..=max)
+    rand::rng().random_range(min..=max)
 }
 
 #[unsafe(no_mangle)]
@@ -123,5 +123,5 @@ pub extern "C" fn __quantum__qis__drawrandomdouble__body(min: c_double, max: c_d
             __quantum__rt__fail(convert(&"Invalid Argument: minimum > maximum".to_string()));
         }
     }
-    rand::thread_rng().gen_range(min..=max)
+    rand::rng().random_range(min..=max)
 }

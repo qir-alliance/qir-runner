@@ -17,6 +17,7 @@ use inkwell::{
     attributes::AttributeLoc,
     context::Context,
     execution_engine::ExecutionEngine,
+    llvm_sys::{core::LLVMCreateMemoryBufferWithMemoryRange, ir_reader::LLVMParseIRInContext},
     memory_buffer::MemoryBuffer,
     module::Module,
     passes::{PassBuilderOptions, PassManager},
@@ -25,10 +26,11 @@ use inkwell::{
 };
 use std::{
     collections::HashMap,
-    ffi::OsStr,
+    ffi::{CStr, CString, OsStr, c_char},
     io::{Read, Write},
+    iter::once,
     path::Path,
-    ptr::null_mut,
+    ptr::{self, NonNull, null_mut},
 };
 
 /// # Errors
@@ -57,6 +59,31 @@ pub fn run_file(
 /// # Errors
 ///
 /// Will return `Err` if
+/// - The input cannot be read from `input`.
+/// - The input is empty.
+/// - The input does not contain a valid bitcode module or LLVM IR string.
+/// - `entry_point` is not found in the QIR.
+/// - Entry point has parameters or a non-void return type.
+pub fn run_input<R: Read>(
+    input: &mut R,
+    entry_point: Option<&str>,
+    shots: u32,
+    rng_seed: Option<u64>,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
+    let mut bytes = Vec::new();
+    input
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("Failed to read input: {e}"))?;
+    if bytes.is_empty() {
+        return Err("Input is empty".to_string());
+    }
+    run_bytes(&bytes, entry_point, shots, rng_seed, output_writer)
+}
+
+/// # Errors
+///
+/// Will return `Err` if
 /// - `bytes` does not contain a valid bitcode module
 /// - `entry_point` is not found in the QIR
 /// - Entry point has parameters or a non-void return type.
@@ -66,10 +93,50 @@ pub fn run_bitcode(
     shots: u32,
     output_writer: &mut impl Write,
 ) -> Result<(), String> {
+    run_bytes(bytes, entry_point, shots, None, output_writer)
+}
+
+/// # Errors
+///
+/// Will return `Err` if
+/// - `bytes` does not contain a valid bitcode module or LLVM IR string
+/// - `entry_point` is not found in the QIR
+/// - Entry point has parameters or a non-void return type.
+pub fn run_bytes(
+    bytes: &[u8],
+    entry_point: Option<&str>,
+    shots: u32,
+    rng_seed: Option<u64>,
+    output_writer: &mut impl Write,
+) -> Result<(), String> {
+    if let Some(seed) = rng_seed {
+        qir_backend::set_rng_seed(seed);
+    }
+
     let context = Context::create();
-    let buffer = MemoryBuffer::create_from_memory_range(bytes, "");
-    let module = Module::parse_bitcode_from_buffer(&buffer, &context).map_err(|e| e.to_string())?;
-    run_module(&module, entry_point, shots, output_writer)
+
+    // To know if the bytes are bitcode, check for both the wrapped and non-wrapped magic bytes.
+    // See the definition for llvm::isBitCode at https://llvm.org/doxygen/namespacellvm.html#ae0ccf1c0633b02c90c21118d0c1c7ec4
+    // for reference.
+    let bytes_len = bytes.len();
+    if bytes_len < 4 {
+        return Err("byte array is too short".to_string());
+    }
+    let is_bitcode =
+        bytes[0..4] == [0xDE, 0xC0, 0x17, 0x0B] || bytes[0..4] == [0x42, 0x43, 0xC0, 0xDE];
+    let bytes = if is_bitcode {
+        bytes.to_vec()
+    } else {
+        // The bytes represent LLVM IR string, so we must ensure it is null-terminated.
+        // Note that we use the original bytes length to avoid including the null terminator in the IR parsing, which would cause it to fail.
+        bytes.iter().copied().chain(once(0_u8)).collect()
+    };
+
+    let buffer = MemoryBuffer::create_from_memory_range(&bytes[0..bytes_len], Default::default());
+    context
+        .create_module_from_ir(buffer)
+        .map_err(|e| format!("Failed to parse module from IR: {}", e.to_string()))
+        .and_then(|module| run_module(&module, entry_point, shots, output_writer))
 }
 
 fn run_module(
@@ -161,7 +228,7 @@ fn run_module(
     Ok(())
 }
 
-fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module, String> {
+fn load_file(path: impl AsRef<Path>, context: &Context) -> Result<Module<'_>, String> {
     let path = path.as_ref();
     let extension = path.extension().and_then(OsStr::to_str);
 
@@ -293,7 +360,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                         func.get_params().len()
                     ));
                 }
-                execution_engine.add_global_mapping(func, $func as usize);
+                execution_engine.add_global_mapping(func, $func as *const () as usize);
                 declarations.remove(stringify!($func));
             }
         };
@@ -304,7 +371,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             if let Some(func) = declarations.get(stringify!($func)) {
                 execution_engine.add_global_mapping(
                     func,
-                    qir_backend::output_recording::legacy::$func as usize,
+                    qir_backend::output_recording::legacy::$func as *const () as usize,
                 );
                 declarations.remove(stringify!($func));
                 Some(true)
@@ -320,12 +387,12 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
                 if func.get_params().len() == 1 {
                     execution_engine.add_global_mapping(
                         func,
-                        qir_backend::output_recording::legacy::$func as usize,
+                        qir_backend::output_recording::legacy::$func as *const () as usize,
                     );
                     declarations.remove(stringify!($func));
                     Some(true)
                 } else {
-                    execution_engine.add_global_mapping(func, $func as usize);
+                    execution_engine.add_global_mapping(func, $func as *const () as usize);
                     declarations.remove(stringify!($func));
                     Some(false)
                 }
@@ -354,6 +421,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__cos__body, 1);
     bind!(__quantum__qis__cosh__body, 1);
     bind!(__quantum__qis__cx__body, 2);
+    bind!(__quantum__qis__cy__body, 2);
     bind!(__quantum__qis__cz__body, 2);
     bind!(__quantum__qis__drawrandomdouble__body, 2);
     bind!(__quantum__qis__drawrandomint__body, 2);
@@ -430,13 +498,16 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             if func.get_params().len() == 1 {
                 execution_engine.add_global_mapping(
                     func,
-                    qir_backend::legacy_output::__quantum__rt__result_record_output as usize,
+                    qir_backend::legacy_output::__quantum__rt__result_record_output as *const ()
+                        as usize,
                 );
                 declarations.remove("__quantum__rt__result_record_output");
                 Some(true)
             } else {
-                execution_engine
-                    .add_global_mapping(func, __quantum__rt__result_record_output as usize);
+                execution_engine.add_global_mapping(
+                    func,
+                    __quantum__rt__result_record_output as *const () as usize,
+                );
                 declarations.remove("__quantum__rt__result_record_output");
                 Some(false)
             }
@@ -449,11 +520,15 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     // implementation based on number of arguments.
     if let Some(func) = declarations.get("__quantum__qis__m__body") {
         if func.get_params().len() == 2 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__mz__body as usize);
+            execution_engine.add_global_mapping(
+                func,
+                qir_backend::__quantum__qis__mz__body as *const () as usize,
+            );
         } else if func.get_params().len() == 1 {
-            execution_engine
-                .add_global_mapping(func, qir_backend::__quantum__qis__m__body as usize);
+            execution_engine.add_global_mapping(
+                func,
+                qir_backend::__quantum__qis__m__body as *const () as usize,
+            );
         } else {
             return Err(format!(
                 "Function '__quantum__qis__m__body' has mismatched parameters: expected 1 or 2, found {}",
@@ -528,6 +603,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__rt__tuple_create, 1);
     bind!(__quantum__rt__tuple_update_alias_count, 2);
     bind!(__quantum__rt__tuple_update_reference_count, 2);
+    bind!(__quantum__rt__write_result, 2);
 
     if !(uses_legacy.iter().filter_map(|&b| b).all(|b| b)
         || uses_legacy.iter().filter_map(|&b| b).all(|b| !b))
@@ -542,7 +618,7 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
             .expect("Declarations list should be non-empty.");
         Err(format!(
             "Failed to link some declared functions: {}",
-            rest.iter().fold((*first).to_string(), |mut accum, f| {
+            rest.iter().fold((*first).clone(), |mut accum, f| {
                 accum.push_str(", ");
                 accum.push_str(f);
                 accum

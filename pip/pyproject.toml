@@ -1,6 +1,7 @@
 [project]
 name = "qirrunner"
-version = "0.8.3"
+version = "0.9.6"
+readme = "README.md"
 requires-python = ">= 3.9"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -19,10 +20,10 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest ~= 8.2.1"]
+test = ["pytest >= 8.2.1,< 9.1.0"]
 
 [build-system]
-requires = ["maturin ~= 1.8.3"]
+requires = ["maturin ~= 1.10.2"]
 build-backend = "maturin"
 
 [tool.maturin]

@@ -34,6 +34,27 @@ def run(
         the output is printed to the console.
     """
 
+def run_bytes(
+    bytes: bytes,
+    entry_point: Optional[str] = None,
+    shots: Optional[int] = None,
+    rng_seed: Optional[int] = None,
+    output_fn: Optional[Callable[[Output], None]] = None,
+):
+    """
+    Runs the supplied QIR (bitcode or textual IR) from a byte array.
+    :param bytes: (Required) The QIR to run, as a byte array.
+    :param entry_point: Name of the entry point function to execute.
+        Default is `None`.
+    :param shots: The number of times to repeat the execution of
+        the chosen entry point in the program. Default is 1.
+    :param rngseed: The value to use when seeding the random number generator
+        used for quantum simulation.
+    :param output_fn: A callback function to receive the output of the QIR
+        runtime functions. Default is `None`. When no callback is provided,
+        the output is printed to the console.
+    """
+
 def main(args: Optional[List[str]]):
     """
     Main function for the QIR runner. This is only used when the runner is

@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from qirrunner._native import run, Output
+from qirrunner._native import run, run_bytes, Output
 
 
 class OutputHandler:
@@ -26,4 +26,4 @@ class OutputHandler:
         return "".join(self._output)
 
 
-__all__ = ["run", "Output", "OutputHandler"]
+__all__ = ["run", "run_bytes", "Output", "OutputHandler"]
