@@ -99,8 +99,8 @@ fn flat_controlled_r_and_exp() {
     );
     assert_result("r Y", &ir(r_declarations, &r_y_body, 1), 1);
 
-    let r_inverse = "call void @__quantum__qis__r__ctladj(i2 1, double 0.7853981633974483, %Array* %controls, %Qubit* inttoptr (i64 1 to %Qubit*))";
-    let r_forward = r_call.replace("3.141592653589793", "0.7853981633974483");
+    let r_inverse = "call void @__quantum__qis__r__ctladj(i2 1, double 1.5707963267948966, %Array* %controls, %Qubit* inttoptr (i64 1 to %Qubit*))";
+    let r_forward = r_call.replace("3.141592653589793", "1.5707963267948966");
     assert_result(
         "r adjoint",
         &ir(
@@ -162,8 +162,10 @@ fn legacy_controlled_tuples() {
     assert_result("legacy r", &ir(r_declaration, &r_body, 1), 1);
     let r_adj_declarations =
         format!("{r_declaration}\ndeclare void @__quantum__qis__r__ctladj(%Array*, i8*)");
-    let r_adj_body =
-        format!("{r_body}\n  call void @__quantum__qis__r__ctladj(%Array* %controls, i8* %tuple)");
+    let r_adj_body = format!(
+        "{}\n  call void @__quantum__qis__r__ctladj(%Array* %controls, i8* %tuple)",
+        r_body.replace("3.141592653589793", "1.5707963267948966")
+    );
     assert_result(
         "legacy r adjoint",
         &ir(&r_adj_declarations, &r_adj_body, 1),
@@ -178,7 +180,8 @@ fn legacy_controlled_tuples() {
     let exp_adj_declarations =
         format!("{exp_declaration}\ndeclare void @__quantum__qis__exp__ctladj(%Array*, i8*)");
     let exp_adj_body = format!(
-        "{exp_body}\n  call void @__quantum__qis__exp__ctladj(%Array* %controls, i8* %tuple)"
+        "{}\n  call void @__quantum__qis__exp__ctladj(%Array* %controls, i8* %tuple)",
+        exp_body.replace("1.5707963267948966", "0.7853981633974483")
     );
     assert_result(
         "legacy exp adjoint",
