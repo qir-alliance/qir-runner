@@ -207,9 +207,8 @@ void @__quantum__rt__write_result(i1, ptr)
 
 For controlled parameterized gates, the two-pointer form passes a control array
 and a tuple of the gate's original arguments. The flat `rx`, `ry`, and `rz`
-forms pass `(angle, controls, target)`, matching CUDA-Q. The flat `r` form passes
+forms pass `(angle, controls, target)`. The flat `r` form passes
 `(pauli, angle, controls, target)`, and the flat `exp` form passes
-`(paulis, angle, controls, targets)`; these last two are QIR Runner conventions,
-not CUDA-Q gate signatures. `pauli` is `I=0`, `X=1`, `Z=2`, or `Y=3`;
+`(paulis, angle, controls, targets)`. `pauli` is `I=0`, `X=1`, `Z=2`, or `Y=3`;
 `paulis` is an array with one such value per target. Adjoint `r` and `exp`
 use the same argument order with the existing `__ctladj` names.
