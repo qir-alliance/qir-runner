@@ -366,6 +366,28 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
         };
     }
 
+    macro_rules! bind_controlled {
+        ($legacy:ident, $flat:ident, $flat_count:expr) => {
+            if let Some(func) = declarations.get(stringify!($legacy)) {
+                let count = func.get_params().len();
+                let implementation = if count == 2 {
+                    $legacy as *const () as usize
+                } else if count == $flat_count {
+                    $flat as *const () as usize
+                } else {
+                    return Err(format!(
+                        "Function '{}' has mismatched parameters: expected 2 or {}, found {}",
+                        stringify!($legacy),
+                        $flat_count,
+                        count
+                    ));
+                };
+                execution_engine.add_global_mapping(func, implementation);
+                declarations.remove(stringify!($legacy));
+            }
+        };
+    }
+
     macro_rules! legacy_output {
         ($func:ident) => {
             if let Some(func) = declarations.get(stringify!($func)) {
@@ -428,8 +450,12 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__dumpmachine__body, 1);
     bind!(__quantum__qis__exp__body, 3);
     bind!(__quantum__qis__exp__adj, 3);
-    bind!(__quantum__qis__exp__ctl, 2);
-    bind!(__quantum__qis__exp__ctladj, 2);
+    bind_controlled!(__quantum__qis__exp__ctl, __quantum__qis__exp__ctl_flat, 4);
+    bind_controlled!(
+        __quantum__qis__exp__ctladj,
+        __quantum__qis__exp__ctladj_flat,
+        4
+    );
     bind!(__quantum__qis__h__body, 1);
     bind!(__quantum__qis__h__ctl, 2);
     bind!(__quantum__qis__ieeeremainder__body, 2);
@@ -444,18 +470,18 @@ fn bind_functions(module: &Module, execution_engine: &ExecutionEngine) -> Result
     bind!(__quantum__qis__nan__body, 0);
     bind!(__quantum__qis__r__adj, 3);
     bind!(__quantum__qis__r__body, 3);
-    bind!(__quantum__qis__r__ctl, 2);
-    bind!(__quantum__qis__r__ctladj, 2);
+    bind_controlled!(__quantum__qis__r__ctl, __quantum__qis__r__ctl_flat, 4);
+    bind_controlled!(__quantum__qis__r__ctladj, __quantum__qis__r__ctladj_flat, 4);
     bind!(__quantum__qis__read_result__body, 1);
     bind!(__quantum__qis__reset__body, 1);
     bind!(__quantum__qis__rx__body, 2);
-    bind!(__quantum__qis__rx__ctl, 2);
+    bind_controlled!(__quantum__qis__rx__ctl, __quantum__qis__rx__ctl_flat, 3);
     bind!(__quantum__qis__rxx__body, 3);
     bind!(__quantum__qis__ry__body, 2);
-    bind!(__quantum__qis__ry__ctl, 2);
+    bind_controlled!(__quantum__qis__ry__ctl, __quantum__qis__ry__ctl_flat, 3);
     bind!(__quantum__qis__ryy__body, 3);
     bind!(__quantum__qis__rz__body, 2);
-    bind!(__quantum__qis__rz__ctl, 2);
+    bind_controlled!(__quantum__qis__rz__ctl, __quantum__qis__rz__ctl_flat, 3);
     bind!(__quantum__qis__rzz__body, 3);
     bind!(__quantum__qis__s__adj, 1);
     bind!(__quantum__qis__s__body, 1);

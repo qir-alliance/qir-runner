@@ -379,7 +379,7 @@ struct RotationArgs {
 
 macro_rules! multicontrolled_qubit_rotation {
     ($(#[$meta:meta])*
-    $qir_name:ident, $gate:expr) => {
+    $qir_name:ident, $flat_name:ident, $gate:expr) => {
         $(#[$meta])*
         /// # Safety
         ///
@@ -390,12 +390,24 @@ macro_rules! multicontrolled_qubit_rotation {
             ctls: *const QirArray,
             arg_tuple: *mut *const Vec<u8>,
         ) { unsafe {
+            let args = *arg_tuple.cast::<RotationArgs>();
+            $flat_name(args.theta, ctls, args.qubit);
+        }}
+
+        /// QIR API for applying the same controlled rotation with flat arguments.
+        /// # Safety
+        ///
+        /// `ctls` must be an array created by the QIR runtime library.
+        #[allow(non_snake_case)]
+        #[allow(clippy::cast_ptr_alignment)]
+        pub unsafe extern "C" fn $flat_name(
+            theta: c_double,
+            ctls: *const QirArray,
+            qubit: *mut c_void,
+        ) { unsafe {
             SIM_STATE.with(|sim_state| {
                 let state = &mut *sim_state.borrow_mut();
-
-                let args = *arg_tuple.cast::<RotationArgs>();
-
-                ensure_sufficient_qubits(&mut state.sim, args.qubit as usize, &mut state.max_qubit_id);
+                ensure_sufficient_qubits(&mut state.sim, qubit as usize, &mut state.max_qubit_id);
                 let ctls_size = __quantum__rt__array_get_size_1d(ctls);
                 let ctls_list: Vec<usize> = (0..ctls_size)
                     .map(|index| {
@@ -409,8 +421,8 @@ macro_rules! multicontrolled_qubit_rotation {
                 $gate(
                     &mut state.sim,
                     &ctls_list,
-                    args.theta,
-                    args.qubit as usize,
+                    theta,
+                    qubit as usize,
                 );
             });
         }}
@@ -420,16 +432,19 @@ macro_rules! multicontrolled_qubit_rotation {
 multicontrolled_qubit_rotation!(
     /// QIR API for applying a multicontrolled Pauli-X rotation with the given angle and qubit.
     __quantum__qis__rx__ctl,
+    __quantum__qis__rx__ctl_flat,
     QuantumSim::mcrx
 );
 multicontrolled_qubit_rotation!(
     /// QIR API for applying a multicontrolled Pauli-Y rotation with the given angle and qubit.
     __quantum__qis__ry__ctl,
+    __quantum__qis__ry__ctl_flat,
     QuantumSim::mcry
 );
 multicontrolled_qubit_rotation!(
     /// QIR API for applying a multicontrolled Pauli-Z rotation with the given angle and qubit.
     __quantum__qis__rz__ctl,
+    __quantum__qis__rz__ctl_flat,
     QuantumSim::mcrz
 );
 
@@ -517,7 +532,7 @@ pub extern "C" fn __quantum__qis__r__adj(pauli: Pauli, theta: c_double, qubit: *
 #[derive(Copy, Clone)]
 #[repr(C)]
 struct PauliRotationArgs {
-    pauli: Pauli,
+    pauli: u8,
     theta: c_double,
     qubit: *mut c_void,
 }
@@ -534,25 +549,36 @@ pub unsafe extern "C" fn __quantum__qis__r__ctl(
 ) {
     unsafe {
         let args = *arg_tuple.cast::<PauliRotationArgs>();
-        let rot_args = RotationArgs {
-            theta: args.theta,
-            qubit: args.qubit,
-        };
-        let rot_arg_tuple = __quantum__rt__tuple_create(size_of::<RotationArgs>() as u64);
-        *rot_arg_tuple.cast::<RotationArgs>() = rot_args;
+        __quantum__qis__r__ctl_flat(args.pauli, args.theta, ctls, args.qubit);
+    }
+}
 
-        match args.pauli {
-            Pauli::X => __quantum__qis__rx__ctl(ctls, rot_arg_tuple),
-            Pauli::Y => __quantum__qis__ry__ctl(ctls, rot_arg_tuple),
-            Pauli::Z => __quantum__qis__rz__ctl(ctls, rot_arg_tuple),
-            Pauli::I => {
+/// QIR API for applying a controlled Pauli rotation with flat arguments.
+/// # Safety
+///
+/// `ctls` must be an array created by the QIR runtime library.
+#[allow(non_snake_case)]
+#[allow(clippy::cast_ptr_alignment)]
+pub unsafe extern "C" fn __quantum__qis__r__ctl_flat(
+    pauli: u8,
+    theta: c_double,
+    ctls: *const QirArray,
+    qubit: *mut c_void,
+) {
+    unsafe {
+        // LLVM i2 arguments may leave upper bits unspecified in the native register.
+        match pauli & 0b11 {
+            1 => __quantum__qis__rx__ctl_flat(theta, ctls, qubit),
+            3 => __quantum__qis__ry__ctl_flat(theta, ctls, qubit),
+            2 => __quantum__qis__rz__ctl_flat(theta, ctls, qubit),
+            _ => {
                 if __quantum__rt__array_get_size_1d(ctls) > 0 {
                     SIM_STATE.with(|sim_state| {
                         let state = &mut *sim_state.borrow_mut();
 
                         ensure_sufficient_qubits(
                             &mut state.sim,
-                            args.qubit as usize,
+                            qubit as usize,
                             &mut state.max_qubit_id,
                         );
                         let ctls_size = __quantum__rt__array_get_size_1d(ctls);
@@ -573,7 +599,7 @@ pub unsafe extern "C" fn __quantum__qis__r__ctl(
                         if let Some((head, rest)) = ctls_list.split_first() {
                             state.sim.mcphase(
                                 rest,
-                                Complex64::exp(Complex64::new(0.0, -args.theta / 2.0)),
+                                Complex64::exp(Complex64::new(0.0, -theta / 2.0)),
                                 *head,
                             );
                         }
@@ -581,8 +607,6 @@ pub unsafe extern "C" fn __quantum__qis__r__ctl(
                 }
             }
         }
-
-        __quantum__rt__tuple_update_reference_count(rot_arg_tuple, -1);
     }
 }
 
@@ -597,16 +621,22 @@ pub unsafe extern "C" fn __quantum__qis__r__ctladj(
 ) {
     unsafe {
         let args = *arg_tuple.cast::<PauliRotationArgs>();
-        let new_args = PauliRotationArgs {
-            pauli: args.pauli,
-            theta: -args.theta,
-            qubit: args.qubit,
-        };
-        let new_arg_tuple = __quantum__rt__tuple_create(size_of::<PauliRotationArgs>() as u64);
-        *new_arg_tuple.cast::<PauliRotationArgs>() = new_args;
-        __quantum__qis__r__ctl(ctls, new_arg_tuple);
-        __quantum__rt__tuple_update_reference_count(new_arg_tuple, -1);
+        __quantum__qis__r__ctladj_flat(args.pauli, args.theta, ctls, args.qubit);
     }
+}
+
+/// QIR API for applying an adjoint controlled Pauli rotation with flat arguments.
+/// # Safety
+///
+/// `ctls` must be an array created by the QIR runtime library.
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn __quantum__qis__r__ctladj_flat(
+    pauli: u8,
+    theta: c_double,
+    ctls: *const QirArray,
+    qubit: *mut c_void,
+) {
+    unsafe { __quantum__qis__r__ctl_flat(pauli, -theta, ctls, qubit) }
 }
 
 /// QIR API for applying a SWAP gate to the given qubits.
@@ -1060,14 +1090,15 @@ mod tests {
     use crate::{
         __quantum__qis__cnot__body, __quantum__qis__cx__body, __quantum__qis__cz__body,
         __quantum__qis__dumpmachine__body, __quantum__qis__h__body, __quantum__qis__m__body,
-        __quantum__qis__mresetz__body, __quantum__qis__mz__body, __quantum__qis__read_result__body,
-        __quantum__qis__rx__body, __quantum__qis__rxx__body, __quantum__qis__ry__body,
-        __quantum__qis__ryy__body, __quantum__qis__rz__body, __quantum__qis__rzz__body,
-        __quantum__qis__s__adj, __quantum__qis__s__body, __quantum__qis__x__body,
-        __quantum__rt__qubit_allocate, __quantum__rt__qubit_allocate_array,
-        __quantum__rt__qubit_release, __quantum__rt__qubit_release_array,
-        __quantum__rt__result_equal, SIM_STATE, capture_quantum_state, map_to_z_basis,
-        qubit_is_zero, result_bool::__quantum__rt__result_get_one, unmap_from_z_basis,
+        __quantum__qis__mresetz__body, __quantum__qis__mz__body, __quantum__qis__r__ctl,
+        __quantum__qis__read_result__body, __quantum__qis__rx__body, __quantum__qis__rxx__body,
+        __quantum__qis__ry__body, __quantum__qis__ryy__body, __quantum__qis__rz__body,
+        __quantum__qis__rzz__body, __quantum__qis__s__adj, __quantum__qis__s__body,
+        __quantum__qis__x__body, __quantum__rt__qubit_allocate,
+        __quantum__rt__qubit_allocate_array, __quantum__rt__qubit_release,
+        __quantum__rt__qubit_release_array, __quantum__rt__result_equal, PauliRotationArgs,
+        SIM_STATE, capture_quantum_state, map_to_z_basis, qubit_is_zero,
+        result_bool::__quantum__rt__result_get_one, unmap_from_z_basis,
     };
     use num_bigint::BigUint;
     use qir_stdlib::{
@@ -1093,6 +1124,33 @@ mod tests {
         assert!(!__quantum__qis__read_result__body(r0));
         assert!(!__quantum__qis__read_result__body(3 as *mut c_void));
         __quantum__qis__dumpmachine__body(null_mut());
+    }
+
+    #[allow(clippy::cast_ptr_alignment)]
+    #[test]
+    fn controlled_r_masks_pauli_bits() {
+        super::__quantum__rt__initialize(null_mut());
+        let controls =
+            __quantum__rt__array_create_1d(std::mem::size_of::<usize>().try_into().unwrap(), 1);
+        let target = 1 as *mut c_void;
+        let args = super::__quantum__rt__tuple_create(
+            std::mem::size_of::<PauliRotationArgs>().try_into().unwrap(),
+        );
+        unsafe {
+            *args.cast::<PauliRotationArgs>() = PauliRotationArgs {
+                pauli: 0xf3,
+                theta: PI,
+                qubit: target,
+            };
+            *__quantum__rt__array_get_element_ptr_1d(controls, 0).cast::<*mut c_void>() =
+                null_mut();
+            __quantum__qis__x__body(null_mut());
+            __quantum__qis__r__ctl(controls, args);
+            __quantum__qis__mz__body(target, null_mut());
+            assert!(__quantum__qis__read_result__body(null_mut()));
+            super::__quantum__rt__tuple_update_reference_count(args, -1);
+            __quantum__rt__array_update_reference_count(controls, -1);
+        }
     }
 
     #[allow(clippy::cast_ptr_alignment)]
