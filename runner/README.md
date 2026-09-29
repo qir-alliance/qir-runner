@@ -25,8 +25,9 @@ void @__quantum__qis__dumpmachine__body()
 void @__quantum__qis__exp__adj(ptr, double, ptr)
 void @__quantum__qis__exp__body(ptr, double, ptr)
 void @__quantum__qis__exp__ctl(ptr, ptr)
+void @__quantum__qis__exp__ctl(ptr, double, ptr, ptr)
 void @__quantum__qis__exp__ctladj(ptr, ptr)
-void @__quantum__qis__exp__ctl(ptr, ptr)
+void @__quantum__qis__exp__ctladj(ptr, double, ptr, ptr)
 void @__quantum__qis__h__body(ptr)
 void @__quantum__qis__h__ctl(ptr, ptr)
 double @__quantum__qis__ieeeremainder__body(double, double)
@@ -43,17 +44,22 @@ double @__quantum__qis__nan__body()
 void @__quantum__qis__r__adj(i2, double, ptr)
 void @__quantum__qis__r__body(i2, double, ptr)
 void @__quantum__qis__r__ctl(ptr, ptr)
+void @__quantum__qis__r__ctl(i2, double, ptr, ptr)
 void @__quantum__qis__r__ctladj(ptr, ptr)
+void @__quantum__qis__r__ctladj(i2, double, ptr, ptr)
 bool @__quantum__qis__read_result__body(ptr)
 void @__quantum__qis__reset__body(ptr)
 void @__quantum__qis__rx__body(double, ptr)
 void @__quantum__qis__rx__ctl(ptr, ptr)
+void @__quantum__qis__rx__ctl(double, ptr, ptr)
 void @__quantum__qis__rxx__body(double, ptr, ptr)
 void @__quantum__qis__ry__body(double, ptr)
 void @__quantum__qis__ry__ctl(ptr, ptr)
+void @__quantum__qis__ry__ctl(double, ptr, ptr)
 void @__quantum__qis__ryy__body(double, ptr, ptr)
 void @__quantum__qis__rz__body(double, ptr)
 void @__quantum__qis__rz__ctl(ptr, ptr)
+void @__quantum__qis__rz__ctl(double, ptr, ptr)
 void @__quantum__qis__rzz__body(double, ptr, ptr)
 void @__quantum__qis__s__adj(ptr)
 void @__quantum__qis__s__body(ptr)
@@ -151,3 +157,11 @@ void @__quantum__rt__tuple_update_alias_count(ptr, i32)
 void @__quantum__rt__tuple_update_reference_count(ptr, i32)
 void @__quantum__rt__write_result(i1, ptr)
 ```
+
+For controlled parameterized gates, the two-pointer form passes a control array
+and a tuple of the gate's original arguments. The flat `rx`, `ry`, and `rz`
+forms pass `(angle, controls, target)`. The flat `r` form passes
+`(pauli, angle, controls, target)`, and the flat `exp` form passes
+`(paulis, angle, controls, targets)`. `pauli` is `I=0`, `X=1`, `Z=2`, or `Y=3`;
+`paulis` is an array with one such value per target. Adjoint `r` and `exp`
+use the same argument order with the existing `__ctladj` names.
