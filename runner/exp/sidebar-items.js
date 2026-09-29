@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["__quantum__qis__exp__adj","__quantum__qis__exp__body","__quantum__qis__exp__ctl","__quantum__qis__exp__ctladj"]};
+window.SIDEBAR_ITEMS = {"fn":["__quantum__qis__exp__adj","__quantum__qis__exp__body","__quantum__qis__exp__ctl","__quantum__qis__exp__ctl_flat","__quantum__qis__exp__ctladj","__quantum__qis__exp__ctladj_flat"]};
