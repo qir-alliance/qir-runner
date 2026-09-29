@@ -50,6 +50,8 @@ runs:
       shell: pwsh
 
     - name: Install LLVM
+      env:
+        CMAKE_INSTALL_PREFIX: ${{ inputs.directory }}
       run: |
         . ${{ github.workspace }}/llvm-build/vcvars.ps1
         $env:QIRLIB_DOWNLOAD_LLVM = "false"
