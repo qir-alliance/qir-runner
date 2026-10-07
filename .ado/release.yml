@@ -24,6 +24,10 @@ variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.93"
   PYTHON_VERSION: "3.11"
+  PYTHON_315_VERSION: "3.15.0rc2"
+  PYTHON_315_COMMIT: "435c9e5a798c99653e3ab64ce29baed0e4f3dfee"
+  PYTHON_315_DIRECTORY: $(Pipeline.Workspace)/python-3.15-arm64
+  PYTHON_315_CACHE_COUNTER: 1
   LLVM_VERSION: 20
   # use this to invalidate the cache. Any time we update the OS
   # image, we should increment this to ensure that the cache is rebuilt.
@@ -269,6 +273,167 @@ extends:
                       python -m pip install --force-reinstall --no-index --find-links=target/wheels qirrunner
                       python -m pytest --verbose pip
                     displayName: Test Python packages
+                    condition: succeeded()
+
+                  - task: UsePythonVersion@0
+                    inputs:
+                      versionSpec: ">=3.15.0-a0 <3.16.0"
+                      allowUnstable: true
+                      ${{ if eq(target.arch, 'aarch64') }}:
+                        architecture: "arm64"
+                    displayName: Set Up Python 3.15 for ABI3T
+                    condition: and(succeeded(), not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))))
+
+                  - task: Cache@2
+                    inputs:
+                      key: '"python-$(PYTHON_315_VERSION)-$(PYTHON_315_COMMIT)-azurelinux-3.0-arm64-gil-enabled-$(PYTHON_315_CACHE_COUNTER)"'
+                      path: $(PYTHON_315_DIRECTORY)
+                      cacheHitVar: PYTHON_315_CACHE_RESTORED
+                    displayName: Cache Python 3.15 on Azure Linux ARM64
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
+
+                  - script: |
+                      set -euo pipefail
+
+                      python_version="$(PYTHON_315_VERSION)"
+                      source_dir="$(Agent.TempDirectory)/cpython-$python_version-$(System.JobId)"
+                      prefix="$(PYTHON_315_DIRECTORY)"
+
+                      if [ "$(PYTHON_315_CACHE_RESTORED)" != "true" ]; then
+                        sudo tdnf install -y \
+                          git \
+                          make \
+                          bzip2-devel \
+                          expat-devel \
+                          libffi-devel \
+                          ncurses-devel \
+                          openssl-devel \
+                          pkgconf-pkg-config \
+                          readline-devel \
+                          sqlite-devel \
+                          xz-devel \
+                          zlib-devel
+
+                        git clone \
+                          --branch "v$python_version" \
+                          --depth 1 \
+                          --single-branch \
+                          https://github.com/python/cpython.git \
+                          "$source_dir"
+
+                        actual_commit="$(git -C "$source_dir" rev-parse HEAD)"
+                        expected_commit="$(PYTHON_315_COMMIT)"
+                        echo "Expected CPython commit: $expected_commit"
+                        echo "Actual CPython commit:   $actual_commit"
+                        if [ "$actual_commit" != "$expected_commit" ]; then
+                          echo "ERROR: CPython v$python_version resolved to an unexpected commit." >&2
+                          exit 1
+                        fi
+
+                        cd "$source_dir"
+                        ./configure --prefix="$prefix" --with-ensurepip=install
+                        jobs="$(nproc)"
+                        make -j"$jobs"
+                        make install
+                      else
+                        echo "Using cached Python installation from $prefix"
+                      fi
+
+                      python_bin="$prefix/bin/python3.15"
+                      test -x "$python_bin"
+                      ln -sf "$python_bin" "$prefix/bin/python"
+                      ln -sf "$python_bin" "$prefix/bin/python3"
+
+                      "$python_bin" --version
+                      "$python_bin" -c 'import platform, sys; from pathlib import Path; actual_executable = Path(sys.executable).resolve(); expected_executable = Path(sys.argv[1]).resolve(); actual_prefix = Path(sys.prefix).resolve(); expected_prefix = Path(sys.argv[2]).resolve(); print("Executable:", actual_executable); print("Prefix:", actual_prefix); print("Architecture:", platform.machine()); print("GIL enabled:", sys._is_gil_enabled()); assert sys.version_info[:2] == (3, 15); assert sys._is_gil_enabled(); assert platform.machine().lower() in {"aarch64", "arm64"}; assert actual_executable == expected_executable; assert actual_prefix == expected_prefix' "$python_bin" "$prefix"
+
+                      echo "##vso[task.prependpath]$prefix/bin"
+                    displayName: Build Python 3.15 from source on Azure Linux ARM64
+                    condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))
+
+                  - pwsh: |
+                      $pythonCommand = (Get-Command python -ErrorAction Stop).Source
+                      Write-Host "Selected Python command: $pythonCommand"
+                      python -c 'import platform, sys; print("Executable:", sys.executable); print("Version:", sys.version); print("Architecture:", platform.machine()); print("Prefix:", sys.prefix); print("GIL enabled:", sys._is_gil_enabled()); assert sys.version_info[:2] == (3, 15); assert sys._is_gil_enabled()'
+
+                      if ("$(Agent.OS)" -eq "Linux" -and "$(arch)" -eq "aarch64") {
+                        $expectedPython = Join-Path "$(PYTHON_315_DIRECTORY)" "bin/python3.15"
+                        python -c 'import platform, sys; from pathlib import Path; actual_executable = Path(sys.executable).resolve(); expected_executable = Path(sys.argv[1]).resolve(); actual_prefix = Path(sys.prefix).resolve(); expected_prefix = Path(sys.argv[2]).resolve(); assert platform.machine().lower() in {"aarch64", "arm64"}; assert actual_executable == expected_executable; assert actual_prefix == expected_prefix' $expectedPython "$(PYTHON_315_DIRECTORY)"
+                      }
+                    displayName: Verify Python 3.15 for ABI3T
+                    condition: succeeded()
+
+                  - script: |
+                      python -m pip install -U pip
+                      python -m pip install -r pip/requirements.txt
+                    displayName: Install Python 3.15 build packages
+                    condition: succeeded()
+
+                  - script: |
+                      python -m build --verbose --wheel --config-setting=build-args="--compatibility" ./pip
+                    displayName: Create ABI3T Python wheel
+                    condition: succeeded()
+
+                  - pwsh: |
+                      $wheelDirectory = Join-Path "$(System.DefaultWorkingDirectory)" "target/wheels"
+                      $qirRunnerWheels = @(
+                        Get-ChildItem -Path $wheelDirectory -Filter "qirrunner-*.whl" -File
+                      )
+                      $abi3WheelMatches = @(
+                        $qirRunnerWheels | Where-Object Name -Like "qirrunner-*-cp39-abi3-*.whl"
+                      )
+                      $abi3tWheelMatches = @(
+                        $qirRunnerWheels | Where-Object Name -Like "qirrunner-*-cp315-abi3.abi3t-*.whl"
+                      )
+                      $unexpectedWheelMatches = @(
+                        $qirRunnerWheels | Where-Object {
+                          $_.Name -NotLike "qirrunner-*-cp39-abi3-*.whl" -and
+                          $_.Name -NotLike "qirrunner-*-cp315-abi3.abi3t-*.whl"
+                        }
+                      )
+
+                      if ($abi3WheelMatches.Count -ne 1) {
+                        $matchingNames = $abi3WheelMatches.Name -join ", "
+                        throw "Expected exactly one ABI3 wheel, found $($abi3WheelMatches.Count): $matchingNames"
+                      }
+                      if ($abi3tWheelMatches.Count -ne 1) {
+                        $matchingNames = $abi3tWheelMatches.Name -join ", "
+                        throw "Expected exactly one ABI3T wheel, found $($abi3tWheelMatches.Count): $matchingNames"
+                      }
+                      if ($unexpectedWheelMatches.Count -ne 0) {
+                        $unexpectedNames = $unexpectedWheelMatches.Name -join ", "
+                        throw "Found unexpected QIR Runner wheels: $unexpectedNames"
+                      }
+                      if ($qirRunnerWheels.Count -ne 2) {
+                        $wheelNames = $qirRunnerWheels.Name -join ", "
+                        throw "Expected exactly two QIR Runner wheels, found $($qirRunnerWheels.Count): $wheelNames"
+                      }
+
+                      Write-Host "Final QIR Runner wheels:"
+                      $qirRunnerWheels | Sort-Object Name | ForEach-Object {
+                        Write-Host "  $($_.Name)"
+                      }
+                    displayName: Validate QIR Runner wheels
+                    condition: succeeded()
+
+                  - pwsh: |
+                      $wheelDirectory = Join-Path "$(System.DefaultWorkingDirectory)" "target/wheels"
+                      $abi3tWheelMatches = @(
+                        Get-ChildItem -Path $wheelDirectory -Filter "qirrunner-*-cp315-abi3.abi3t-*.whl" -File
+                      )
+                      if ($abi3tWheelMatches.Count -ne 1) {
+                        $matchingNames = $abi3tWheelMatches.Name -join ", "
+                        throw "Expected exactly one ABI3T wheel for testing, found $($abi3tWheelMatches.Count): $matchingNames"
+                      }
+
+                      $abi3tWheel = $abi3tWheelMatches[0]
+                      Write-Host "Testing ABI3T wheel: $($abi3tWheel.Name)"
+                      python -m pip install -r pip/requirements-test.txt
+                      python -m pip uninstall -y qirrunner
+                      python -m pip install --force-reinstall --no-index $abi3tWheel.FullName
+                      python -c 'import qirrunner, sys; print("Imported QIR Runner:", qirrunner.__file__); print("Python:", sys.version); print("GIL enabled:", sys._is_gil_enabled()); assert sys.version_info[:2] == (3, 15); assert sys._is_gil_enabled()'
+                      python -m pytest --verbose pip
+                    displayName: Test ABI3T Python wheel
                     condition: succeeded()
 
                   # publish the python artifacts
