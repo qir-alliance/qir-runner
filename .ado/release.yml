@@ -24,7 +24,7 @@ variables:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN_VERSION: "1.93"
   PYTHON_VERSION: "3.11"
-  PYTHON_315_VERSION: "3.15.0rc2"
+  PYTHON_315_VERSION: "3.15.0rc3"
   PYTHON_315_DIRECTORY: $(Pipeline.Workspace)/python-3.15-arm64
   PYTHON_315_CACHE_COUNTER: 1
   PYTHON_315_PREBUILT_VERSION: "3.15.0-rc.3"
@@ -82,6 +82,8 @@ parameters:
         python315tAssetUrl: "https://github.com/actions/python-versions/releases/download/3.15.0-rc.3-37256039299/python-3.15.0-rc.3-win32-x64-freethreaded.zip"
         python315tAssetSha256Variable: PYTHON_315T_WINDOWS_X64_SHA256
         python315tToolcacheArch: x64-freethreaded
+        python315tMsiUrl: "https://www.python.org/ftp/python/3.15.0/amd64rc3/freethreaded.msi"
+        python315tMsiSha256Variable: PYTHON_315T_WINDOWS_X64_MSI_SHA256
       - name: windows_aarch64
         poolName: 'Azure-Pipelines-DevTools-ARM64-EO'
         imageName: 'windows-2025-gen2-arm64'
@@ -90,6 +92,8 @@ parameters:
         python315tAssetUrl: "https://github.com/actions/python-versions/releases/download/3.15.0-rc.3-37256039299/python-3.15.0-rc.3-win32-arm64-freethreaded.zip"
         python315tAssetSha256Variable: PYTHON_315T_WINDOWS_ARM64_SHA256
         python315tToolcacheArch: arm64-freethreaded
+        python315tMsiUrl: "https://www.python.org/ftp/python/3.15.0/arm64rc3/freethreaded.msi"
+        python315tMsiSha256Variable: PYTHON_315T_WINDOWS_ARM64_MSI_SHA256
   
 extends:
   template: v1/1ES.Official.PipelineTemplate.yml@1ESPipelineTemplates
@@ -126,6 +130,8 @@ extends:
                     PYTHON_315T_TOOLCACHE_ARCH: ${{ target.python315tToolcacheArch }}
                   ${{ if eq(target.os, 'windows') }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
+                    PYTHON_315T_MSI_URL: ${{ target.python315tMsiUrl }}
+                    PYTHON_315T_MSI_SHA256_VARIABLE: ${{ target.python315tMsiSha256Variable }}
                   ${{ else }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
                 timeoutInMinutes: 300
@@ -516,6 +522,34 @@ extends:
                         throw "Expected exactly one $setupScriptName in $assetName, found $($setupScriptMatches.Count): $matchingNames"
                       }
 
+                      if ("$(Agent.OS)" -eq "Windows_NT") {
+                        $msiUrl = $env:PYTHON_315T_MSI_URL
+                        $expectedMsiSha256Variable = $env:PYTHON_315T_MSI_SHA256_VARIABLE
+                        if ([string]::IsNullOrWhiteSpace($msiUrl) -or
+                            [string]::IsNullOrWhiteSpace($expectedMsiSha256Variable)) {
+                          throw "Missing pinned Python 3.15t MSI metadata for this Windows target."
+                        }
+
+                        $expectedMsiSha256 = [Environment]::GetEnvironmentVariable($expectedMsiSha256Variable)
+                        if ($expectedMsiSha256 -notmatch "^[a-fA-F0-9]{64}$") {
+                          throw "Define the non-secret ADO pipeline variable $expectedMsiSha256Variable with the published SHA-256 for this Python 3.15t MSI."
+                        }
+
+                        $msiName = [System.IO.Path]::GetFileName(([Uri]$msiUrl).AbsolutePath)
+                        if ($msiName -ne "freethreaded.msi") {
+                          throw "Expected the Python 3.15t MSI to be named freethreaded.msi, got $msiName."
+                        }
+                        $msiPath = Join-Path $setupScriptMatches[0].DirectoryName $msiName
+
+                        Write-Host "Downloading pinned Python 3.15t MSI: $msiUrl"
+                        Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath
+                        $actualMsiSha256 = (Get-FileHash -LiteralPath $msiPath -Algorithm SHA256).Hash.ToLowerInvariant()
+                        if ($actualMsiSha256 -ne $expectedMsiSha256.ToLowerInvariant()) {
+                          throw "SHA-256 mismatch for ${msiName}: expected $expectedMsiSha256, got $actualMsiSha256."
+                        }
+                        Write-Host "Verified SHA-256 for ${msiName}: $actualMsiSha256"
+                      }
+
                       $toolDirectory = "$(Agent.ToolsDirectory)"
                       if ([string]::IsNullOrWhiteSpace($toolDirectory)) {
                         throw "Agent.ToolsDirectory is required to install the Python 3.15t distribution."
@@ -527,7 +561,15 @@ extends:
                         if ("$(Agent.OS)" -eq "Windows_NT") {
                           $setupScriptPath = $setupScriptMatches[0].FullName
                           $setupScriptLines = @(Get-Content -LiteralPath $setupScriptPath)
+                          $bootstrapperCopy = 'Copy-Item -Path ./$PythonExecName -Destination $PythonArchPath | Out-Null'
                           $installerInvocation = 'cmd.exe /c "cd $PythonArchPath && call $PythonExecName $ExecParams /quiet"'
+                          $bootstrapperCopyIndexes = @(
+                            for ($index = 0; $index -lt $setupScriptLines.Count; $index++) {
+                              if ($setupScriptLines[$index].Trim() -eq $bootstrapperCopy) {
+                                $index
+                              }
+                            }
+                          )
                           $installerInvocationIndexes = @(
                             for ($index = 0; $index -lt $setupScriptLines.Count; $index++) {
                               if ($setupScriptLines[$index].Trim() -eq $installerInvocation) {
@@ -535,70 +577,65 @@ extends:
                               }
                             }
                           )
+                          if ($bootstrapperCopyIndexes.Count -ne 1) {
+                            throw "Expected exactly one CPython bootstrapper copy in $setupScriptPath, found $($bootstrapperCopyIndexes.Count)."
+                          }
                           if ($installerInvocationIndexes.Count -ne 1) {
                             throw "Expected exactly one CPython installer invocation in $setupScriptPath, found $($installerInvocationIndexes.Count)."
                           }
 
+                          $bootstrapperCopyIndex = $bootstrapperCopyIndexes[0]
                           $installerInvocationIndex = $installerInvocationIndexes[0]
                           if ($installerInvocationIndex + 1 -ge $setupScriptLines.Count -or
                               $setupScriptLines[$installerInvocationIndex + 1].Trim() -ne 'if ($LASTEXITCODE -ne 0) {') {
                             throw "The CPython installer exit-code check in $setupScriptPath has an unexpected format."
                           }
 
-                          $instrumentedSetupScript = [System.Collections.Generic.List[string]]::new()
+                          $patchedSetupScript = [System.Collections.Generic.List[string]]::new()
                           for ($index = 0; $index -lt $setupScriptLines.Count; $index++) {
-                            if ($index -eq $installerInvocationIndex) {
-                              $instrumentedSetupScript.Add('Write-Host (''CPython installer command: cmd.exe /c "cd {0} && call {1} {2} /quiet"'' -f $PythonArchPath, $PythonExecName, $ExecParams)')
-                              $instrumentedSetupScript.Add($setupScriptLines[$index])
-                              $instrumentedSetupScript.Add('$PythonInstallerExitCode = $LASTEXITCODE')
-                              $instrumentedSetupScript.Add('Write-Host "CPython installer exit code: $PythonInstallerExitCode"')
+                            if ($index -eq $bootstrapperCopyIndex) {
+                              $patchedSetupScript.Add($setupScriptLines[$index])
+                              $patchedSetupScript.Add('Copy-Item -Path ./freethreaded.msi -Destination $PythonArchPath | Out-Null')
+                            }
+                            elseif ($index -eq $installerInvocationIndex) {
+                              $patchedSetupScript.Add('$PythonInstallerPath = Join-Path $PythonArchPath $PythonExecName')
+                              $patchedSetupScript.Add('$PythonInstallerArguments = ''call "{0}" {1} /quiet'' -f $PythonInstallerPath, $ExecParams')
+                              $patchedSetupScript.Add('Write-Host "CPython installer command: cmd.exe /c $PythonInstallerArguments"')
+                              $patchedSetupScript.Add('cmd.exe /c $PythonInstallerArguments')
+                              $patchedSetupScript.Add('$PythonInstallerExitCode = $LASTEXITCODE')
+                              $patchedSetupScript.Add('Write-Host "CPython installer exit code: $PythonInstallerExitCode"')
                             }
                             elseif ($index -eq $installerInvocationIndex + 1) {
-                              $instrumentedSetupScript.Add('if ($PythonInstallerExitCode -ne 0) {')
+                              $patchedSetupScript.Add('if ($PythonInstallerExitCode -ne 0) {')
                             }
                             else {
-                              $instrumentedSetupScript.Add($setupScriptLines[$index])
+                              $patchedSetupScript.Add($setupScriptLines[$index])
                             }
                           }
-                          Set-Content -LiteralPath $setupScriptPath -Value $instrumentedSetupScript -Encoding utf8
+                          Set-Content -LiteralPath $setupScriptPath -Value $patchedSetupScript -Encoding utf8
 
                           $setupStartTimeUtc = [DateTime]::UtcNow
                           & powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $setupScriptMatches[0].FullName
                           $setupExitCode = $LASTEXITCODE
                           Write-Host "Python 3.15t setup.ps1 exit code: $setupExitCode"
                           if ($setupExitCode -ne 0) {
-                            $installerLogs = @(
-                              Get-ChildItem -Path $env:TEMP -Filter "*.log" -File -Recurse -ErrorAction SilentlyContinue |
+                            $installerLog = @(
+                              Get-ChildItem -Path $env:TEMP -Filter "Python *.log" -File -Recurse -ErrorAction SilentlyContinue |
                                 Where-Object {
                                   $_.LastWriteTimeUtc -ge $setupStartTimeUtc.AddSeconds(-5) -and
-                                  $_.Name -match "(?i)python|cpython"
+                                  $_.BaseName -match "_\d{14}$"
                                 } |
-                                Sort-Object LastWriteTimeUtc, FullName
-                            )
-                            if ($installerLogs.Count -eq 0) {
-                              Write-Warning "No CPython installer logs created after $setupStartTimeUtc were found under $env:TEMP."
+                                Sort-Object LastWriteTimeUtc, FullName |
+                                Select-Object -Last 1
+                            )[0]
+                            if ($null -eq $installerLog) {
+                              Write-Warning "No CPython bootstrapper log created after $setupStartTimeUtc was found under $env:TEMP."
                             }
                             else {
-                              $diagnosticPatterns = @(
-                                "(?i)already installed|another version|existing install|related (bundle|package)|product.{0,80}(register|registration)",
-                                "(?i)(msi|windows installer).{0,120}(error|fail)|(error|failed|failure).{0,120}(msi|0x[0-9a-f]+|[1-9][0-9]{2,})|return value 3",
-                                "(?i)architecture.{0,120}(error|fail|mismatch|unsupported)|access (is )?denied|permission|target(dir| directory).{0,120}(error|fail|invalid)"
-                              )
-                              foreach ($installerLog in $installerLogs) {
-                                Write-Host "CPython installer log: $($installerLog.FullName)"
-                                $diagnosticMatches = @(
-                                  Select-String -LiteralPath $installerLog.FullName -Pattern $diagnosticPatterns
-                                )
-                                if ($diagnosticMatches.Count -gt 0) {
-                                  Write-Host "===== MATCHED CPYTHON INSTALLER DIAGNOSTICS: $($installerLog.FullName) ====="
-                                  foreach ($diagnosticMatch in $diagnosticMatches) {
-                                    Write-Host "$($diagnosticMatch.Path):$($diagnosticMatch.LineNumber): $($diagnosticMatch.Line)"
-                                  }
-                                }
-                                Write-Host "===== FINAL 250 LINES OF CPYTHON INSTALLER LOG: $($installerLog.FullName) ====="
-                                Get-Content -LiteralPath $installerLog.FullName -Tail 250
-                                Write-Host "===== END CPYTHON INSTALLER LOG: $($installerLog.FullName) ====="
-                              }
+                              Write-Host "CPython bootstrapper log: $($installerLog.FullName)"
+                              Write-Host "===== FINAL 250 LINES OF CPYTHON BOOTSTRAPPER LOG ====="
+                              Get-Content -LiteralPath $installerLog.FullName -Tail 250
+                              Write-Host "===== END CPYTHON BOOTSTRAPPER LOG ====="
                             }
                             throw "Python 3.15t setup failed with exit code $setupExitCode."
                           }
@@ -616,7 +653,7 @@ extends:
 
                       $installDirectory = Join-Path $toolDirectory "Python/$(PYTHON_315_PREBUILT_VERSION)/$toolcacheArchitecture"
                       $pythonExecutable = if ("$(Agent.OS)" -eq "Windows_NT") {
-                        Join-Path $installDirectory "python.exe"
+                        Join-Path $installDirectory "python3.15t.exe"
                       }
                       else {
                         Join-Path $installDirectory "bin/python"
