@@ -313,6 +313,39 @@ extends:
                     displayName: Create Non-Linux Python wheel
                     condition: succeeded()
 
+                  - ${{ if or(eq(target.os, 'windows'), eq(target.os, 'macOS')) }}:
+                      - pwsh: |
+                          $pythonLocation = "$(Python315t.pythonLocation)"
+                          $pythonExecutable = if ($IsWindows) {
+                            Join-Path $pythonLocation "python.exe"
+                          }
+                          else {
+                            Join-Path $pythonLocation "bin/python"
+                          }
+
+                          & $pythonExecutable -m pip install -r pip/requirements.txt
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install Python build requirements under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -m build --verbose --wheel "--config-setting=build-args=--compatibility" ./pip
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to build the ABI3T wheel under Python 3.15t."
+                          }
+
+                          $wheelDirectory = Join-Path "$(System.DefaultWorkingDirectory)" "target/wheels"
+                          $abi3tWheels = @(
+                            Get-ChildItem -LiteralPath $wheelDirectory -Filter "qirrunner-*-cp315-abi3.abi3t-*.whl" -File
+                          )
+                          if ($abi3tWheels.Count -ne 1) {
+                            $matchingPaths = $abi3tWheels.FullName -join ", "
+                            throw "Expected exactly one ABI3T wheel, found $($abi3tWheels.Count): $matchingPaths"
+                          }
+
+                          Write-Host "ABI3T wheel: $($abi3tWheels[0].FullName)"
+                        displayName: Build ABI3T wheel with Python 3.15t
+                        condition: succeeded()
+
                   # test the Python packages
 
                   - script: |
