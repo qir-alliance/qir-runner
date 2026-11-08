@@ -332,6 +332,17 @@ extends:
                           if ($LASTEXITCODE -ne 0) {
                             throw "Failed to build the ABI3T wheel under Python 3.15t."
                           }
+                        displayName: Build ABI3T wheel with Python 3.15t
+                        condition: succeeded()
+
+                      - pwsh: |
+                          $pythonLocation = "$(Python315t.pythonLocation)"
+                          $pythonExecutable = if ($IsWindows) {
+                            Join-Path $pythonLocation "python.exe"
+                          }
+                          else {
+                            Join-Path $pythonLocation "bin/python"
+                          }
 
                           $wheelDirectory = Join-Path "$(System.DefaultWorkingDirectory)" "target/wheels"
                           $abi3tWheels = @(
@@ -339,11 +350,31 @@ extends:
                           )
                           if ($abi3tWheels.Count -ne 1) {
                             $matchingPaths = $abi3tWheels.FullName -join ", "
-                            throw "Expected exactly one ABI3T wheel, found $($abi3tWheels.Count): $matchingPaths"
+                            throw "Expected exactly one ABI3T wheel for testing, found $($abi3tWheels.Count): $matchingPaths"
                           }
 
-                          Write-Host "ABI3T wheel: $($abi3tWheels[0].FullName)"
-                        displayName: Build ABI3T wheel with Python 3.15t
+                          $abi3tWheel = $abi3tWheels[0]
+                          Write-Host "Testing ABI3T wheel: $($abi3tWheel.FullName)"
+                          & $pythonExecutable -m pip install -r pip/requirements-test.txt
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install Python test requirements under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -m pip install --force-reinstall --no-index $abi3tWheel.FullName
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install the ABI3T wheel under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -I -c 'import qirrunner; print("Imported QIR Runner:", qirrunner.__file__)'
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to import the installed ABI3T wheel in isolated mode under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -I -m pytest --import-mode=importlib --verbose pip/tests
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "QIR Runner tests failed under Python 3.15t."
+                          }
+                        displayName: Test ABI3T wheel with Python 3.15t
                         condition: succeeded()
 
                   # test the Python packages
