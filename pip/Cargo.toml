@@ -18,6 +18,9 @@ pyo3 = { workspace = true, features = ["abi3-py39", "extension-module"] }
 [target.'cfg(any(target_os = "windows"))'.dependencies]
 pyo3 = { workspace = true, features = ["abi3-py39", "extension-module", "generate-import-lib"] }
 
+[target.'cfg(any(target_os = "windows", target_os = "macos"))'.dependencies]
+pyo3 = { workspace = true, features = ["abi3t-py315"] }
+
 [lib]
 crate-type = ["cdylib"]
 

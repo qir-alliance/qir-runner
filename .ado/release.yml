@@ -101,6 +101,10 @@ extends:
                     ARCHFLAGS: ${{ target.ARCHFLAGS }}
                   ${{ if eq(target.os, 'windows') }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)\target\llvm
+                    ${{ if eq(target.arch, 'aarch64') }}:
+                      PYTHON315T_NUGET_PACKAGE: pythonarm64-freethreaded
+                    ${{ else }}:
+                      PYTHON315T_NUGET_PACKAGE: python-freethreaded
                   ${{ else }}:
                     LLVM_DIRECTORY: $(Build.SourcesDirectory)/target/llvm
                 timeoutInMinutes: 300
@@ -144,6 +148,53 @@ extends:
                         architecture: "arm64"
                     displayName: Install Python $(PYTHON_VERSION)
                     condition: and(succeeded(), not(and(eq(variables['Agent.OS'], 'Linux'), eq(variables['arch'], 'aarch64'))))
+
+                  - ${{ if eq(target.os, 'windows') }}:
+                      - task: NuGetCommand@2
+                        displayName: Download Python 3.15.2 free-threaded
+                        inputs:
+                          command: custom
+                          # Pin CFS so NuGet cannot fall back to nuget.org.
+                          arguments: >-
+                            install $(PYTHON315T_NUGET_PACKAGE)
+                            -Version 3.15.2
+                            -ExcludeVersion
+                            -OutputDirectory "$(Agent.TempDirectory)\python315t"
+                            -Source https://pkgs.dev.azure.com/ms-azurequantum/AzureQuantum/_packaging/azure-quantum/nuget/v3/index.json
+
+                      - pwsh: |
+                          $pythonExecutable = (Resolve-Path -LiteralPath (Join-Path "$(Agent.TempDirectory)" "python315t\$(PYTHON315T_NUGET_PACKAGE)\tools\python.exe") -ErrorAction Stop).Path
+                          $pythonLocation = Split-Path -Parent $pythonExecutable
+                          Write-Host "##vso[task.setvariable variable=pythonLocation;isOutput=true]$pythonLocation"
+                        name: Python315t
+                        displayName: Locate Python 3.15.2 free-threaded
+
+                  - ${{ if eq(target.os, 'macOS') }}:
+                      - task: UsePythonVersion@0
+                        name: Python315t
+                        inputs:
+                          versionSpec: "3.15.2"
+                          addToPath: false
+                          ${{ if eq(target.arch, 'aarch64') }}:
+                            architecture: "arm64-freethreaded"
+                          ${{ else }}:
+                            architecture: "x64-freethreaded"
+                        displayName: Install Python 3.15.2 free-threaded
+
+                  - ${{ if or(eq(target.os, 'windows'), eq(target.os, 'macOS')) }}:
+                      - pwsh: |
+                          $pythonLocation = "$(Python315t.pythonLocation)"
+                          $pythonExecutable = if ($IsWindows) {
+                            Join-Path $pythonLocation "python.exe"
+                          }
+                          else {
+                            Join-Path $pythonLocation "bin/python"
+                          }
+                          & $pythonExecutable -c 'import sys, sysconfig; print(sys.executable); print(sys.version); gil_disabled = sysconfig.get_config_var("Py_GIL_DISABLED"); print("Py_GIL_DISABLED:", gil_disabled); assert sys.version_info[:3] == (3, 15, 2); assert gil_disabled == 1'
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Python 3.15.2 free-threaded interpreter verification failed."
+                          }
+                        displayName: Verify Python 3.15.2 free-threaded
 
                   # UsePythonVersion@0 does not support aarch64, so we install Python manually
                   # using tdnf on Azure Linux 3.0 aarch64
@@ -261,6 +312,70 @@ extends:
                       python -m build --verbose --wheel --config-setting=build-args="--compatibility" ./pip
                     displayName: Create Non-Linux Python wheel
                     condition: succeeded()
+
+                  - ${{ if or(eq(target.os, 'windows'), eq(target.os, 'macOS')) }}:
+                      - pwsh: |
+                          $pythonLocation = "$(Python315t.pythonLocation)"
+                          $pythonExecutable = if ($IsWindows) {
+                            Join-Path $pythonLocation "python.exe"
+                          }
+                          else {
+                            Join-Path $pythonLocation "bin/python"
+                          }
+
+                          & $pythonExecutable -m pip install -r pip/requirements.txt
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install Python build requirements under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -m build --verbose --wheel "--config-setting=build-args=--compatibility" ./pip
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to build the ABI3T wheel under Python 3.15t."
+                          }
+                        displayName: Build ABI3T wheel with Python 3.15t
+                        condition: succeeded()
+
+                      - pwsh: |
+                          $pythonLocation = "$(Python315t.pythonLocation)"
+                          $pythonExecutable = if ($IsWindows) {
+                            Join-Path $pythonLocation "python.exe"
+                          }
+                          else {
+                            Join-Path $pythonLocation "bin/python"
+                          }
+
+                          $wheelDirectory = Join-Path "$(System.DefaultWorkingDirectory)" "target/wheels"
+                          $abi3tWheels = @(
+                            Get-ChildItem -LiteralPath $wheelDirectory -Filter "qirrunner-*-cp315-abi3.abi3t-*.whl" -File
+                          )
+                          if ($abi3tWheels.Count -ne 1) {
+                            $matchingPaths = $abi3tWheels.FullName -join ", "
+                            throw "Expected exactly one ABI3T wheel for testing, found $($abi3tWheels.Count): $matchingPaths"
+                          }
+
+                          $abi3tWheel = $abi3tWheels[0]
+                          Write-Host "Testing ABI3T wheel: $($abi3tWheel.FullName)"
+                          & $pythonExecutable -m pip install -r pip/requirements-test.txt
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install Python test requirements under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -m pip install --force-reinstall --no-index $abi3tWheel.FullName
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to install the ABI3T wheel under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -I -c 'import qirrunner; print("Imported QIR Runner:", qirrunner.__file__)'
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "Failed to import the installed ABI3T wheel in isolated mode under Python 3.15t."
+                          }
+
+                          & $pythonExecutable -I -m pytest --import-mode=importlib --verbose pip/tests
+                          if ($LASTEXITCODE -ne 0) {
+                            throw "QIR Runner tests failed under Python 3.15t."
+                          }
+                        displayName: Test ABI3T wheel with Python 3.15t
+                        condition: succeeded()
 
                   # test the Python packages
 
